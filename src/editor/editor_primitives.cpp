@@ -34,7 +34,7 @@ void Editor::add_primitive(Primitive primitive, bool as_hole)
     }
     auto &group = dune3d::add_primitive(doc, m_core.get_current_group(), primitive, pos, params);
     if (as_hole) {
-        auto &body = *group.find_body(doc).group.m_body;
+        auto &body = *doc.get_group(group.find_body(doc).group.m_uuid).m_body;
         body.m_hole = true;
         body.m_name = "Hole";
     }
