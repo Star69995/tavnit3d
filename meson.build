@@ -48,6 +48,7 @@ endif
 src_common = files(
   'src/util/uuid.cpp',
   'src/document/document.cpp',
+  'src/document/primitives.cpp',
   'src/document/entity/entity.cpp',
   'src/document/entity/entity_and_point.cpp',
   'src/document/entity/entity_line3d.cpp',
@@ -170,6 +171,7 @@ src_gui = files(
   'src/dune3d_appwindow.cpp',
   'src/editor/editor.cpp',
   'src/editor/editor_workspace_browser.cpp',
+  'src/editor/editor_primitives.cpp',
   'src/editor/editor_export.cpp',
   'src/editor/editor_workspace_view.cpp',
   'src/editor/editor_action.cpp',
@@ -474,15 +476,35 @@ icondir = datadir / 'icons/hicolor'
 install_data('src/icons/scalable/apps/dune3d.svg', install_dir: icondir /  'scalable/apps', rename: 'org.dune3d.dune3d.svg')
 
 
-dune3d = executable('dune3d',
-    [src_common, src_gui, resources,icon_texture, color_presets, rc_compiled],
+# GUI-free core, shared by the app and the tests
+dune3d_common = static_library('dune3d_common',
+    src_common,
     dependencies: [build_dependencies],
+    cpp_args: cpp_args,
+    include_directories: include_directories,
+)
+
+dune3d = executable('dune3d',
+    [src_gui, resources,icon_texture, color_presets, rc_compiled],
+    dependencies: [build_dependencies],
+    link_whole: [dune3d_common],
     link_with: [solvespace_nopic, clipper_nopic, dxflib_nopic] + extra_libraries,
     cpp_args: cpp_args,
     include_directories: include_directories,
     win_subsystem: 'windows',
     install: true
 )
+
+test_primitives = executable('test_primitives',
+    'tests/test_primitives.cpp',
+    dependencies: [build_dependencies],
+    link_whole: [dune3d_common],
+    link_with: [solvespace_nopic, clipper_nopic, dxflib_nopic],
+    cpp_args: cpp_args,
+    include_directories: include_directories,
+    build_by_default: true,
+)
+test('primitives', test_primitives, timeout: 120)
 
 dune3d_py = shared_module('dune3d_py',
     [src_common, src_python],

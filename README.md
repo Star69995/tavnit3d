@@ -2,6 +2,12 @@
 
 Dune 3D is a parametric 3D CAD application that supports STEP import/export, fillets and chamfers.
 
+> **About this fork (`studio` branch):** a friendlier, Shapr3D/Tinkercad-style
+> take on Dune 3D for Windows: labelled tool palette, a lighter theme,
+> ready-made Box/Cylinder/Sphere shapes and a typed-in extrude distance.
+> Build on Windows with `tools\build.cmd [test] [dist]` (needs MSYS2 UCRT64,
+> see `CLAUDE.md`).
+
 ![Screenshot showing a PCB in a grey enclosure on a gradient background.](screenshot.png)
 
 ## Motivation

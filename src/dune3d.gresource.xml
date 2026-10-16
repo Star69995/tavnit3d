@@ -54,6 +54,9 @@
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-create-chamfer-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-create-boolean-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-create-sketch-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-box-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-cylinder-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-sphere-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/apps/dune3d.svg</file>
     <file>icon_texture_atlas.png</file>
   </gresource>

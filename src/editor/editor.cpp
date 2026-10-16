@@ -119,6 +119,10 @@ void Editor::init()
     attach_action_button(m_win.get_welcome_open_button(), ActionID::OPEN_DOCUMENT);
     attach_action_button(m_win.get_welcome_new_button(), ActionID::NEW_DOCUMENT);
 
+    m_win.add_action_bar_section("Shapes");
+    create_action_bar_button(ActionID::ADD_BOX, "Box");
+    create_action_bar_button(ActionID::ADD_CYLINDER, "Cylinder");
+    create_action_bar_button(ActionID::ADD_SPHERE, "Sphere");
     m_win.add_action_bar_section("Sketch");
     create_action_bar_button(ActionID::CREATE_GROUP_SKETCH, "New");
     create_action_bar_button(ToolID::DRAW_CONTOUR, "Line");
@@ -300,6 +304,9 @@ Gtk::Button &Editor::create_action_bar_button(ActionToolID action, const std::st
             {ActionID::CREATE_GROUP_FILLET, "action-create-fillet-symbolic"},
             {ActionID::CREATE_GROUP_CHAMFER, "action-create-chamfer-symbolic"},
             {ActionID::CREATE_GROUP_SOLID_MODEL_OPERATION, "action-create-boolean-symbolic"},
+            {ActionID::ADD_BOX, "action-add-box-symbolic"},
+            {ActionID::ADD_CYLINDER, "action-add-cylinder-symbolic"},
+            {ActionID::ADD_SPHERE, "action-add-sphere-symbolic"},
     };
     auto bu = Gtk::make_managed<Gtk::Button>();
     auto img = Gtk::make_managed<Gtk::Image>();

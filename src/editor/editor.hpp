@@ -2,6 +2,7 @@
 #include "editor_interface.hpp"
 #include "core/core.hpp"
 #include <gtkmm.h>
+#include "document/primitives.hpp"
 #include "action/action.hpp"
 #include "preferences/preferences.hpp"
 #include "workspace/workspace_view.hpp"
@@ -90,6 +91,7 @@ private:
     void on_workspace_browser_group_selected(const UUID &uu_doc, const UUID &uu_group);
     void on_add_group(Group::Type group_type, WorkspaceBrowserAddGroupMode add_group_mode);
     void finish_add_group(Group *new_group);
+    void add_primitive(Primitive primitive);
     void on_delete_current_group();
     void on_move_group(Document::MoveGroup op);
     void on_workspace_browser_document_checked(const UUID &uu_doc, bool checked);
