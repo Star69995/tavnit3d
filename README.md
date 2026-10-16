@@ -6,9 +6,9 @@ size, position, colour and material, then export STL for 3D printing - with
 the full parametric CAD underneath.
 
 **Download:** <https://star69995.github.io/tavnit3d/en/> (English) or
-<https://star69995.github.io/tavnit3d/> (Hebrew) - Windows 10/11, 64-bit
+<https://star69995.github.io/tavnit3d/> (Hebrew). Windows 10/11, 64-bit
 installer; the app checks for new versions at start and updates itself in
-one click).
+one click.
 
 ![Tavnit 3D with a rounded box, a metal cylinder, a sphere, a torus and a cone on the floor grid](site/img/hero.webp)
 
