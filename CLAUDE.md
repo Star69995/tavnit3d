@@ -149,6 +149,11 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   head joined with a revolved shank whose ridges are rings, not a helix.
 - Copies in a row (object panel, `Editor::copy_in_a_row`): N x `duplicate_body`
   with an X offset of width + gap; only for objects that have an X position.
+- Holes (`Body::m_hole`, object panel "Hole" switch + "Cut"): drawn as glass,
+  left out of STL/glTF export; `Editor::cut_with_hole` subtracts it from every
+  shown non-hole object whose bounds it touches (`add_combination`).
+- Round hole (palette "Hole"): a 6 x 30 mm cylinder created as a hole body
+  (`Editor::add_primitive(..., as_hole)`); move it into an object and press Cut.
 - Find (`src/editor/action_search.*`, items in `editor_search.cpp`): Ctrl+K
   both as the FIND action and a window-level capture shortcut. When a
   feature lands, add it there with where it lives.

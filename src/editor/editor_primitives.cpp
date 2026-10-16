@@ -17,7 +17,7 @@
 
 namespace dune3d {
 
-void Editor::add_primitive(Primitive primitive)
+void Editor::add_primitive(Primitive primitive, bool as_hole)
 {
     if (m_core.tool_is_active() || !m_core.has_documents())
         return;
@@ -26,7 +26,18 @@ void Editor::add_primitive(Primitive primitive)
     // next to what's there rather than inside it
     const bool first = get_body_solids(doc, m_core.get_current_group()).empty();
     const auto pos = find_free_spot(doc, m_core.get_current_group());
-    auto &group = dune3d::add_primitive(doc, m_core.get_current_group(), primitive, pos);
+    PrimitiveParams params;
+    if (as_hole) {
+        // a 6 mm drill, long enough to go through most things
+        params.diameter = 6;
+        params.height = 30;
+    }
+    auto &group = dune3d::add_primitive(doc, m_core.get_current_group(), primitive, pos, params);
+    if (as_hole) {
+        auto &body = *group.find_body(doc).group.m_body;
+        body.m_hole = true;
+        body.m_name = "Hole";
+    }
     m_core.set_needs_save();
     m_core.rebuild("add " + group.m_name);
     m_workspace_browser->update_documents(get_current_document_views());
