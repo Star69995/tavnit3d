@@ -231,6 +231,11 @@ void Editor::init_actions()
     connect_action(ActionID::ADD_TUBE, [this](auto &a) { add_primitive(Primitive::TUBE); });
     connect_action(ActionID::ADD_TORUS, [this](auto &a) { add_primitive(Primitive::TORUS); });
     connect_action(ActionID::ADD_WEDGE, [this](auto &a) { add_primitive(Primitive::WEDGE); });
+    connect_action(ActionID::ADD_HEXAGON, [this](auto &a) { add_hexagon(); });
+    connect_action(ActionID::ADD_TRIANGLE, [this](auto &a) { add_triangle(); });
+    connect_action(ActionID::ADD_STAR, [this](auto &a) { add_star(); });
+    connect_action(ActionID::ADD_HEART, [this](auto &a) { add_heart(); });
+    connect_action(ActionID::ADD_HALF_SPHERE, [this](auto &a) { add_half_sphere(); });
     connect_action(ActionID::ADD_TEXT, [this](auto &a) { add_text_object(); });
     connect_action(ActionID::ADD_LAMP, [this](auto &a) { add_light(Light::Type::POINT); });
     connect_action(ActionID::ADD_BOWL, [this](auto &a) { add_bowl(); });
@@ -552,7 +557,8 @@ void Editor::update_action_sensitivity(const std::set<SelectableRef> &sel)
     m_action_sensitivity[ActionID::NEW_DOCUMENT] = true;
     m_action_sensitivity[ActionID::FIND] = true;
     for (auto act : {ActionID::ADD_BOX, ActionID::ADD_CYLINDER, ActionID::ADD_SPHERE, ActionID::ADD_CONE, ActionID::ADD_TUBE,
-                     ActionID::ADD_TORUS, ActionID::ADD_WEDGE, ActionID::ADD_TEXT, ActionID::COMBINE_OBJECTS,
+                     ActionID::ADD_TORUS, ActionID::ADD_WEDGE, ActionID::ADD_HEXAGON, ActionID::ADD_TRIANGLE,
+                     ActionID::ADD_STAR, ActionID::ADD_HEART, ActionID::ADD_HALF_SPHERE, ActionID::ADD_TEXT, ActionID::COMBINE_OBJECTS,
                      ActionID::ADD_LAMP, ActionID::ADD_SPOTLIGHT, ActionID::ADD_SUN, ActionID::ADD_BOWL,
                      ActionID::ADD_VASE, ActionID::MAKE_FROM_DESCRIPTION,
                      ActionID::DUPLICATE_OBJECT})

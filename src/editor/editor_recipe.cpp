@@ -8,6 +8,8 @@
 #include "describe_window.hpp"
 #include "dune3d_appwindow.hpp"
 #include "dune3d_application.hpp"
+#include <array>
+#include <cmath>
 
 namespace dune3d {
 
@@ -80,6 +82,67 @@ void Editor::add_bowl()
         "profile": [[0, 0], [22, 0], [30, 6], [38, 18], [42, 30], [0, 30]],
         "hollow": {"thickness": 2.5, "open": "top"}, "round_edges": 1}]})"),
                     "add bowl");
+}
+
+namespace {
+// a recipe for one object extruded from an outline around the origin
+json extruded_recipe(const std::string &name, const std::vector<std::array<double, 2>> &outline, double height,
+                     bool smooth, double round_edges = 0)
+{
+    json o = {{"id", "shape"}, {"name", name}, {"shape", "extrude"}, {"outline", outline}, {"height", height},
+              {"smooth", smooth}};
+    if (round_edges > 0)
+        o["round_edges"] = round_edges;
+    return {{"objects", json::array({o})}};
+}
+} // namespace
+
+void Editor::add_hexagon()
+{
+    std::vector<std::array<double, 2>> pts;
+    for (int i = 0; i < 6; i++)
+        pts.push_back({15 * std::cos(i * M_PI / 3), 15 * std::sin(i * M_PI / 3)});
+    add_from_recipe(extruded_recipe("Hexagon", pts, 12, false), "add hexagon");
+}
+
+void Editor::add_triangle()
+{
+    // an equilateral triangle, 24 mm a side, as a prism lying on a side face: a roof
+    add_from_recipe(extruded_recipe("Triangle", {{-12, 0}, {12, 0}, {0, 20.8}}, 20, false), "add triangle");
+}
+
+void Editor::add_star()
+{
+    std::vector<std::array<double, 2>> pts;
+    for (int i = 0; i < 10; i++) {
+        const double r = i % 2 ? 8 : 20, a = M_PI / 2 + i * M_PI / 5;
+        pts.push_back({r * std::cos(a), r * std::sin(a)});
+    }
+    add_from_recipe(extruded_recipe("Star", pts, 6, false), "add star");
+}
+
+void Editor::add_heart()
+{
+    std::vector<std::array<double, 2>> pts;
+    for (int i = 0; i < 20; i++) {
+        const double t = i * 2 * M_PI / 20;
+        const double x = 16 * std::pow(std::sin(t), 3);
+        const double y = 13 * std::cos(t) - 5 * std::cos(2 * t) - 2 * std::cos(3 * t) - std::cos(4 * t);
+        pts.push_back({std::round(x * 0.8 * 10) / 10, std::round(y * 0.8 * 10) / 10});
+    }
+    add_from_recipe(extruded_recipe("Heart", pts, 6, true), "add heart");
+}
+
+void Editor::add_half_sphere()
+{
+    // a quarter circle of radius 20 from the rim up to the top, revolved
+    json profile = json::array({json::array({0, 0})});
+    for (int i = 0; i <= 5; i++) {
+        const double a = i * M_PI / 10;
+        profile.push_back({std::round(20 * std::cos(a) * 100) / 100, std::round(20 * std::sin(a) * 100) / 100});
+    }
+    json o = {{"id", "dome"}, {"name", "Half sphere"}, {"shape", "revolve"}, {"smooth", true}, {"profile", profile}};
+    add_from_recipe({{"objects", json::array({o})}}, "add half sphere");
 }
 
 void Editor::add_vase()
