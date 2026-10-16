@@ -64,11 +64,17 @@ void Editor::init()
     init_workspace_browser();
     init_properties_notebook();
     init_header_bar();
+    init_autosave();
     init_actions();
     init_tool_popover();
     init_canvas();
 
     m_core.signal_needs_save().connect([this] {
+        // a document that was just saved doesn't need its backup any more
+        for (auto doc : m_core.get_documents()) {
+            if (!doc->get_needs_save())
+                autosave_remove(doc->get_uuid());
+        }
         update_action_sensitivity();
         m_workspace_browser->update_needs_save();
         update_workspace_view_names();
@@ -1066,6 +1072,19 @@ void Editor::init_header_bar()
         updates->append("Check for updates", "win.check_updates");
         updates->append("Check automatically at start", "win.auto_check_updates");
         top->append_section(updates);
+
+        auto saving = Gio::Menu::create();
+        auto backup = Gio::Menu::create();
+        for (const auto &[label, value] : std::vector<std::pair<std::string, std::string>>{
+                     {"Off", "off"}, {"Every minute", "1"}, {"Every 3 minutes", "3"}, {"Every 5 minutes", "5"},
+                     {"Every 10 minutes", "10"}}) {
+            auto item = Gio::MenuItem::create(label, "");
+            item->set_action_and_target("win.autosave_interval", Glib::Variant<Glib::ustring>::create(value));
+            backup->append_item(item);
+        }
+        saving->append_submenu("Back up unsaved work", backup);
+        saving->append("Folder for documents...", "win.choose_documents_dir");
+        top->append_section(saving);
         top->append_item(Gio::MenuItem::create("Preferences", "app.preferences"));
         top->append_item(Gio::MenuItem::create("Logger", "app.logger"));
         top->append_item(Gio::MenuItem::create("About", "app.about"));
@@ -1113,6 +1132,7 @@ void Editor::update_view_hints()
 void Editor::on_open_document(const ActionConnection &conn)
 {
     auto dialog = Gtk::FileDialog::create();
+    dialog->set_initial_folder(Gio::File::create_for_path(path_to_string(get_documents_dir())));
     if (m_core.has_documents()) {
         if (m_core.get_current_idocument_info().has_path()) {
             dialog->set_initial_file(
@@ -1153,9 +1173,13 @@ void Editor::on_open_document(const ActionConnection &conn)
 void Editor::on_save_as(const ActionConnection &conn)
 {
     auto dialog = Gtk::FileDialog::create();
+    dialog->set_initial_folder(Gio::File::create_for_path(path_to_string(get_documents_dir())));
     if (m_core.get_current_idocument_info().has_path()) {
         dialog->set_initial_file(
                 Gio::File::create_for_path(path_to_string(m_core.get_current_idocument_info().get_path())));
+    }
+    else {
+        dialog->set_initial_name("New document.d3ddoc");
     }
 
     // Add filters, so that only certain file types can be selected:
@@ -1292,6 +1316,7 @@ void Editor::do_close_document(const UUID &doc_uu)
     if (m_core.get_current_idocument_info().get_uuid() == doc_uu)
         force_end_tool();
     m_core.close_document(doc_uu);
+    autosave_remove(doc_uu);
     auto_close_workspace_views();
 }
 

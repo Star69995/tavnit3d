@@ -190,6 +190,8 @@ void Dune3DApplication::UserConfig::load(const std::filesystem::path &filename)
     blender_path = path_from_string(j.value("blender_path", ""));
     claude_api_key = j.value("claude_api_key", "");
     typing_threshold_ms = std::clamp(j.value("typing_threshold_ms", 350u), 50u, 2000u);
+    autosave_minutes = std::min(j.value("autosave_minutes", 3u), 120u);
+    documents_dir = path_from_string(j.value("documents_dir", ""));
     if (j.count("export_paths")) {
         const json &o = j.at("export_paths");
         for (const auto &[fn, v] : o.items()) {
@@ -215,6 +217,9 @@ void Dune3DApplication::UserConfig::save(const std::filesystem::path &filename)
     if (!claude_api_key.empty())
         j["claude_api_key"] = claude_api_key;
     j["typing_threshold_ms"] = typing_threshold_ms;
+    j["autosave_minutes"] = autosave_minutes;
+    if (!documents_dir.empty())
+        j["documents_dir"] = path_to_string(documents_dir);
     for (const auto &[path, mod] : recent_items) {
         j["recent"][path_to_string(path)] = mod.to_unix();
     }

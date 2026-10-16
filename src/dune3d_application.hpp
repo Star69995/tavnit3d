@@ -47,6 +47,10 @@ public:
         // letters in the 3D view less than this apart are typing (they go to Find), not shortcuts;
         // people type about 150-250 ms apart
         unsigned int typing_threshold_ms = 350;
+        // a backup of unsaved work is written this often (0 = off) ...
+        unsigned int autosave_minutes = 3;
+        // ... into "Autosave" in here, which is also where saving starts; Documents/Tavnit 3D if empty
+        std::filesystem::path documents_dir;
     };
 
     UserConfig m_user_config;

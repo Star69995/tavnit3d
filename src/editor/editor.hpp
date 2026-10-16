@@ -108,9 +108,19 @@ public:
     // looks for a newer release; interactive shows "up to date" and errors too
     void check_for_updates(bool interactive);
 
+    // backups of unsaved work and the default folder for documents (editor_autosave.cpp)
+    std::filesystem::path get_documents_dir() const;
+    void init_autosave();
+
 private:
     void show_update_banner(const struct UpdateInfo &info);
     void show_update_message(const std::string &text, bool error);
+    std::filesystem::path get_autosave_dir() const;
+    void autosave_now();
+    void autosave_remove(const UUID &doc_uu);
+    void restart_autosave_timer();
+    void offer_recovery();
+    sigc::connection m_autosave_connection;
     void start_update(const struct UpdateInfo &info);
     void show_object_editor(const UUID &doc_uu, const UUID &body_uu);
     void delete_body(const UUID &doc_uu, const UUID &body_uu);

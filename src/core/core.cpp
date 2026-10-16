@@ -543,6 +543,13 @@ void Core::save()
     m_signal_needs_save.emit();
 }
 
+void Core::write_backup(const UUID &doc_uu, const std::filesystem::path &path)
+{
+    const auto &doc = m_documents.at(doc_uu).m_doc.value();
+    save_json_to_file(path, doc.serialize());
+    pictures_save(doc, get_picture_dir_from_document_filename(path));
+}
+
 void Core::save_as(const std::filesystem::path &path)
 {
     if (!has_documents())

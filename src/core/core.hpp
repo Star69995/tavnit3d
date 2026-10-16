@@ -88,6 +88,8 @@ public:
     void save_all();
     void save();
     void save_as(const std::filesystem::path &path);
+    // a copy of the document at path (pictures beside it), leaving its own path and "needs save" alone
+    void write_backup(const UUID &doc_uu, const std::filesystem::path &path);
 
     void rebuild(const std::string &comment);
 
