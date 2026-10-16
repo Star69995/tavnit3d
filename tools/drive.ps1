@@ -9,11 +9,12 @@
 #                  and {CLEAR} (End + 20 backspaces) for special keys
 #   wait:MS        sleep
 #   shot:PATH      capture only the app's windows to PATH
-# By default input is posted as window messages straight to the app, so the
-# real mouse and keyboard are untouched and the app needn't be in front.
-# -RealInput uses the real cursor/keyboard instead (needs focus).
+# Uses the real cursor and keyboard (needs focus). Prefer tools/ui.sh, which
+# drives the app from the inside. -Messages posts window messages instead,
+# but GTK takes the pointer position from the real cursor, so clicks land
+# wherever the mouse is; kept only for experiments.
 param([string]$Steps, [string]$Doc = "", [string]$Exe = "$PSScriptRoot\..\build\dune3d.exe",
-      [int]$Width = 1400, [int]$Height = 900, [switch]$RealInput)
+      [int]$Width = 1400, [int]$Height = 900, [switch]$Messages)
 $ErrorActionPreference = "Stop"
 $env:PATH = "C:\msys64\ucrt64\bin;$env:PATH"
 Add-Type -AssemblyName System.Drawing, System.Windows.Forms
@@ -99,13 +100,13 @@ try {
             else { MsgKey ([U]::VkKeyScan([char]$t) -band 0xff) } }
         Start-Sleep -Milliseconds 600 }
     Start-Sleep -Milliseconds 1500
-    if ($RealInput) { Focus; Start-Sleep -Milliseconds 700 }
+    if (-not $Messages) { Focus; Start-Sleep -Milliseconds 700 }
     $btn = @{ left = @(0x2, 0x4); right = @(0x8, 0x10); middle = @(0x20, 0x40) }
     foreach ($step in $Steps.Split(",")) {
         $a = $step.Trim().Split(":", 2); $cmd = $a[0]; $arg = if ($a.Count -gt 1) { $a[1] } else { "" }
         switch ($cmd) {
             "wait" { Start-Sleep -Milliseconds ([int]$arg) }
-            { -not $RealInput -and $_ -in "click", "rclick", "dclick", "move", "drag", "key" } {
+            { $Messages -and $_ -in "click", "rclick", "dclick", "move", "drag", "key" } {
                 $v = $arg.Split(":")
                 switch ($cmd) {
                     "click" { MsgClick $v[0] $v[1] "left" 1 }
