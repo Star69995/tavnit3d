@@ -97,7 +97,8 @@ private:
     void on_workspace_browser_group_selected(const UUID &uu_doc, const UUID &uu_group);
     void on_add_group(Group::Type group_type, WorkspaceBrowserAddGroupMode add_group_mode);
     void finish_add_group(Group *new_group);
-    void add_primitive(Primitive primitive);
+    // as_hole: a hole (see-through, cuts with "Cut") rather than a solid
+    void add_primitive(Primitive primitive, bool as_hole = false);
     // frame all solids (or the XY plane if there are none); with only_if_needed,
     // just when some of them are out of view
     void zoom_to_fit(bool only_if_needed = false);
