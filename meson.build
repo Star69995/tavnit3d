@@ -54,6 +54,7 @@ src_common = files(
   'src/document/combine.cpp',
   'src/document/duplicate.cpp',
   'src/document/round_edges.cpp',
+  'src/document/material.cpp',
   'src/util/update_check.cpp',
   'src/document/entity/entity.cpp',
   'src/document/entity/entity_and_point.cpp',

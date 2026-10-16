@@ -111,7 +111,13 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   `gh workflow disable`; only `pages.yml` runs.
 - `site/` - the public landing/download page, https://star69995.github.io/tavnit3d/
   (GitHub Pages, deployed by `.github/workflows/pages.yml` on pushes to
-  `studio` touching `site/`). Static HTML/CSS/JS, Hebrew RTL, no build step;
+  `studio` touching `site/`). Static HTML/CSS/JS, no build step, two
+  languages: `site/index.html` (Hebrew, RTL, the root) and `site/en/index.html`
+  (English, LTR), linked by the switch in the top bar and `hreflang` tags;
+  they share `style.css`, `app.js` (strings in its `STRINGS` table, picked by
+  `<html lang>`) and `img/`. Any content change goes into both pages, and
+  the icon sprite is identical in both. Release notes are shown on both, so
+  write them Hebrew first, then English (`app.js` sets each block's direction).
   structure, `style.css` and `app.js` come from the sibling `backuper` project.
   Preview: `python -m http.server 8766` in `site/`. `app.js` fills the
   download buttons and version list from the GitHub Releases API at runtime
@@ -120,7 +126,7 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   claim what the app doesn't do or announce a feature before its release.
   Screenshots in `site/img/*.webp` are real app shots (`tools/ui.sh` scripts
   with `shot`, 1400x900, converted with `cwebp -q 82`); `og.png` is a
-  1200x630 shot of the deployed page's top.
+  1200x630 shot of the deployed Hebrew page's top, `og-en.png` the same for /en/.
 - Credits: the README, the site's "מאיפה הקוד" section and the about dialog
   (`src/widgets/about_dialog.cpp`) say it's a Dune 3D fork and that the
   changes were written mostly by Claude, directed by Star. Keep that true.

@@ -1001,3 +1001,68 @@ h2 {
 .trust.trust-list {
   grid-template-columns: 1fr;
 }
+
+/* Language switch in the top bar (Hebrew page <-> /en/). */
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 15px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+.lang-switch:hover {
+  color: var(--fg);
+  background: var(--panel);
+}
+@media (max-width: 980px) {
+  /* the nav is hidden here: the switch takes over pushing the button to the end */
+  .lang-switch {
+    margin-inline-start: auto;
+  }
+  .topbar .lang-switch + .btn {
+    margin-inline-start: 0;
+  }
+}
+@media (max-width: 640px) {
+  .topbar-inner {
+    gap: 12px;
+  }
+}
+.brand {
+  white-space: nowrap;
+}
+@media (max-width: 400px) {
+  /* brand, switch and "Download" have to share one row down to 320px */
+  .topbar-inner {
+    gap: 8px;
+  }
+  .brand {
+    font-size: 17px;
+  }
+  .lang-switch {
+    padding: 6px 4px;
+  }
+  .lang-switch span {
+    display: none;
+  }
+  .topbar .btn-sm {
+    padding-inline: 10px;
+  }
+}
+
+/* LTR pages: a closed disclosure's chevron points to the reading direction. */
+[dir="ltr"] .disclosure:not([open]) .chev {
+  transform: rotate(-90deg);
+}
+
+/* Long install paths in the steps must wrap on narrow phones. */
+.steps li > div {
+  min-width: 0;
+}
+.steps bdi {
+  overflow-wrap: anywhere;
+}

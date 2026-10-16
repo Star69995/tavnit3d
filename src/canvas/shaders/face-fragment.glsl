@@ -12,7 +12,7 @@ uniform uint pick_base;
 uniform uint flags;
 uniform vec3 clipping_value;
 uniform ivec3 clipping_op;
-uniform int material; // 0 satin, 1 matte, 2 glossy, 3 metal
+uniform int material; // 0 satin, 1 matte, 2 glossy, 3 metal, 4 glass (see document/material.cpp)
 uniform int studio_lighting;
 flat in float select_alpha_to_frag;
 
@@ -47,7 +47,7 @@ void main() {
   if(studio_lighting == 0) {
     // original headlight
     float shade = pow(min(1, abs(dot(cam_normal, normal_to_fragment))+.1), 1/2.2);
-    outputColor = vec4(color*(shade), 1);
+    outputColor = vec4(color*(shade), mat == 4 ? .35 : 1.);
   }
   else {
     // lights fixed relative to the camera, so every view is lit the same way
@@ -65,6 +65,7 @@ void main() {
     if(mat == 1) { spec_strength = 0.; }
     else if(mat == 2) { spec_strength = .45; shininess = 140; }
     else if(mat == 3) { spec_strength = .9; shininess = 70; diffuse_strength = .45; }
+    else if(mat == 4) { spec_strength = .8; shininess = 160; diffuse_strength = .35; }
 
     float diffuse = .62*max(dot(n, key), 0) + .22*max(dot(n, fill), 0);
     // soft sky/ground ambient
@@ -79,8 +80,17 @@ void main() {
       float env = smoothstep(-.4, .6, dot(r, world_up));
       lit += color * mix(.15, .75, env) * .6;
     }
+    float alpha = 1.;
+    if(mat == 4) {
+      // glass: see-through face-on, more reflective at grazing angles
+      float fresnel = pow(1 - max(dot(n, v), 0), 3);
+      vec3 r = reflect(-v, n);
+      float env = smoothstep(-.2, .8, dot(r, world_up));
+      lit += vec3(.5) * env * (.15 + .6*fresnel);
+      alpha = mix(.28, .85, fresnel);
+    }
     lit += spec_color * spec;
-    outputColor = vec4(pow(clamp(lit, 0, 1), vec3(1/1.4)), 1);
+    outputColor = vec4(pow(clamp(lit, 0, 1), vec3(1/1.4)), max(alpha, spec));
   }
   select = outputColor*select_alpha_to_frag;
   pick = pick_base;

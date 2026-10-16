@@ -10,6 +10,51 @@
   const CACHE_MS = 10 * 60 * 1000;
   const SHOWN_AT_FIRST = 5;
 
+  // UI strings by page language (<html lang>): the Hebrew page is the default, /en/ is English.
+  const STRINGS = {
+    he: {
+      locale: "he-IL",
+      soon: "הגרסה הראשונה תפורסם בקרוב",
+      heroMeta: (v, size) => `גרסה ${v} · ${size} · Windows 10 ו-11`,
+      latest: "האחרונה",
+      prerelease: "גרסת בדיקה",
+      download: "הורדה",
+      releasePage: "לדף הגרסה",
+      whatsNew: "מה חדש בגרסה הזו",
+      sha: "טביעת אצבע (SHA-256) של קובץ ההתקנה:",
+      copy: "העתקה",
+      copied: "הועתק",
+      published: (d) => `פורסמה ב-${d}`,
+      none: "עדיין לא פורסמה גרסה להורדה. היא תופיע כאן ברגע שתעלה.",
+      follow: "מעקב אחרי הפרויקט ב-GitHub",
+      showMore: (n) => `הצגת ${n} גרסאות קודמות`,
+      allOnGithub: "כל הגרסאות גם בדף ב-GitHub",
+      error: "לא הצלחנו לטעון את רשימת הגרסאות כרגע. אפשר לנסות שוב בעוד רגע, או להוריד ישירות מ-GitHub:",
+      latestOnGithub: "לגרסה האחרונה ב-GitHub",
+    },
+    en: {
+      locale: "en-US",
+      soon: "The first version is coming soon",
+      heroMeta: (v, size) => `Version ${v} · ${size} · Windows 10 and 11`,
+      latest: "Latest",
+      prerelease: "Pre-release",
+      download: "Download",
+      releasePage: "Release page",
+      whatsNew: "What's new in this version",
+      sha: "Fingerprint (SHA-256) of the installer:",
+      copy: "Copy",
+      copied: "Copied",
+      published: (d) => `Published ${d}`,
+      none: "No version has been published yet. It will show up here as soon as it's out.",
+      follow: "Follow the project on GitHub",
+      showMore: (n) => `Show ${n} older versions`,
+      allOnGithub: "All versions on GitHub too",
+      error: "Couldn't load the version list right now. Try again in a moment, or download straight from GitHub:",
+      latestOnGithub: "Latest version on GitHub",
+    },
+  };
+  const T = STRINGS[document.documentElement.lang] || STRINGS.he;
+
   const $ = (sel, root = document) => root.querySelector(sel);
 
   const esc = (s) =>
@@ -25,7 +70,7 @@
 
   const formatDate = (iso) => {
     try {
-      return new Date(iso).toLocaleDateString("he-IL", { day: "numeric", month: "long", year: "numeric" });
+      return new Date(iso).toLocaleDateString(T.locale, { day: "numeric", month: "long", year: "numeric" });
     } catch {
       return "";
     }
@@ -91,7 +136,7 @@
     const asset = latest && installerOf(latest);
     if (!asset) {
       if (!latest) {
-        meta.textContent = "הגרסה הראשונה תפורסם בקרוב";
+        meta.textContent = T.soon;
         document.querySelectorAll("[data-latest-link]").forEach((a) => (a.href = "#versions"));
       }
       return;
@@ -99,30 +144,30 @@
     document.querySelectorAll("[data-latest-link]").forEach((a) => {
       a.href = asset.browser_download_url;
     });
-    meta.innerHTML = `גרסה <bdi dir="ltr">${esc(versionOf(latest))}</bdi> · <bdi dir="ltr">${esc(formatSize(asset.size))}</bdi> · Windows 10 ו-11`;
+    meta.innerHTML = T.heroMeta(`<bdi dir="ltr">${esc(versionOf(latest))}</bdi>`, `<bdi dir="ltr">${esc(formatSize(asset.size))}</bdi>`);
   }
 
   function releaseCard(rel, isLatest) {
     const asset = installerOf(rel);
     const version = versionOf(rel);
     const badges =
-      (isLatest ? `<span class="badge">האחרונה</span>` : "") +
-      (rel.prerelease ? `<span class="badge badge-pre">גרסת בדיקה</span>` : "");
+      (isLatest ? `<span class="badge">${T.latest}</span>` : "") +
+      (rel.prerelease ? `<span class="badge badge-pre">${T.prerelease}</span>` : "");
 
     const download = asset
       ? `<div class="release-dl">
            <a class="btn ${isLatest ? "btn-primary" : "btn-secondary"} btn-md" href="${esc(asset.browser_download_url)}">
-             ${icon("download")}<span>הורדה</span>
+             ${icon("download")}<span>${T.download}</span>
            </a>
            <small><bdi dir="ltr">${esc(formatSize(asset.size))}</bdi></small>
          </div>`
       : `<div class="release-dl">
-           <a class="btn btn-secondary btn-md" href="${esc(rel.html_url)}">${icon("external")}<span>לדף הגרסה</span></a>
+           <a class="btn btn-secondary btn-md" href="${esc(rel.html_url)}">${icon("external")}<span>${T.releasePage}</span></a>
          </div>`;
 
     const notes = rel.body_html.trim()
       ? `<details class="disclosure"${isLatest ? " open" : ""}>
-           <summary>${icon("chevron").replace('class="ic"', 'class="ic chev"')}מה חדש בגרסה הזו</summary>
+           <summary>${icon("chevron").replace('class="ic"', 'class="ic chev"')}${T.whatsNew}</summary>
            <div class="disclosure-body notes" dir="auto">${rel.body_html}</div>
          </details>`
       : "";
@@ -130,8 +175,8 @@
     const sha = asset && /^sha256:/i.test(asset.digest || "") ? asset.digest.slice(7) : "";
     const hash = sha
       ? `<div class="hash">
-           טביעת אצבע (SHA-256) של קובץ ההתקנה:
-           <div class="hash-row"><code dir="ltr">${esc(sha)}</code><button type="button" class="copy-btn" data-copy="${esc(sha)}">העתקה</button></div>
+           ${T.sha}
+           <div class="hash-row"><code dir="ltr">${esc(sha)}</code><button type="button" class="copy-btn" data-copy="${esc(sha)}">${T.copy}</button></div>
          </div>`
       : "";
 
@@ -139,7 +184,7 @@
       <div class="release-head">
         <div class="release-title">
           <h3><bdi dir="ltr">${esc(rel.name && rel.name !== rel.tag_name ? rel.name : version)}</bdi>${badges}</h3>
-          <div class="when">פורסמה ב-${esc(formatDate(rel.published_at))}</div>
+          <div class="when">${T.published(esc(formatDate(rel.published_at)))}</div>
         </div>
         ${download}
       </div>
@@ -152,8 +197,8 @@
     const box = $("#releases");
     if (!releases.length) {
       box.innerHTML = `<div class="notice">
-        <p>עדיין לא פורסמה גרסה להורדה. היא תופיע כאן ברגע שתעלה.</p>
-        <a href="${RELEASES_PAGE}">${icon("github")} מעקב אחרי הפרויקט ב-GitHub</a>
+        <p>${T.none}</p>
+        <a href="${RELEASES_PAGE}">${icon("github")} ${T.follow}</a>
       </div>`;
       return;
     }
@@ -163,9 +208,16 @@
       cards.slice(0, SHOWN_AT_FIRST).join("") +
       (rest > 0
         ? `<div class="more-hidden" hidden>${cards.slice(SHOWN_AT_FIRST).join("")}</div>
-           <div class="more-wrap"><button type="button" class="btn btn-secondary btn-md" id="show-more">הצגת ${rest} גרסאות קודמות</button></div>`
+           <div class="more-wrap"><button type="button" class="btn btn-secondary btn-md" id="show-more">${T.showMore(rest)}</button></div>`
         : "") +
-      `<p class="more-wrap"><a href="${RELEASES_PAGE}">${icon("external")} כל הגרסאות גם בדף ב-GitHub</a></p>`;
+      `<p class="more-wrap"><a href="${RELEASES_PAGE}">${icon("external")} ${T.allOnGithub}</a></p>`;
+
+    // notes may mix Hebrew and English: each block takes the direction of its first letter
+    // (not dir="auto": on a list it ignores items that carry their own dir)
+    box.querySelectorAll(".notes p, .notes ul, .notes ol, .notes li, .notes h1, .notes h2, .notes h3, .notes h4").forEach((el) => {
+      const first = el.textContent.match(/[A-Za-zÀ-ɏ֐-ࣿ]/);
+      if (first) el.dir = /[֐-ࣿ]/.test(first[0]) ? "rtl" : "ltr";
+    });
 
     const more = $("#show-more");
     if (more) {
@@ -180,8 +232,8 @@
 
   function renderError() {
     $("#releases").innerHTML = `<div class="notice">
-      <p>לא הצלחנו לטעון את רשימת הגרסאות כרגע. אפשר לנסות שוב בעוד רגע, או להוריד ישירות מ-GitHub:</p>
-      <a class="btn btn-primary btn-md" href="${RELEASES_PAGE}/latest">${icon("download")}<span>לגרסה האחרונה ב-GitHub</span></a>
+      <p>${T.error}</p>
+      <a class="btn btn-primary btn-md" href="${RELEASES_PAGE}/latest">${icon("download")}<span>${T.latestOnGithub}</span></a>
     </div>`;
   }
 
@@ -199,8 +251,8 @@
     if (!btn) return;
     try {
       await navigator.clipboard.writeText(btn.dataset.copy);
-      btn.textContent = "הועתק";
-      setTimeout(() => (btn.textContent = "העתקה"), 1600);
+      btn.textContent = T.copied;
+      setTimeout(() => (btn.textContent = T.copy), 1600);
     } catch {
       /* clipboard blocked - the hash text is still selectable */
     }

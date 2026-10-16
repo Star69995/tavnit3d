@@ -23,6 +23,7 @@
 #include "util/text_render.hpp"
 #include "document/group/group_fillet.hpp"
 #include "document/primitives.hpp"
+#include "document/material.hpp"
 #include "document/solid_model/solid_model_occ.hpp"
 #include <BRepBndLib.hxx>
 #include <Bnd_Box.hxx>
@@ -200,12 +201,19 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         grid_attach_label_and_widget(*grid, "Colour", *box, top);
     }
     {
-        auto items = Gtk::StringList::create({"Satin", "Matte", "Glossy", "Metal"});
+        guint selected = 0;
+        auto items = Gtk::StringList::create();
+        const auto &materials = get_all_materials();
+        for (size_t i = 0; i < materials.size(); i++) {
+            items->append(get_material_label(materials.at(i)));
+            if (materials.at(i) == body_group.m_body->m_material)
+                selected = i;
+        }
         auto dd = Gtk::make_managed<Gtk::DropDown>(items);
-        dd->set_selected(static_cast<guint>(body_group.m_body->m_material));
+        dd->set_selected(selected);
         dd->property_selected().signal_changed().connect([this, dd, doc_uu, body_uu, changed] {
             auto &d = m_core.get_idocument_info(doc_uu).get_document();
-            d.get_group(body_uu).m_body->m_material = static_cast<Body::Material>(dd->get_selected());
+            d.get_group(body_uu).m_body->m_material = get_all_materials().at(dd->get_selected());
             changed(body_uu, false);
         });
         grid_attach_label_and_widget(*grid, "Material", *dd, top);

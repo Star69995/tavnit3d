@@ -5,7 +5,8 @@ for Windows: ready-made shapes on a floor grid, click an object to edit its
 size, position, colour and material, then export STL for 3D printing - with
 the full parametric CAD underneath.
 
-**Download:** <https://star69995.github.io/tavnit3d/> (Windows 10/11, 64-bit
+**Download:** <https://star69995.github.io/tavnit3d/en/> (English) or
+<https://star69995.github.io/tavnit3d/> (Hebrew) - Windows 10/11, 64-bit
 installer; the app checks for new versions at start and updates itself in
 one click).
 
@@ -25,7 +26,7 @@ one click).
 - Windows installer (per user, no admin rights) and in-app updates from this
   repo's GitHub releases
 
-The app's own UI is in English; the website is in Hebrew.
+The app's own UI is in English; the website is in English and Hebrew.
 
 ## Where the code comes from
 

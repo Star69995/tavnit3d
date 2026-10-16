@@ -22,7 +22,7 @@ public:
     std::string m_name = "Body";
     std::optional<Color> m_color;
     // how the surface reflects light; only affects display
-    enum class Material { SATIN, MATTE, GLOSSY, METAL };
+    enum class Material { SATIN, MATTE, GLOSSY, METAL, GLASS }; // see material.hpp
     Material m_material = Material::SATIN;
 
     json serialize() const;

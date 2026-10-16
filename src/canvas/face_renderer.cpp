@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <ranges>
 #include "color_palette.hpp"
+#include "document/group/group.hpp"
 
 namespace dune3d {
 FaceRenderer::FaceRenderer(Canvas &c) : BaseRenderer(c, Canvas::VertexType::FACE_GROUP)
@@ -163,32 +164,52 @@ void FaceRenderer::render()
     glUniform3fv(m_cam_normal_loc, 1, glm::value_ptr(m_ca.m_cam_normal));
     glUniform1i(m_studio_lighting_loc, m_ca.m_studio_lighting ? 1 : 0);
 
-    size_t group_idx = 0;
+    // glass is see-through: drawn after everything opaque, blended and without
+    // hiding what's behind it
+    const auto is_glass = [](const CanvasChunk::FaceGroup &group) {
+        return (group.material & 0xff) == static_cast<unsigned int>(Body::Material::GLASS);
+    };
     const auto chunk_ids = m_ca.get_chunk_ids();
-    for (const auto chunk_id : chunk_ids) {
-        const auto &chunk = m_ca.m_chunks.at(chunk_id);
+    for (const bool glass_pass : {false, true}) {
+        if (glass_pass) {
+            glEnablei(GL_BLEND, 0);
+            glDepthMask(GL_FALSE);
+        }
+        size_t group_idx = 0;
+        for (const auto chunk_id : chunk_ids) {
+            const auto &chunk = m_ca.m_chunks.at(chunk_id);
 
-        for (const auto &group : chunk.m_face_groups) {
-            glUniform1ui(m_pick_base_loc, m_type_pick_base + group_idx);
-            glUniform1ui(m_flags_loc, static_cast<uint32_t>(group.flags));
-            glUniform3fv(m_origin_loc, 1, glm::value_ptr(group.origin));
-            glUniform1i(m_material_loc, group.material);
-            if (group.color == ICanvas::FaceColor::AS_IS) {
-                glUniform3f(m_override_color_loc, NAN, NAN, NAN);
-            }
-            else {
-                const auto colorp = (group.color == ICanvas::FaceColor::SOLID_MODEL) ? ColorP::SOLID_MODEL
-                                                                                     : ColorP::OTHER_BODY_SOLID_MODEL;
-                const auto color = m_ca.m_appearance.get_color(colorp);
-                gl_color_to_uniform_3f(m_override_color_loc, color);
-            }
-            glm::mat3 normal_mat = glm::transpose(glm::toMat3(group.normal));
+            for (const auto &group : chunk.m_face_groups) {
+                if (is_glass(group) != glass_pass) {
+                    group_idx++;
+                    continue;
+                }
+                glUniform1ui(m_pick_base_loc, m_type_pick_base + group_idx);
+                glUniform1ui(m_flags_loc, static_cast<uint32_t>(group.flags));
+                glUniform3fv(m_origin_loc, 1, glm::value_ptr(group.origin));
+                glUniform1i(m_material_loc, group.material);
+                if (group.color == ICanvas::FaceColor::AS_IS) {
+                    glUniform3f(m_override_color_loc, NAN, NAN, NAN);
+                }
+                else {
+                    const auto colorp = (group.color == ICanvas::FaceColor::SOLID_MODEL)
+                                                ? ColorP::SOLID_MODEL
+                                                : ColorP::OTHER_BODY_SOLID_MODEL;
+                    const auto color = m_ca.m_appearance.get_color(colorp);
+                    gl_color_to_uniform_3f(m_override_color_loc, color);
+                }
+                glm::mat3 normal_mat = glm::transpose(glm::toMat3(group.normal));
 
-            glUniformMatrix3fv(m_normal_mat_loc, 1, GL_FALSE, glm::value_ptr(normal_mat));
-            glDrawElementsBaseVertex(GL_TRIANGLES, group.length, GL_UNSIGNED_INT,
-                                     (void *)((group.offset + chunk.m_index_offset) * sizeof(unsigned int)),
-                                     chunk.m_face_offset);
-            group_idx++;
+                glUniformMatrix3fv(m_normal_mat_loc, 1, GL_FALSE, glm::value_ptr(normal_mat));
+                glDrawElementsBaseVertex(GL_TRIANGLES, group.length, GL_UNSIGNED_INT,
+                                         (void *)((group.offset + chunk.m_index_offset) * sizeof(unsigned int)),
+                                         chunk.m_face_offset);
+                group_idx++;
+            }
+        }
+        if (glass_pass) {
+            glDepthMask(GL_TRUE);
+            glDisablei(GL_BLEND, 0);
         }
     }
 }
