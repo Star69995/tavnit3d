@@ -114,7 +114,7 @@ void Editor::start_update(const UpdateInfo &info)
     box.append(*progress);
     m_win.set_banner(&box);
 
-    const auto dest = std::filesystem::temp_directory_path() / ("Tavnit3D-" + info.version + "-setup.exe");
+    const auto dest = std::filesystem::temp_directory_path() / ("Tavnit3D-" + info.version + update_asset_suffix());
     std::thread([this, info, dest, progress] {
         try {
             download_file(info.installer_url, dest, [progress](uint64_t done, uint64_t total) {

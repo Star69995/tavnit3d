@@ -7,7 +7,7 @@
 
 namespace dune3d {
 
-// Minimal HTTPS client (WinHTTP on Windows; elsewhere these throw).
+// Minimal HTTPS client (WinHTTP on Windows, libcurl elsewhere; without either these throw).
 using HttpHeaders = std::vector<std::pair<std::string, std::string>>;
 
 // GET url, feeding the body to sink; follows redirects. Throws unless the

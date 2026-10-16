@@ -8,7 +8,7 @@ namespace dune3d {
 
 struct UpdateInfo {
     std::string version;       // e.g. "0.2.0"
-    std::string installer_url; // the release's "*-setup.exe" asset
+    std::string installer_url; // the release's asset for this system, see update_asset_suffix()
     std::string page_url;      // release page, for notes
     std::string notes;
 };
@@ -20,8 +20,13 @@ std::string get_update_feed_url();
 // -1 / 0 / 1 for a < b / equal / a > b, comparing dotted numbers ("v" prefix ok)
 int compare_versions(const std::string &a, const std::string &b);
 
-// Parses a GitHub release JSON; returns it if it's newer than current and has an installer.
-std::optional<UpdateInfo> parse_release(const std::string &json_text, const std::string &current);
+// What the release asset for this system ends with: "-setup.exe" (Windows),
+// "-x86_64.AppImage" / "-aarch64.AppImage" (Linux).
+std::string update_asset_suffix();
+
+// Parses a GitHub release JSON; returns it if it's newer than current and has an asset ending in suffix.
+std::optional<UpdateInfo> parse_release(const std::string &json_text, const std::string &current,
+                                        const std::string &suffix = update_asset_suffix());
 
 // Blocking: fetches the feed and returns a newer release, if any. Throws on network errors.
 std::optional<UpdateInfo> check_for_update(const std::string &feed_url, const std::string &current);
@@ -30,7 +35,10 @@ std::optional<UpdateInfo> check_for_update(const std::string &feed_url, const st
 void download_file(const std::string &url, const std::filesystem::path &dest,
                    const std::function<void(uint64_t, uint64_t)> &progress = {});
 
-// Starts the downloaded installer for a silent upgrade that restarts the app afterwards.
+// Windows: starts the downloaded installer for a silent upgrade that restarts the
+// app afterwards. Linux: replaces the running AppImage ($APPIMAGE) with the
+// download and starts it once this process is gone. False if that isn't possible
+// (e.g. not running from an AppImage). The caller quits right after a true.
 bool launch_installer(const std::filesystem::path &installer);
 
 } // namespace dune3d

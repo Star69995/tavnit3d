@@ -172,6 +172,23 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   changes were written mostly by Claude, directed by Star. Keep that true.
   Avoid gendered Hebrew verbs/adjectives for Star on the site.
 
+### Linux (AppImage + in-app updates)
+
+- `tools/appimage.sh` builds `dist/Tavnit3D-<ver>-x86_64.AppImage` with
+  linuxdeploy (+ GTK plugin); needs the packages of `.github/workflows/all.yml`,
+  `libcurl4-openssl-dev`, `patchelf`. Built on Ubuntu 24.04, so it needs glibc >= 2.39
+  on the user's system. `.github/workflows/linux-appimage.yml` runs it when a
+  release is published (by `tools/release.sh` from Windows) and attaches the file.
+- HTTPS outside Windows: libcurl (`src/util/http.cpp`, `HAVE_CURL` from meson).
+  This also makes "make from a description" work on Linux.
+- Updates: `update_asset_suffix()` picks the release asset per system
+  (`-setup.exe`, `-x86_64.AppImage`). On Linux `launch_installer` replaces the
+  running file (`$APPIMAGE`) with the download and starts it 2 s after we exit;
+  from a plain build (no `$APPIMAGE`) it returns false and nothing is replaced.
+- Linux checks without Windows: `meson setup build && ninja -C build`, run the UI
+  tests with `xvfb-run meson test -C build` (needs python3 with gi: use the
+  system python3.12 on Ubuntu 24.04 if another python is first in PATH).
+
 ### Releasing (installer + in-app updates)
 
 1. Bump `app_version` in `src/util/branding.hpp` (installer reads it), commit, push.
