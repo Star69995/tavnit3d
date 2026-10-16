@@ -615,6 +615,32 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         }
     }
 
+    // a row of copies along X (objects with an X/Y position, i.e. the ready-made shapes)
+    if (std::ranges::any_of(get_object_dimensions(doc, body_uu), [](const auto &d) { return d.label == "X"; })) {
+        heading("Copies in a row");
+        auto count = Gtk::make_managed<Gtk::SpinButton>();
+        count->set_range(2, 50);
+        count->set_increments(1, 5);
+        count->set_digits(0);
+        count->set_value(3);
+        count->set_hexpand(true);
+        grid_attach_label_and_widget(*grid, "How many", *count, top);
+        auto gap = Gtk::make_managed<SpinButtonDim>();
+        gap->set_range(0, 1000);
+        gap->set_increments(1, 10);
+        gap->set_value(5);
+        gap->set_hexpand(true);
+        grid_attach_label_and_widget(*grid, "Gap", *gap, top);
+        auto make = Gtk::make_managed<Gtk::Button>("Make copies");
+        make->set_tooltip_text("Add copies side by side along X, the gap apart; each is a full object of its own");
+        make->signal_clicked().connect([this, doc_uu, body_uu, count, gap] {
+            const unsigned int n = count->get_value_as_int();
+            const double g = gap->get_value();
+            Glib::signal_idle().connect_once([this, doc_uu, body_uu, n, g] { copy_in_a_row(doc_uu, body_uu, n, g); });
+        });
+        grid->attach(*make, 0, top++, 2, 1);
+    }
+
     {
         auto box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 5);
         box->set_margin_top(10);
@@ -704,6 +730,39 @@ void Editor::duplicate_object(const UUID &doc_uu, const UUID &body_uu)
     set_current_group(last);
     if (!m_workspace_browser->select_body(doc_uu, copy.m_uuid))
         show_object_editor(doc_uu, copy.m_uuid);
+    zoom_to_fit(true);
+}
+
+void Editor::copy_in_a_row(const UUID &doc_uu, const UUID &body_uu, unsigned int count, double gap)
+{
+    if (m_core.tool_is_active() || count < 2)
+        return;
+    auto &doc = m_core.get_idocument_info(doc_uu).get_document();
+    m_core.set_current_document(doc_uu);
+    double width = 0;
+    {
+        Bnd_Box box;
+        for (const auto &bs : get_body_solids(doc, UUID(), [&body_uu](const UUID &b) { return b == body_uu; }))
+            BRepBndLib::Add(bs.solid->m_shape_acc, box, true);
+        if (box.IsVoid())
+            return;
+        double x0, y0, z0, x1, y1, z1;
+        box.Get(x0, y0, z0, x1, y1, z1);
+        width = x1 - x0;
+    }
+    const double step = std::round((width + gap) * 10) / 10;
+    UUID last_copy;
+    for (unsigned int i = 1; i < count; i++)
+        last_copy = duplicate_body(doc, body_uu, {step * i, 0}).m_uuid;
+    const auto last = doc.get_groups_sorted().back()->m_uuid;
+    get_current_document_view().m_current_group = last;
+    m_core.set_current_group(last);
+    m_core.set_needs_save();
+    m_core.rebuild("copies in a row");
+    m_workspace_browser->update_documents(get_current_document_views());
+    set_current_group(last);
+    if (!m_workspace_browser->select_body(doc_uu, last_copy))
+        show_object_editor(doc_uu, last_copy);
     zoom_to_fit(true);
 }
 

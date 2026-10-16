@@ -147,6 +147,8 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   white box with the picture as a sticker on its big face; resizable like a box.
 - Screw (`Editor::add_screw`, editor_recipe.cpp): M8 bolt as a recipe - hexagon
   head joined with a revolved shank whose ridges are rings, not a helix.
+- Copies in a row (object panel, `Editor::copy_in_a_row`): N x `duplicate_body`
+  with an X offset of width + gap; only for objects that have an X position.
 - Find (`src/editor/action_search.*`, items in `editor_search.cpp`): Ctrl+K
   both as the FIND action and a window-level capture shortcut. When a
   feature lands, add it there with where it lives.
