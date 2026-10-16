@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
   <title>Tavnit 3D - תכנון תלת-ממד פשוט ל-Windows</title>
-  <meta name="description" content="Tavnit 3D היא תוכנת תכנון תלת-ממד (CAD) ל-Windows: צורות מוכנות, מידות מדויקות, חיבור וחיסור צורות וייצוא ל-STL להדפסה. חינם ובקוד פתוח, מבוססת על Dune 3D.">
+  <meta name="description" content="Tavnit 3D היא תוכנת תכנון תלת-ממד (CAD) ל-Windows: צורות מוכנות, מידות מדויקות, חומרים ומדבקות, תאורה ותמונות כמו צילום, וייצוא ל-STL להדפסה. חינם ובקוד פתוח, מבוססת על Dune 3D.">
   <link rel="canonical" href="https://star69995.github.io/tavnit3d/">
   <link rel="alternate" hreflang="he" href="https://star69995.github.io/tavnit3d/">
   <link rel="alternate" hreflang="en" href="https://star69995.github.io/tavnit3d/en/">
@@ -15,7 +15,7 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://star69995.github.io/tavnit3d/">
   <meta property="og:title" content="Tavnit 3D - תכנון תלת-ממד פשוט ל-Windows">
-  <meta property="og:description" content="צורות מוכנות, מידות מדויקות, חיבור וחיסור צורות וייצוא ל-STL להדפסה בתלת-ממד. חינם ובקוד פתוח, מבוססת על Dune 3D.">
+  <meta property="og:description" content="צורות מוכנות, מידות מדויקות, חומרים, מדבקות ותמונות כמו צילום, וייצוא ל-STL להדפסה בתלת-ממד. חינם ובקוד פתוח, מבוססת על Dune 3D.">
   <meta property="og:image" content="https://star69995.github.io/tavnit3d/img/og.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -44,6 +44,10 @@
       <symbol id="i-grid" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></symbol>
       <symbol id="i-printer" viewBox="0 0 24 24"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/></symbol>
       <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+      <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/></symbol>
+      <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+      <symbol id="i-cup" viewBox="0 0 24 24"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><path d="M6 2v2"/><path d="M10 2v2"/><path d="M14 2v2"/></symbol>
+      <symbol id="i-files" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></symbol>
       <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.13-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.13a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.13 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.13a.5.5 0 0 1-.96 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/></symbol>
       <symbol id="i-git" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></symbol>
       <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
@@ -89,8 +93,8 @@
           <p class="eyebrow">ל-Windows 10 ו-11 · חינם · קוד פתוח</p>
           <h1>מתכננים חפצים בתלת-ממד, בלי ללמוד CAD</h1>
           <p class="lead">
-            Tavnit 3D היא תוכנת תכנון תלת-ממד למדפסת, לבית ולתחביב. מוסיפים קובייה, גליל או כדור בלחיצה,
-            קובעים מידות במילימטרים, מחברים ומחסירים צורות, ומייצאים קובץ STL שמוכן להדפסה.
+            Tavnit 3D היא תוכנת תכנון תלת-ממד למדפסת, לבית ולתחביב. מוסיפים קובייה, קערה או ספל בלחיצה,
+            קובעים מידות במילימטרים, נותנים צבע, חומר ומדבקה, ומייצאים קובץ STL להדפסה או מפיקים תמונה שנראית כמו צילום.
             מתחת לפני השטח זו תוכנת CAD פרמטרית מלאה, מבוססת על Dune 3D.
           </p>
           <div class="cta">
@@ -108,7 +112,7 @@
         <div class="hero-shot">
           <div class="window">
             <img src="img/hero.webp" width="1400" height="900"
-                 alt="חלון Tavnit 3D: לוח צורות וכלים, ועל משטח עבודה עם רשת קופסה עם פינות מעוגלות, גליל מתכתי, כדור, טבעת וחרוט. הקופסה נבחרת ובחלונית בצד המידות שלה">
+                 alt="חלון Tavnit 3D: לוח צורות, אורות וכלים, ועל משטח העבודה קופסת אחסון ירוקה עם מדבקה, כוס זכוכית, קערה כחולה מבריקה, כדור מתכת וספל כתום עם ידית. הקערה נבחרת, עם ידיות לעובי הדופן ולעיגול הקצוות, ובחלונית בצד הצבע, החומר ועובי הדופן שלה">
           </div>
         </div>
       </div>
@@ -123,17 +127,17 @@
           <article class="feature">
             <span class="feature-ic"><svg class="ic"><use href="#i-box"/></svg></span>
             <h3>צורות מוכנות</h3>
-            <p>קובייה, גליל, כדור, חרוט, צינור, טבעת, טריז וטקסט תלת-ממדי. לוחצים, והצורה עומדת על משטח העבודה.</p>
+            <p>קובייה, גליל, כדור, חרוט, צינור, טבעת, טריז, קערה, אגרטל וטקסט תלת-ממדי. לוחצים, והצורה עומדת על משטח העבודה.</p>
           </article>
           <article class="feature">
             <span class="feature-ic"><svg class="ic"><use href="#i-pointer"/></svg></span>
             <h3>לוחצים על חפץ ומשנים</h3>
-            <p>לחיצה על צורה בוחרת אותה ופותחת חלונית עם המידות, המיקום, הצבע והחומר שלה. גוררים כדי להזיז.</p>
+            <p>לחיצה על צורה בוחרת אותה ופותחת חלונית עם המידות, המיקום, הצבע והחומר שלה. גוררים כדי להזיז, וגוררים את הידיות שעל החפץ כדי לשנות גובה, רוחב ועומק.</p>
           </article>
           <article class="feature">
             <span class="feature-ic"><svg class="ic"><use href="#i-ruler"/></svg></span>
             <h3>מידות מדויקות</h3>
-            <p>כל מידה היא מספר שאפשר לשנות בכל רגע, והחפץ מתעדכן. מתאים לחלקים שצריכים להתאים זה לזה.</p>
+            <p>כל מידה היא מספר שאפשר לשנות בכל רגע, והחפץ מתעדכן. רשת עם הצמדה ושכפול ב-Ctrl+D עוזרים לסדר חלקים בדיוק.</p>
           </article>
           <article class="feature">
             <span class="feature-ic"><svg class="ic"><use href="#i-combine"/></svg></span>
@@ -141,24 +145,39 @@
             <p>מאחדים שתי צורות לאחת, מחסירים צורה כדי ליצור חור, או משאירים רק את החלק המשותף.</p>
           </article>
           <article class="feature">
+            <span class="feature-ic"><svg class="ic"><use href="#i-cup"/></svg></span>
+            <h3>חלול ומעוגל</h3>
+            <p>הופכים קופסה, גליל או קערה לחלולים בעובי דופן שבוחרים, פתוחים מלמעלה או מלמטה, ומעגלים את כל הקצוות, גם את השפה.</p>
+          </article>
+          <article class="feature">
+            <span class="feature-ic"><svg class="ic"><use href="#i-palette"/></svg></span>
+            <h3>חומרים ומדבקות</h3>
+            <p>סאטן, מט, מבריק, מתכת וזכוכית שקופה. ותמונה משלכם, כמו לוגו או תווית, מודבקת על פני החפץ, גם על צד מעוגל.</p>
+          </article>
+          <article class="feature">
+            <span class="feature-ic"><svg class="ic"><use href="#i-camera"/></svg></span>
+            <h3>תאורה ותמונה כמו צילום</h3>
+            <p>מנורה, זרקור ושמש שמאירים את התצוגה, וכפתור Render שמפיק תמונה מרשימה עם צללים רכים, בעזרת Blender החינמית.</p>
+          </article>
+          <article class="feature">
+            <span class="feature-ic"><svg class="ic"><use href="#i-sparkles"/></svg></span>
+            <h3>צורה מתיאור במילים</h3>
+            <p>כותבים "ספל עם ידית" או "קערה כחולה", ו-Claude בונה את הצורות, שאפשר לערוך אחר כך כמו כל חפץ. צריך מפתח API של Claude.</p>
+          </article>
+          <article class="feature">
             <span class="feature-ic"><svg class="ic"><use href="#i-pen"/></svg></span>
             <h3>שרטוט על פאה</h3>
             <p>משרטטים צורה דו-ממדית ישר על פאה של חפץ, ומושכים אותה החוצה. מרחק שלילי חותך פנימה.</p>
           </article>
           <article class="feature">
-            <span class="feature-ic"><svg class="ic"><use href="#i-round"/></svg></span>
-            <h3>פינות מעוגלות</h3>
-            <p>לחיצה אחת מעגלת את כל הקצוות של חפץ, לגימור נעים יותר ולהדפסה חזקה יותר.</p>
+            <span class="feature-ic"><svg class="ic"><use href="#i-files"/></svg></span>
+            <h3>ייבוא וייצוא עם צבעים</h3>
+            <p>STL למדפסת בלחיצה, STEP לתוכנות CAD, ו-glTF עם צבעים, חומרים ומדבקות ל-Blender, ל-PowerPoint ולאתרים. מייבאים STEP, IGES, glTF ו-OBJ עם הצבעים שלהם.</p>
           </article>
           <article class="feature">
-            <span class="feature-ic"><svg class="ic"><use href="#i-grid"/></svg></span>
-            <h3>רשת והצמדה</h3>
-            <p>משטח עבודה עם רשת שגודלה ניתן לבחירה, ושכפול חפצים ב-Ctrl+D. קל לסדר חלקים בדיוק.</p>
-          </article>
-          <article class="feature">
-            <span class="feature-ic"><svg class="ic"><use href="#i-printer"/></svg></span>
-            <h3>מוכן להדפסה</h3>
-            <p>ייצוא ל-STL למדפסת תלת-ממד בלחיצה, וגם ל-STEP ומ-STEP, לעבודה מול תוכנות CAD אחרות.</p>
+            <span class="feature-ic"><svg class="ic"><use href="#i-search"/></svg></span>
+            <h3>חיפוש פקודות</h3>
+            <p>Ctrl+K, או פשוט מקלידים, ומקבלים כל פקודה עם המקום שלה בחלון וקיצור המקלדת שלה. אפשר לחפש גם בעברית.</p>
           </article>
           <article class="feature">
             <span class="feature-ic"><svg class="ic"><use href="#i-refresh"/></svg></span>
@@ -176,11 +195,25 @@
         <p class="section-lead">לחיצה על תמונה מגדילה אותה. הממשק של התוכנה באנגלית.</p>
         <div class="gallery">
           <figure class="shot">
-            <button type="button" class="shot-btn" data-full="img/object-panel.webp" aria-label="הגדלת התמונה: חלונית החפץ">
-              <img src="img/object-panel.webp" width="1400" height="900" loading="lazy"
-                   alt="קובייה עם פינות מעוגלות נבחרת, ובחלונית בצד הרוחב, העומק, הגובה, המיקום, עיגול הפינות, הצבע והחומר שלה">
+            <button type="button" class="shot-btn" data-full="img/render.webp" aria-label="הגדלת התמונה: תמונה שהופקה בכפתור Render">
+              <img src="img/render.webp" width="1400" height="900" loading="lazy"
+                   alt="תמונה שהופקה מהחפצים שבחלון: קופסה ירוקה עם תווית TOOLS, כוס זכוכית שקופה, קערה כחולה מבריקה, כדור מתכת וספל כתום עם ידית, עם צללים רכים על רקע לבן">
             </button>
-            <figcaption><strong>הכול בחלונית אחת</strong>בוחרים חפץ ומשנים מידות, מיקום, עיגול פינות, צבע וחומר.</figcaption>
+            <figcaption><strong>תמונה כמו צילום</strong>אותה סצנה, אחרי לחיצה על Render: זכוכית, מתכת וצללים רכים.</figcaption>
+          </figure>
+          <figure class="shot">
+            <button type="button" class="shot-btn" data-full="img/handles.webp" aria-label="הגדלת התמונה: ידיות על החפץ">
+              <img src="img/handles.webp" width="1400" height="900" loading="lazy"
+                   alt="גליל שהפך לכוס חלולה עם שפה מעוגלת, ועליו ידיות לגובה, לקוטר, לעובי הדופן ולעיגול הקצוות">
+            </button>
+            <figcaption><strong>ידיות על החפץ</strong>גוררים ידית ומשנים גובה, קוטר, עובי דופן או עיגול, והחלונית מתעדכנת.</figcaption>
+          </figure>
+          <figure class="shot">
+            <button type="button" class="shot-btn" data-full="img/find.webp" aria-label="הגדלת התמונה: חיפוש פקודות">
+              <img src="img/find.webp" width="1400" height="900" loading="lazy"
+                   alt="חלון החיפוש מעל התוכנה: הוקלד stick, והתוצאה Add a sticker עם המקום שלה, בחלונית החפץ תחת Stickers">
+            </button>
+            <figcaption><strong>חיפוש פקודות</strong>כל פקודה, עם המקום שבו היא נמצאת.</figcaption>
           </figure>
           <figure class="shot">
             <button type="button" class="shot-btn" data-full="img/shapes.webp" aria-label="הגדלת התמונה: צורות מוכנות">
@@ -367,6 +400,18 @@
         <details class="disclosure">
           <summary><svg class="ic chev"><use href="#i-chevron"/></svg>איך מעדכנים לגרסה חדשה?</summary>
           <div class="disclosure-body"><p>בכל הפעלה התוכנה בודקת אם יצאה גרסה חדשה, ואם כן מופיע פס מעל אזור העבודה. לוחצים על "Update now", והתוכנה מורידה את הגרסה, מתקינה אותה ונפתחת מחדש. כדאי לשמור את הקבצים הפתוחים לפני כן. את הבדיקה האוטומטית אפשר לכבות בתפריט הראשי, ובכל רגע אפשר גם להוריד את הגרסה האחרונה מכאן ולהתקין מעל הקיימת.</p></div>
+        </details>
+        <details class="disclosure">
+          <summary><svg class="ic chev"><use href="#i-chevron"/></svg>מה צריך כדי להפיק תמונה בכפתור Render?</summary>
+          <div class="disclosure-body"><p>את Blender, תוכנה חינמית שמתקינים בנפרד מ-<a href="https://www.blender.org/download/">האתר שלה</a>. Tavnit 3D מוצאת אותה לבד, ומפעילה אותה ברקע כשלוחצים Render. עם כרטיס גרפי זה מהיר יותר, אבל עובד גם בלעדיו.</p></div>
+        </details>
+        <details class="disclosure">
+          <summary><svg class="ic chev"><use href="#i-chevron"/></svg>מה צריך כדי ליצור צורה מתיאור?</summary>
+          <div class="disclosure-body"><p>מפתח API של Claude, שמקבלים ב-<a href="https://console.anthropic.com/">Anthropic Console</a>. השימוש מחויב שם לפי כמות, ובדרך כלל עולה סנטים בודדים לצורה. התיאור שכותבים נשלח ל-Anthropic כדי לבנות את הצורה, והמפתח נשמר רק במחשב.</p></div>
+        </details>
+        <details class="disclosure">
+          <summary><svg class="ic chev"><use href="#i-chevron"/></svg>אילו קבצים אפשר לייבא?</summary>
+          <div class="disclosure-body"><p>STEP ו-IGES מתוכנות CAD, ו-glTF/GLB ו-OBJ מתוכנות תלת-ממד כמו Blender, כולל הצבעים והחומרים שלהם. כל צבע וחומר בקובץ הופך לחפץ נפרד שאפשר לשנות. חפצים מ-glTF ו-OBJ הם רשתות משולשים, ולכן אי אפשר לחבר אותם או לחסר מהם, אבל אפשר להזיז, לצבוע ולייצא.</p></div>
         </details>
         <details class="disclosure">
           <summary><svg class="ic chev"><use href="#i-chevron"/></svg>אפשר לפתוח קבצים של Dune 3D?</summary>

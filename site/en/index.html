@@ -15,7 +15,7 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://star69995.github.io/tavnit3d/en/">
   <meta property="og:title" content="Tavnit 3D - simple 3D design for Windows">
-  <meta property="og:description" content="Ready-made shapes, exact dimensions, combining and subtracting shapes, and STL export for 3D printing. Free and open source, based on Dune 3D.">
+  <meta property="og:description" content="Ready-made shapes, exact dimensions, materials, stickers and photo-like pictures, and STL export for 3D printing. Free and open source, based on Dune 3D.">
   <meta property="og:image" content="https://star69995.github.io/tavnit3d/img/og-en.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -44,6 +44,10 @@
       <symbol id="i-grid" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></symbol>
       <symbol id="i-printer" viewBox="0 0 24 24"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/></symbol>
       <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+      <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/></symbol>
+      <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+      <symbol id="i-cup" viewBox="0 0 24 24"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><path d="M6 2v2"/><path d="M10 2v2"/><path d="M14 2v2"/></symbol>
+      <symbol id="i-files" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></symbol>
       <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.13-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.13a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.13 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.13a.5.5 0 0 1-.96 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/></symbol>
       <symbol id="i-git" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></symbol>
       <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
@@ -89,9 +93,9 @@
           <p class="eyebrow">For Windows 10 and 11 · Free · Open source</p>
           <h1>Design things in 3D, without learning CAD</h1>
           <p class="lead">
-            Tavnit 3D is a 3D design app for your printer, your home and your hobbies. Add a box, a cylinder or a sphere
-            in one click, set dimensions in millimetres, combine and subtract shapes, and export an STL file that's ready to print.
-            Under the hood it's a full parametric CAD, based on Dune 3D.
+            Tavnit 3D is a 3D design app for your printer, your home and your hobbies. Add a box, a bowl or a mug
+            in one click, set dimensions in millimetres, give it a colour, a material and a sticker, and export an STL file to print
+            or render a picture that looks like a photo. Under the hood it's a full parametric CAD, based on Dune 3D.
           </p>
           <div class="cta">
             <a class="btn btn-primary btn-lg" href="https://github.com/Star69995/tavnit3d/releases/latest" data-latest-link id="hero-download">
@@ -108,7 +112,7 @@
         <div class="hero-shot">
           <div class="window">
             <img src="../img/hero.webp" width="1400" height="900"
-                 alt="The Tavnit 3D window: a palette of shapes and tools, and on a gridded work plane a box with rounded edges, a metal cylinder, a sphere, a torus and a cone. The box is selected and its dimensions are in the side panel">
+                 alt="The Tavnit 3D window: a palette of shapes, lights and tools, and on the work plane a green storage box with a label, a glass, a glossy blue bowl, a metal ball and an orange mug with a handle. The bowl is selected, with handles for its wall thickness and edge rounding, and its colour, material and hollowing in the side panel">
           </div>
         </div>
       </div>
@@ -123,17 +127,17 @@
           <article class="feature">
             <span class="feature-ic"><svg class="ic"><use href="#i-box"/></svg></span>
             <h3>Ready-made shapes</h3>
-            <p>Box, cylinder, sphere, cone, tube, torus, wedge and 3D text. One click, and the shape stands on the work plane.</p>
+            <p>Box, cylinder, sphere, cone, tube, torus, wedge, bowl, vase and 3D text. One click, and the shape stands on the work plane.</p>
           </article>
           <article class="feature">
             <span class="feature-ic"><svg class="ic"><use href="#i-pointer"/></svg></span>
             <h3>Click an object to change it</h3>
-            <p>Clicking a shape selects it and opens a panel with its dimensions, position, colour and material. Drag to move it.</p>
+            <p>Clicking a shape selects it and opens a panel with its dimensions, position, colour and material. Drag it to move it, and drag the handles on it to change its height, width and depth.</p>
           </article>
           <article class="feature">
             <span class="feature-ic"><svg class="ic"><use href="#i-ruler"/></svg></span>
             <h3>Exact dimensions</h3>
-            <p>Every dimension is a number you can change at any time, and the object follows. Good for parts that have to fit together.</p>
+            <p>Every dimension is a number you can change at any time, and the object follows. A grid with snapping and Ctrl+D to duplicate help line parts up exactly.</p>
           </article>
           <article class="feature">
             <span class="feature-ic"><svg class="ic"><use href="#i-combine"/></svg></span>
@@ -141,24 +145,39 @@
             <p>Merge two shapes into one, subtract a shape to make a hole, or keep only the part they share.</p>
           </article>
           <article class="feature">
+            <span class="feature-ic"><svg class="ic"><use href="#i-cup"/></svg></span>
+            <h3>Hollow and rounded</h3>
+            <p>Hollow out a box, a cylinder or a bowl with walls as thick as you like, open at the top or the bottom, and round every edge, the rim too.</p>
+          </article>
+          <article class="feature">
+            <span class="feature-ic"><svg class="ic"><use href="#i-palette"/></svg></span>
+            <h3>Materials and stickers</h3>
+            <p>Satin, matte, glossy, metal and see-through glass. And a picture of your own, like a logo or a label, stuck onto the object's surface, round sides included.</p>
+          </article>
+          <article class="feature">
+            <span class="feature-ic"><svg class="ic"><use href="#i-camera"/></svg></span>
+            <h3>Lights and photo-like pictures</h3>
+            <p>A lamp, a spotlight and the sun that light the view, and a Render button that makes a striking picture with soft shadows, using the free Blender.</p>
+          </article>
+          <article class="feature">
+            <span class="feature-ic"><svg class="ic"><use href="#i-sparkles"/></svg></span>
+            <h3>Shapes from a description</h3>
+            <p>Write "a mug with a handle" or "a blue bowl", and Claude builds the shapes, editable afterwards like any other object. Needs a Claude API key.</p>
+          </article>
+          <article class="feature">
             <span class="feature-ic"><svg class="ic"><use href="#i-pen"/></svg></span>
             <h3>Sketch on a face</h3>
             <p>Draw a 2D shape right on an object's face and pull it out. A negative distance cuts in.</p>
           </article>
           <article class="feature">
-            <span class="feature-ic"><svg class="ic"><use href="#i-round"/></svg></span>
-            <h3>Rounded edges</h3>
-            <p>One setting rounds all of an object's edges, for a nicer finish and a stronger print.</p>
+            <span class="feature-ic"><svg class="ic"><use href="#i-files"/></svg></span>
+            <h3>Import and export with colours</h3>
+            <p>STL for your printer in one click, STEP for CAD apps, and glTF with colours, materials and stickers for Blender, PowerPoint and the web. Import STEP, IGES, glTF and OBJ with their colours.</p>
           </article>
           <article class="feature">
-            <span class="feature-ic"><svg class="ic"><use href="#i-grid"/></svg></span>
-            <h3>Grid and snapping</h3>
-            <p>A work plane with a grid size you choose, and Ctrl+D to duplicate. Lining parts up exactly is easy.</p>
-          </article>
-          <article class="feature">
-            <span class="feature-ic"><svg class="ic"><use href="#i-printer"/></svg></span>
-            <h3>Ready to print</h3>
-            <p>Export STL for your 3D printer in one click, plus STEP export and import for working with other CAD apps.</p>
+            <span class="feature-ic"><svg class="ic"><use href="#i-search"/></svg></span>
+            <h3>Find any command</h3>
+            <p>Ctrl+K, or just start typing, and get any command with where it is in the window and its keyboard shortcut.</p>
           </article>
           <article class="feature">
             <span class="feature-ic"><svg class="ic"><use href="#i-refresh"/></svg></span>
@@ -176,11 +195,25 @@
         <p class="section-lead">Click a picture to enlarge it.</p>
         <div class="gallery">
           <figure class="shot">
-            <button type="button" class="shot-btn" data-full="../img/object-panel.webp" aria-label="Enlarge: the object panel">
-              <img src="../img/object-panel.webp" width="1400" height="900" loading="lazy"
-                   alt="A cube with rounded edges is selected; the side panel shows its width, depth, height, position, edge rounding, colour and material">
+            <button type="button" class="shot-btn" data-full="../img/render.webp" aria-label="Enlarge: a picture made with the Render button">
+              <img src="../img/render.webp" width="1400" height="900" loading="lazy"
+                   alt="A picture made from the objects in the window: a green box with a TOOLS label, a clear glass, a glossy blue bowl, a metal ball and an orange mug with a handle, with soft shadows on a white background">
             </button>
-            <figcaption><strong>Everything in one panel</strong>Select an object and change its dimensions, position, rounding, colour and material.</figcaption>
+            <figcaption><strong>A picture like a photo</strong>The same scene after clicking Render: glass, metal and soft shadows.</figcaption>
+          </figure>
+          <figure class="shot">
+            <button type="button" class="shot-btn" data-full="../img/handles.webp" aria-label="Enlarge: handles on the object">
+              <img src="../img/handles.webp" width="1400" height="900" loading="lazy"
+                   alt="A cylinder turned into a hollow cup with a rounded rim, with handles for its height, diameter, wall thickness and edge rounding">
+            </button>
+            <figcaption><strong>Handles on the object</strong>Drag a handle to change the height, diameter, wall thickness or rounding, and the panel follows.</figcaption>
+          </figure>
+          <figure class="shot">
+            <button type="button" class="shot-btn" data-full="../img/find.webp" aria-label="Enlarge: finding a command">
+              <img src="../img/find.webp" width="1400" height="900" loading="lazy"
+                   alt="The Find window over the app: stick typed in, and the result Add a sticker with where it is, in the object panel under Stickers">
+            </button>
+            <figcaption><strong>Find any command</strong>Every command, with where it lives.</figcaption>
           </figure>
           <figure class="shot">
             <button type="button" class="shot-btn" data-full="../img/shapes.webp" aria-label="Enlarge: ready-made shapes">
@@ -367,6 +400,18 @@
         <details class="disclosure">
           <summary><svg class="ic chev"><use href="#i-chevron"/></svg>How do I update to a new version?</summary>
           <div class="disclosure-body"><p>Every time it starts, the app checks for a new version, and if there is one, a strip appears above the work area. Click "Update now" and the app downloads the version, installs it and opens again. Save your open files first. You can turn the automatic check off in the main menu, and you can always download the latest version here and install it over the existing one.</p></div>
+        </details>
+        <details class="disclosure">
+          <summary><svg class="ic chev"><use href="#i-chevron"/></svg>What do I need for the Render button?</summary>
+          <div class="disclosure-body"><p>Blender, a free app you install separately from <a href="https://www.blender.org/download/">its website</a>. Tavnit 3D finds it by itself and runs it in the background when you click Render. A graphics card makes it faster, but it works without one too.</p></div>
+        </details>
+        <details class="disclosure">
+          <summary><svg class="ic chev"><use href="#i-chevron"/></svg>What do I need to make shapes from a description?</summary>
+          <div class="disclosure-body"><p>A Claude API key, which you get in the <a href="https://console.anthropic.com/">Anthropic Console</a>. Use is billed there by amount, usually a few cents per shape. What you write is sent to Anthropic to build the shape, and the key is kept on your computer only.</p></div>
+        </details>
+        <details class="disclosure">
+          <summary><svg class="ic chev"><use href="#i-chevron"/></svg>Which files can I import?</summary>
+          <div class="disclosure-body"><p>STEP and IGES from CAD apps, and glTF/GLB and OBJ from 3D apps like Blender, with their colours and materials. Each colour and material in the file becomes an object of its own that you can change. Objects from glTF and OBJ are triangle meshes, so they can't be joined or subtracted, but you can move, colour and export them.</p></div>
         </details>
         <details class="disclosure">
           <summary><svg class="ic chev"><use href="#i-chevron"/></svg>Can I open Dune 3D files?</summary>
