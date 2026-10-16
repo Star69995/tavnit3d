@@ -6,6 +6,7 @@
 #include "workspace_browser.hpp"
 #include "document/document.hpp"
 #include "document/group/group.hpp"
+#include "document/group/group_extrude.hpp"
 #include "document/constraint/constraint.hpp"
 #include "document/constraint/iconstraint_datum.hpp"
 #include "document/constraint/constraint_point_distance.hpp"
@@ -29,36 +30,58 @@ namespace dune3d {
 
 namespace {
 // friendlier names for the dimensions the ready-made shapes use
-std::string datum_label(const Document &doc, const Constraint &co, const IConstraintDatum &datum, const Group &group)
+struct DatumInfo {
+    std::string label;
+    double scale = 1; // shown value = datum * scale
+};
+
+DatumInfo datum_info(const Document &doc, const Constraint &co, const IConstraintDatum &datum, const Group &group,
+                     bool body_is_revolved)
 {
     using T = Constraint::Type;
-    // horizontal/vertical distance from a workplane's origin: a position
-    bool from_origin = false;
+    bool from_origin = false;   // horizontal/vertical distance from a workplane's origin: a position
+    bool on_own_plane = false;  // on a plane made in the same group: an upright profile
     if (auto pd = dynamic_cast<const ConstraintPointDistanceBase *>(&co)) {
         auto en = doc.get_entity_ptr(pd->m_entity1.entity);
         from_origin = en && en->get_type() == Entity::Type::WORKPLANE;
+        if (auto wp = doc.get_entity_ptr(pd->m_wrkpl))
+            on_own_plane = wp->m_group == co.m_group;
     }
     switch (co.get_type()) {
     case T::POINT_DISTANCE_HORIZONTAL:
-        return from_origin ? "X" : "Width";
+        if (from_origin)
+            return {"X"};
+        if (on_own_plane)
+            return {body_is_revolved ? "Radius" : "Width"};
+        return {"Width"};
     case T::POINT_DISTANCE_VERTICAL:
-        return from_origin ? "Y" : "Depth";
+        if (from_origin)
+            return {"Y"};
+        if (on_own_plane)
+            return {"Height"};
+        return {"Depth"};
     case T::DIAMETER:
-        return "Diameter";
+        return {"Diameter"};
     case T::RADIUS:
-        return "Radius";
+        return {"Radius"};
     case T::POINT_DISTANCE:
-        if (group.get_type() == Group::Type::EXTRUDE)
-            return "Height";
+        if (auto ex = dynamic_cast<const GroupExtrude *>(&group)) {
+            // a symmetric extrusion goes both ways: show the whole thickness
+            if (ex->m_mode == GroupExtrude::Mode::OFFSET_SYMMETRIC)
+                return {"Depth", 2};
+            return {"Height"};
+        }
         break;
     default:;
     }
-    return datum.get_datum_name();
+    return {datum.get_datum_name()};
 }
 
 int label_order(const std::string &label)
 {
-    static const std::vector<std::string> order = {"Width", "Depth", "Height", "Diameter", "Radius", "X", "Y"};
+    static const std::vector<std::string> order = {"Width",          "Depth",          "Height", "Diameter",
+                                                   "Outer diameter", "Inner diameter", "Radius", "X",
+                                                   "Y"};
     auto it = std::ranges::find(order, label);
     return it - order.begin();
 }
@@ -185,7 +208,10 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         std::string label;
         UUID constraint;
         UUID group;
+        double scale;
+        double value;
     };
+    const bool revolved = std::ranges::any_of(groups, [](auto gr) { return gr->get_type() == Group::Type::REVOLVE; });
     std::vector<Dim> dims;
     for (auto gr : groups) {
         for (auto &[uu, co] : doc.m_constraints) {
@@ -194,7 +220,21 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
             auto datum = dynamic_cast<IConstraintDatum *>(co.get());
             if (!datum || datum->is_measurement())
                 continue;
-            dims.push_back({datum_label(doc, *co, *datum, *gr), uu, gr->m_uuid});
+            const auto info = datum_info(doc, *co, *datum, *gr, revolved);
+            dims.push_back({info.label, uu, gr->m_uuid, info.scale, datum->get_datum() * info.scale});
+        }
+    }
+    // two diameters (a tube): outer and inner
+    {
+        std::vector<Dim *> diameters;
+        for (auto &d : dims) {
+            if (d.label == "Diameter")
+                diameters.push_back(&d);
+        }
+        if (diameters.size() == 2) {
+            std::ranges::sort(diameters, {}, [](auto d) { return -d->value; });
+            diameters.at(0)->label = "Outer diameter";
+            diameters.at(1)->label = "Inner diameter";
         }
     }
     std::ranges::stable_sort(dims, {}, [](const Dim &d) { return label_order(d.label); });
@@ -212,16 +252,17 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
             sp->set_increments(1, 10);
         }
         const auto [lo, hi] = datum->get_datum_range();
-        sp->set_range(lo, hi);
-        sp->set_value(datum->get_datum());
+        sp->set_range(lo * dim.scale, hi * dim.scale);
+        sp->set_value(dim.value);
         sp->set_hexpand(true);
         const UUID co_uu = dim.constraint;
         const UUID group_uu = dim.group;
-        sp->signal_activate().connect([this, sp, doc_uu, co_uu, group_uu, changed] {
+        const double scale = dim.scale;
+        sp->signal_activate().connect([this, sp, doc_uu, co_uu, group_uu, scale, changed] {
             sp->update();
             auto &d = m_core.get_idocument_info(doc_uu).get_document();
             auto &c = *d.m_constraints.at(co_uu);
-            dynamic_cast<IConstraintDatum &>(c).set_datum(sp->get_value());
+            dynamic_cast<IConstraintDatum &>(c).set_datum(sp->get_value() / scale);
             changed(group_uu, true);
         });
         grid_attach_label_and_widget(*grid, dim.label, *sp, top).add_css_class("tnum");

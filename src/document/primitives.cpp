@@ -15,6 +15,7 @@
 #include "document/constraint/constraint_point_distance_hv.hpp"
 #include "document/constraint/constraint_diameter_radius.hpp"
 #include "document/constraint/constraint_lock_rotation.hpp"
+#include "document/constraint/constraint_point_on_circle.hpp"
 #include "document/solid_model/solid_model_occ.hpp"
 #include <BRepBndLib.hxx>
 #include <Bnd_Box.hxx>
@@ -114,6 +115,65 @@ public:
     const UUID m_group;
     const UUID m_wrkpl;
 };
+
+// An upright plane standing on the workplane at pos, for profiles that get
+// revolved or extruded sideways. Its "foot" is placed like the centre of the
+// other shapes and its rotation is locked. x runs along the workplane's x,
+// y points up.
+UUID add_upright_plane(PrimitiveBuilder &b, const EntityWorkplane &wrkpl, const glm::dvec2 &pos, double size)
+{
+    auto &foot = b.entity<EntityPoint2D>();
+    foot.m_construction = true;
+    foot.m_p = pos;
+    b.position({foot.m_uuid, 0}, pos);
+
+    const auto normal = wrkpl.get_normal_vector();
+    const auto x = wrkpl.transform_relative({1, 0});
+    auto &upright = b.m_doc.add_entity<EntityWorkplane>(UUID::random());
+    upright.m_group = b.m_group;
+    upright.m_origin = wrkpl.transform(pos);
+    upright.m_normal = glm::quat_cast(glm::dmat3(x, normal, glm::cross(x, normal)));
+    upright.m_size = {size, size}; // a helper only, small enough to stay hidden
+    b.coincident({upright.m_uuid, 1}, {foot.m_uuid, 0}, UUID());
+    b.constraint<ConstraintLockRotation>().m_entity = upright.m_uuid;
+    return upright.m_uuid;
+}
+
+// closed polygon of lines, consecutive ends made coincident
+std::vector<EntityLine2D *> add_polygon(PrimitiveBuilder &b, const UUID &wrkpl, const std::vector<glm::dvec2> &pts)
+{
+    std::vector<EntityLine2D *> lines;
+    for (size_t i = 0; i < pts.size(); i++) {
+        auto &li = b.entity<EntityLine2D>(wrkpl);
+        li.m_p1 = pts.at(i);
+        li.m_p2 = pts.at((i + 1) % pts.size());
+        lines.push_back(&li);
+    }
+    for (size_t i = 0; i < lines.size(); i++)
+        b.coincident({lines.at(i)->m_uuid, 2}, {lines.at((i + 1) % lines.size())->m_uuid, 1}, wrkpl);
+    return lines;
+}
+
+template <typename T> void add_hv_distance(PrimitiveBuilder &b, const EntityAndPoint &p1, const EntityAndPoint &p2,
+                                           const UUID &wrkpl, double d)
+{
+    auto &co = b.constraint<T>();
+    co.m_entity1 = p1;
+    co.m_entity2 = p2;
+    co.m_wrkpl = wrkpl;
+    co.m_distance = d;
+}
+
+GroupRevolve &add_full_revolve(Document &doc, const UUID &sketch, const UUID &wrkpl, const UUID &axis)
+{
+    auto &rev = doc.insert_group<GroupRevolve>(UUID::random(), sketch);
+    rev.m_wrkpl = wrkpl;
+    rev.m_source_group = sketch;
+    rev.m_origin = {axis, 1};
+    rev.m_normal = axis;
+    rev.m_angle = 360;
+    return rev;
+}
 
 void constrain_extrusion_height(PrimitiveBuilder &b, GroupExtrude &ex, double h)
 {
@@ -228,23 +288,8 @@ Group &add_primitive(Document &doc, const UUID &after, Primitive primitive, cons
     case Primitive::SPHERE: {
         body_name = "Sphere";
         const double r = 10;
-        // The profile lives on an upright plane standing on the workplane at pos, so
-        // the sphere rests on the workplane: its "foot" point is placed like the
-        // centre of the other shapes, the plane's rotation is locked.
-        auto &foot = b.entity<EntityPoint2D>();
-        foot.m_construction = true;
-        foot.m_p = pos;
-        b.position({foot.m_uuid, 0}, pos);
-
-        const auto x = wrkpl.transform_relative({1, 0});
-        auto &upright = doc.add_entity<EntityWorkplane>(UUID::random());
-        upright.m_group = sk;
-        upright.m_origin = wrkpl.transform(pos);
-        upright.m_normal = glm::quat_cast(glm::dmat3(x, normal, glm::cross(x, normal)));
-        upright.m_size = {r / 4, r / 4}; // a helper only; small enough to stay inside the sphere
-        b.coincident({upright.m_uuid, 1}, {foot.m_uuid, 0}, UUID());
-        b.constraint<ConstraintLockRotation>().m_entity = upright.m_uuid;
-        const auto up = upright.m_uuid;
+        // the profile lives on an upright plane, so the sphere rests on the workplane
+        const auto up = add_upright_plane(b, wrkpl, pos, r / 4);
 
         // half circle on the +x side, closed by the vertical axis it revolves around
         auto &arc = b.entity<EntityArc2D>(up);
@@ -268,13 +313,113 @@ Group &add_primitive(Document &doc, const UUID &after, Primitive primitive, cons
         auto &rad = b.constraint<ConstraintRadius>();
         rad.m_entity = arc.m_uuid;
         rad.m_distance = r;
-        auto &rev = doc.insert_group<GroupRevolve>(UUID::random(), sk);
-        rev.m_wrkpl = up;
-        rev.m_source_group = sk;
-        rev.m_origin = {axis.m_uuid, 1};
-        rev.m_normal = axis.m_uuid;
-        rev.m_angle = 360;
-        solid_group = &rev;
+        solid_group = &add_full_revolve(doc, sk, up, axis.m_uuid);
+        break;
+    }
+
+    case Primitive::CONE: {
+        body_name = "Cone";
+        const double r = 10, h = 20;
+        // right triangle: base, slant, axis; revolved around the axis
+        const auto up = add_upright_plane(b, wrkpl, pos, r / 4);
+        auto lines = add_polygon(b, up, {{0, 0}, {r, 0}, {0, h}});
+        auto base = lines.at(0), axis = lines.at(2);
+        b.coincident({base->m_uuid, 1}, {up, 1}, up);
+        b.hv<ConstraintHorizontal>({base->m_uuid, 1}, {base->m_uuid, 2}, up);
+        b.hv<ConstraintVertical>({axis->m_uuid, 1}, {axis->m_uuid, 2}, up);
+        add_hv_distance<ConstraintPointDistanceHorizontal>(b, {base->m_uuid, 1}, {base->m_uuid, 2}, up, r);
+        add_hv_distance<ConstraintPointDistanceVertical>(b, {axis->m_uuid, 2}, {axis->m_uuid, 1}, up, h);
+        solid_group = &add_full_revolve(doc, sk, up, axis->m_uuid);
+        break;
+    }
+
+    case Primitive::TUBE: {
+        body_name = "Tube";
+        const double r_out = 10, r_in = 6, h = 20;
+        auto &outer = b.entity<EntityCircle2D>();
+        outer.m_center = pos;
+        outer.m_radius = r_out;
+        auto &inner = b.entity<EntityCircle2D>();
+        inner.m_center = pos;
+        inner.m_radius = r_in;
+        b.position({outer.m_uuid, 1}, pos);
+        b.coincident({inner.m_uuid, 1}, {outer.m_uuid, 1});
+        for (auto [circle, r] : {std::pair{&outer, r_out}, std::pair{&inner, r_in}}) {
+            auto &dia = b.constraint<ConstraintDiameter>();
+            dia.m_entity = circle->m_uuid;
+            dia.m_distance = 2 * r;
+        }
+        auto &ex = doc.insert_group<GroupExtrude>(UUID::random(), sk);
+        ex.m_wrkpl = wrkpl_uu;
+        ex.m_source_group = sk;
+        ex.m_dvec = normal * h;
+        solid_group = &ex;
+        constrain_extrusion_height(b, ex, h);
+        break;
+    }
+
+    case Primitive::TORUS: {
+        body_name = "Torus";
+        const double ring = 10, tube = 4;
+        // circle standing on a horizontal construction line from the axis, revolved
+        // around the (construction) vertical axis; it touches the workplane
+        const auto up = add_upright_plane(b, wrkpl, pos, tube / 2);
+        auto &axis = b.entity<EntityLine2D>(up);
+        axis.m_construction = true;
+        axis.m_p1 = {0, 0};
+        axis.m_p2 = {0, tube};
+        b.coincident({axis.m_uuid, 1}, {up, 1}, up);
+        b.hv<ConstraintVertical>({axis.m_uuid, 1}, {axis.m_uuid, 2}, up);
+        auto &spoke = b.entity<EntityLine2D>(up);
+        spoke.m_construction = true;
+        spoke.m_p1 = {0, 0};
+        spoke.m_p2 = {ring, 0};
+        b.coincident({spoke.m_uuid, 1}, {up, 1}, up);
+        b.hv<ConstraintHorizontal>({spoke.m_uuid, 1}, {spoke.m_uuid, 2}, up);
+        add_hv_distance<ConstraintPointDistanceHorizontal>(b, {spoke.m_uuid, 1}, {spoke.m_uuid, 2}, up, ring);
+        auto &circle = b.entity<EntityCircle2D>(up);
+        circle.m_center = {ring, tube};
+        circle.m_radius = tube;
+        {
+            auto &on = b.constraint<ConstraintPointOnCircle>();
+            on.m_point = {spoke.m_uuid, 2};
+            on.m_circle = circle.m_uuid;
+        }
+        b.hv<ConstraintVertical>({spoke.m_uuid, 2}, {circle.m_uuid, 1}, up);
+        auto &dia = b.constraint<ConstraintDiameter>();
+        dia.m_entity = circle.m_uuid;
+        dia.m_distance = 2 * tube;
+        // the axis reaches up to the height of the circle's centre
+        b.hv<ConstraintHorizontal>({axis.m_uuid, 2}, {circle.m_uuid, 1}, up);
+        solid_group = &add_full_revolve(doc, sk, up, axis.m_uuid);
+        break;
+    }
+
+    case Primitive::WEDGE: {
+        body_name = "Wedge";
+        const double w = 20, h = 20, d = 20;
+        // right triangle profile on an upright plane, extruded sideways
+        const auto up = add_upright_plane(b, wrkpl, pos, 2);
+        auto lines = add_polygon(b, up, {{-w / 2, 0}, {w / 2, 0}, {-w / 2, h}});
+        auto base = lines.at(0), back = lines.at(2);
+        b.hv<ConstraintHorizontal>({base->m_uuid, 1}, {base->m_uuid, 2}, up);
+        b.hv<ConstraintVertical>({back->m_uuid, 1}, {back->m_uuid, 2}, up);
+        {
+            // centred on the foot along x
+            auto &mid = b.constraint<ConstraintMidpoint>();
+            mid.m_line = base->m_uuid;
+            mid.m_point = {up, 1};
+            mid.m_wrkpl = up;
+        }
+        add_hv_distance<ConstraintPointDistanceHorizontal>(b, {base->m_uuid, 1}, {base->m_uuid, 2}, up, w);
+        add_hv_distance<ConstraintPointDistanceVertical>(b, {back->m_uuid, 2}, {back->m_uuid, 1}, up, h);
+        auto &ex = doc.insert_group<GroupExtrude>(UUID::random(), sk);
+        ex.m_wrkpl = up;
+        ex.m_source_group = sk;
+        ex.m_mode = GroupExtrude::Mode::OFFSET_SYMMETRIC; // centred on the foot along y too
+        ex.m_dvec = doc.get_entity<EntityWorkplane>(up).get_normal_vector() * (d / 2);
+        solid_group = &ex;
+        constrain_extrusion_height(b, ex, d / 2);
         break;
     }
     }

@@ -222,6 +222,45 @@ static double body_volume(const Document &doc, const Group &group)
     return props.Mass();
 }
 
+static void test_more_shapes()
+{
+    std::cout << "more shapes" << std::endl;
+    constexpr double pi = std::numbers::pi;
+    const struct {
+        const char *name;
+        Primitive prim;
+        double volume;
+    } cases[] = {
+            {"cone r10 h20", Primitive::CONE, pi * 100 * 20 / 3},
+            {"tube 20/12 h20", Primitive::TUBE, pi * (100 - 36) * 20},
+            {"torus 10/4", Primitive::TORUS, 2 * pi * pi * 10 * 16},
+            {"wedge 20x20x20", Primitive::WEDGE, 20. * 20 / 2 * 20},
+    };
+    const glm::dvec2 pos{30, -10};
+    for (const auto &c : cases) {
+        Document doc;
+        auto &group = add_primitive(doc, doc.get_groups_sorted().back()->m_uuid, c.prim, pos);
+        doc.update_pending();
+        for (auto gr : doc.get_groups_sorted()) {
+            check(gr->m_solve_result == SolveResult::OKAY, std::string(c.name) + ": '" + gr->m_name + "' solves");
+            if (gr->get_type() == Group::Type::SKETCH && gr->m_body && gr->get_index() > 1)
+                check(gr->m_dof == 0, std::string(c.name) + ": fully constrained (dof=" + std::to_string(gr->m_dof) + ")");
+        }
+        const auto vol = body_volume(doc, group);
+        check(std::abs(vol - c.volume) / c.volume < 2e-3,
+              std::string(c.name) + ": volume " + std::to_string(vol) + " ~ " + std::to_string(c.volume));
+        double x0, y0, z0, x1, y1, z1;
+        auto box = solid_bbox(doc, group);
+        if (box.IsVoid())
+            continue;
+        box.Get(x0, y0, z0, x1, y1, z1);
+        check(std::abs(z0) < 1e-3, std::string(c.name) + ": rests on the plane (z0=" + std::to_string(z0) + ")");
+        check(std::abs((x0 + x1) / 2 - pos.x) < 1e-3 && std::abs((y0 + y1) / 2 - pos.y) < 1e-3,
+              std::string(c.name) + ": centred on its position (" + std::to_string((x0 + x1) / 2) + ", "
+                      + std::to_string((y0 + y1) / 2) + ")");
+    }
+}
+
 static void test_combine()
 {
     std::cout << "combine" << std::endl;
@@ -262,6 +301,7 @@ int main()
     test_placement();
     test_export_stl();
     test_combine();
+    test_more_shapes();
     std::cout << (failures ? "FAILED" : "PASSED") << " (" << failures << " failures)" << std::endl;
     return failures ? 1 : 0;
 }

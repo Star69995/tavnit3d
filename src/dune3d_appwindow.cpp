@@ -382,10 +382,10 @@ void Dune3DAppWindow::set_welcome_box_visible(bool v)
 
 void Dune3DAppWindow::add_action_button(Gtk::Widget &widget)
 {
-    // buttons are laid out two per row within the current section
+    // buttons are laid out three per row within the current section
     if (!m_action_bar_grid)
         add_action_bar_section("");
-    m_action_bar_grid->attach(widget, m_action_bar_grid_n % 2, m_action_bar_grid_n / 2);
+    m_action_bar_grid->attach(widget, m_action_bar_grid_n % 3, m_action_bar_grid_n / 3);
     m_action_bar_grid_n++;
 }
 

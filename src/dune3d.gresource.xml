@@ -58,6 +58,10 @@
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-box-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-cylinder-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-sphere-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-cone-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-tube-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-torus-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-wedge-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/apps/dune3d.svg</file>
     <file>icon_texture_atlas.png</file>
   </gresource>

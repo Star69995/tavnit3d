@@ -125,6 +125,10 @@ void Editor::init()
     create_action_bar_button(ActionID::ADD_BOX, "Box");
     create_action_bar_button(ActionID::ADD_CYLINDER, "Cylinder");
     create_action_bar_button(ActionID::ADD_SPHERE, "Sphere");
+    create_action_bar_button(ActionID::ADD_CONE, "Cone");
+    create_action_bar_button(ActionID::ADD_TUBE, "Tube");
+    create_action_bar_button(ActionID::ADD_TORUS, "Torus");
+    create_action_bar_button(ActionID::ADD_WEDGE, "Wedge");
     m_win.add_action_bar_section("Sketch");
     create_action_bar_button(ToolID::SKETCH_ON_FACE, "On face");
     create_action_bar_button(ActionID::CREATE_GROUP_SKETCH, "New");
@@ -347,6 +351,10 @@ Gtk::Button &Editor::create_action_bar_button(ActionToolID action, const std::st
             {ActionID::ADD_BOX, "action-add-box-symbolic"},
             {ActionID::ADD_CYLINDER, "action-add-cylinder-symbolic"},
             {ActionID::ADD_SPHERE, "action-add-sphere-symbolic"},
+            {ActionID::ADD_CONE, "action-add-cone-symbolic"},
+            {ActionID::ADD_TUBE, "action-add-tube-symbolic"},
+            {ActionID::ADD_TORUS, "action-add-torus-symbolic"},
+            {ActionID::ADD_WEDGE, "action-add-wedge-symbolic"},
     };
     auto bu = Gtk::make_managed<Gtk::Button>();
     auto img = Gtk::make_managed<Gtk::Image>();

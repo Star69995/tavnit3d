@@ -6,7 +6,7 @@ namespace dune3d {
 class Document;
 class Group;
 
-enum class Primitive { BOX, CYLINDER, SPHERE };
+enum class Primitive { BOX, CYLINDER, SPHERE, CONE, TUBE, TORUS, WEDGE };
 
 // Inserts a ready-made solid in a new body after the given group, standing on
 // the active workplane (XY without one) centred at pos, and returns the group
