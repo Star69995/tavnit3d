@@ -116,6 +116,7 @@ private:
     void delete_body(const UUID &doc_uu, const UUID &body_uu);
     void select_object_under_cursor();
     void duplicate_object(const UUID &doc_uu, const UUID &body_uu);
+    void copy_in_a_row(const UUID &doc_uu, const UUID &body_uu, unsigned int count, double gap);
     void combine_bodies(const UUID &doc_uu, const UUID &body_a, const UUID &body_b, IGroupSolidModel::Operation op);
     Gtk::DropDown *m_object_combine_dropdown = nullptr;
     struct ObjectDrag {
