@@ -1,6 +1,7 @@
 #pragma once
 #include <epoxy/gl.h>
 #include "texture_cache.hpp"
+#include "lighting_uniforms.hpp"
 
 namespace dune3d {
 
@@ -29,5 +30,6 @@ private:
     GLuint m_clipping_op_loc;
 
     TextureCache m_textures;
+    LightingUniforms m_lighting;
 };
 } // namespace dune3d

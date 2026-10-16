@@ -7,16 +7,15 @@ in vec3 color_to_fragment;
 in vec3 normal_to_fragment;
 in vec3 pos_to_fragment;
 //flat in uint instance_to_fragment;
-uniform vec3 cam_normal;
 uniform uint pick_base;
 uniform uint flags;
 uniform vec3 clipping_value;
 uniform ivec3 clipping_op;
 uniform int material; // 0 satin, 1 matte, 2 glossy, 3 metal, 4 glass (see document/material.cpp)
-uniform int studio_lighting;
 flat in float select_alpha_to_frag;
 
 ##ubo
+##lighting
 
 bool should_clip(int op, float clip_value, float value)
 {
@@ -44,54 +43,7 @@ void main() {
   int mat = material & 0xff;
   if((material & 0x100) != 0) // highlighted object
       color = mix(color, vec3(.18, .42, .94), .35);
-  if(studio_lighting == 0) {
-    // original headlight
-    float shade = pow(min(1, abs(dot(cam_normal, normal_to_fragment))+.1), 1/2.2);
-    outputColor = vec4(color*(shade), mat == 4 ? .35 : 1.);
-  }
-  else {
-    // lights fixed relative to the camera, so every view is lit the same way
-    vec3 v = normalize(cam_normal);
-    vec3 n = normalize(normal_to_fragment);
-    if(dot(n, v) < 0)
-      n = -n; // two-sided
-    vec3 world_up = abs(v.z) > .99 ? vec3(0, 1, 0) : vec3(0, 0, 1);
-    vec3 right = normalize(cross(world_up, v));
-    vec3 up = cross(v, right);
-    vec3 key = normalize(v + .7*up - .45*right);
-    vec3 fill = normalize(v - .3*up + .8*right);
-
-    float spec_strength = .15, shininess = 24, diffuse_strength = 1.;
-    if(mat == 1) { spec_strength = 0.; }
-    else if(mat == 2) { spec_strength = .45; shininess = 140; }
-    else if(mat == 3) { spec_strength = .9; shininess = 70; diffuse_strength = .45; }
-    else if(mat == 4) { spec_strength = .8; shininess = 160; diffuse_strength = .35; }
-
-    float diffuse = .62*max(dot(n, key), 0) + .22*max(dot(n, fill), 0);
-    // soft sky/ground ambient
-    float hemi = .5 + .5*dot(n, world_up);
-    vec3 ambient = mix(vec3(.30, .30, .32), vec3(.42, .43, .46), hemi);
-    vec3 lit = color * (ambient + diffuse_strength*diffuse);
-    float spec = pow(max(dot(n, normalize(key + v)), 0), shininess) * spec_strength;
-    vec3 spec_color = mat == 3 ? mix(color, vec3(1), .25) : vec3(1);
-    if(mat == 3) {
-      // metals mostly reflect their surroundings: fake a bright sky / darker floor
-      vec3 r = reflect(-v, n);
-      float env = smoothstep(-.4, .6, dot(r, world_up));
-      lit += color * mix(.15, .75, env) * .6;
-    }
-    float alpha = 1.;
-    if(mat == 4) {
-      // glass: see-through face-on, more reflective at grazing angles
-      float fresnel = pow(1 - max(dot(n, v), 0), 3);
-      vec3 r = reflect(-v, n);
-      float env = smoothstep(-.2, .8, dot(r, world_up));
-      lit += vec3(.5) * env * (.15 + .6*fresnel);
-      alpha = mix(.28, .85, fresnel);
-    }
-    lit += spec_color * spec;
-    outputColor = vec4(pow(clamp(lit, 0, 1), vec3(1/1.4)), max(alpha, spec));
-  }
+  outputColor = shade_surface(color, normal_to_fragment, pos_to_fragment, mat);
   select = outputColor*select_alpha_to_frag;
   pick = pick_base;
 }

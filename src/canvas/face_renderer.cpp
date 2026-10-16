@@ -74,6 +74,7 @@ void FaceRenderer::realize()
     GET_LOC(this, clipping_op);
     GET_LOC(this, material);
     GET_LOC(this, studio_lighting);
+    m_lighting.realize(m_program);
 }
 
 void FaceRenderer::push()
@@ -163,6 +164,7 @@ void FaceRenderer::render(bool glass)
 
     glUniform3fv(m_cam_normal_loc, 1, glm::value_ptr(m_ca.m_cam_normal));
     glUniform1i(m_studio_lighting_loc, m_ca.m_studio_lighting ? 1 : 0);
+    m_lighting.load(m_ca.m_lights);
 
     // glass is see-through: drawn after everything opaque, blended and without
     // hiding what's behind it

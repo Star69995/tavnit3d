@@ -8,6 +8,7 @@
 #include "icon_renderer.hpp"
 #include "picture_renderer.hpp"
 #include "decal_renderer.hpp"
+#include "lighting_uniforms.hpp"
 #include "box_selection.hpp"
 #include "selection_texture_renderer.hpp"
 #include "icanvas.hpp"
@@ -135,6 +136,10 @@ public:
     {
         return m_cam_fov;
     }
+    // the document's lights, for shading
+    void set_lights(const std::vector<CanvasLight> &lights);
+    // where a point appears, in the same coordinates as get_cursor_pos_win()
+    glm::dvec2 project_to_window(const glm::dvec3 &p) const;
 
     enum class ZoomCenter { SCREEN, CURSOR };
     void set_cam_distance(float dist, ZoomCenter zoom_center);
@@ -297,6 +302,7 @@ private:
 
     Appearance m_appearance;
     bool m_studio_lighting = true;
+    std::vector<CanvasLight> m_lights;
 
     using pick_buf_t = uint32_t;
 

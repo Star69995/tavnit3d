@@ -232,6 +232,9 @@ void Editor::init_actions()
     connect_action(ActionID::ADD_TORUS, [this](auto &a) { add_primitive(Primitive::TORUS); });
     connect_action(ActionID::ADD_WEDGE, [this](auto &a) { add_primitive(Primitive::WEDGE); });
     connect_action(ActionID::ADD_TEXT, [this](auto &a) { add_text_object(); });
+    connect_action(ActionID::ADD_LAMP, [this](auto &a) { add_light(Light::Type::POINT); });
+    connect_action(ActionID::ADD_SPOTLIGHT, [this](auto &a) { add_light(Light::Type::SPOT); });
+    connect_action(ActionID::ADD_SUN, [this](auto &a) { add_light(Light::Type::SUN); });
     connect_action(ActionID::DUPLICATE_OBJECT, [this](auto &a) {
         if (m_object_editor)
             duplicate_object(m_object_editor_doc, m_object_editor_body);
@@ -545,6 +548,7 @@ void Editor::update_action_sensitivity(const std::set<SelectableRef> &sel)
     m_action_sensitivity[ActionID::NEW_DOCUMENT] = true;
     for (auto act : {ActionID::ADD_BOX, ActionID::ADD_CYLINDER, ActionID::ADD_SPHERE, ActionID::ADD_CONE, ActionID::ADD_TUBE,
                      ActionID::ADD_TORUS, ActionID::ADD_WEDGE, ActionID::ADD_TEXT, ActionID::COMBINE_OBJECTS,
+                     ActionID::ADD_LAMP, ActionID::ADD_SPOTLIGHT, ActionID::ADD_SUN,
                      ActionID::DUPLICATE_OBJECT})
         m_action_sensitivity[act] = m_core.has_documents();
     m_action_sensitivity[ActionID::TOGGLE_WORKPLANE] = m_core.has_documents();
@@ -677,6 +681,12 @@ Gtk::Button *Editor::create_action_button(ActionToolID action)
 bool Editor::trigger_action(ActionToolID action, ActionSource source)
 {
     // Delete with an object picked and nothing else selected deletes the object
+    if (action == ActionToolID(ToolID::DELETE) && m_object_editor && m_object_editor_light
+        && !m_core.tool_is_active() && get_canvas().get_selection().empty()) {
+        const auto doc = m_object_editor_doc, light = m_object_editor_light;
+        Glib::signal_idle().connect_once([this, doc, light] { delete_light(doc, light); });
+        return true;
+    }
     if (action == ActionToolID(ToolID::DELETE) && m_object_editor && !m_core.tool_is_active()
         && get_canvas().get_selection().empty()) {
         const auto doc = m_object_editor_doc, body = m_object_editor_body;

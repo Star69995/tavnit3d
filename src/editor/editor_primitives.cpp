@@ -110,6 +110,10 @@ void Editor::zoom_to_fit(bool only_if_needed)
     for (const auto &bs :
          get_body_solids(doc, m_core.get_current_group(), [this](const UUID &b) { return body_is_shown(b); }))
         BRepBndLib::Add(bs.solid->m_shape_acc, box, true); // by the triangles: meshes have no surfaces
+    for (const auto &light : doc.m_lights) {
+        if (light.m_type != Light::Type::SUN) // that's far away anyway
+            box.Add(gp_Pnt(light.m_position.x, light.m_position.y, light.m_position.z));
+    }
     glm::vec3 lo{-100, -100, 0}, hi{100, 100, 0}; // the XY plane
     if (!box.IsVoid()) {
         double x0, y0, z0, x1, y1, z1;

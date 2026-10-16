@@ -165,6 +165,16 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
     }
 
 
+    // lights: a marker, and which way it shines
+    if (!sr) {
+        for (const auto &light : doc.m_lights) {
+            m_ca.draw_point(light.m_position, IconID::POINT_CIRCLE);
+            if (light.m_type != Light::Type::POINT)
+                m_ca.draw_line(light.m_position, light.m_position + light.get_direction() * std::min(
+                                                                           light.get_target_distance(), 1e4) * .3);
+        }
+    }
+
     if (!sr && !m_workspace_view->show_only_solid_models() && !m_hide_constraints) {
         set_chunk_from_group(*m_current_group);
         for (const auto &[uu, el] : doc.m_constraints) {

@@ -1050,6 +1050,19 @@ std::vector<unsigned int> Canvas::get_chunk_ids() const
     return chunk_ids;
 }
 
+void Canvas::set_lights(const std::vector<CanvasLight> &lights)
+{
+    m_lights = lights;
+    queue_draw();
+}
+
+glm::dvec2 Canvas::project_to_window(const glm::dvec3 &p) const
+{
+    auto c = m_projmat * m_viewmat * glm::vec4(glm::vec3(p), 1);
+    c /= c.w;
+    return {(c.x + 1) / 2 * get_width(), (1 - c.y) / 2 * get_height()};
+}
+
 void Canvas::set_studio_lighting(bool studio)
 {
     m_studio_lighting = studio;

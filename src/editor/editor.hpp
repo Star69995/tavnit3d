@@ -3,6 +3,7 @@
 #include "core/core.hpp"
 #include <gtkmm.h>
 #include "document/primitives.hpp"
+#include "document/light.hpp"
 #include "document/group/igroup_solid_model.hpp"
 #include "action/action.hpp"
 #include "preferences/preferences.hpp"
@@ -132,6 +133,12 @@ private:
         UUID doc, body;
         std::shared_ptr<const class PictureData> data;
     };
+    void add_light(Light::Type type);
+    void show_light_editor(const UUID &doc_uu, const UUID &light_uu);
+    void delete_light(const UUID &doc_uu, const UUID &light_uu);
+    bool pick_light_under_cursor();
+    std::vector<struct CanvasLight> get_canvas_lights(const Document &doc) const;
+    UUID m_object_editor_light; // the panel shows this light rather than an object
     void on_import_object();
     void import_object_file(const std::filesystem::path &path);
     struct GltfExportOptions get_gltf_export_options();

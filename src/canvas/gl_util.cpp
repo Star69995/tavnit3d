@@ -69,6 +69,7 @@ static GLuint create_shader_from_resource(int type, const char *resource)
 {
     std::string shader_string = string_from_resource(resource);
     include_shader(shader_string, "ubo");
+    include_shader(shader_string, "lighting");
     // include_shader(shader_string, "selectable-ubo");
     return create_shader(type, shader_string.c_str());
 }

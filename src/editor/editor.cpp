@@ -131,6 +131,10 @@ void Editor::init()
     create_action_bar_button(ActionID::ADD_TORUS, "Torus");
     create_action_bar_button(ActionID::ADD_WEDGE, "Wedge");
     create_action_bar_button(ActionID::ADD_TEXT, "3D Text");
+    m_win.add_action_bar_section("Lights");
+    create_action_bar_button(ActionID::ADD_LAMP, "Lamp");
+    create_action_bar_button(ActionID::ADD_SPOTLIGHT, "Spotlight");
+    create_action_bar_button(ActionID::ADD_SUN, "Sun");
     m_win.add_action_bar_section("Sketch");
     create_action_bar_button(ToolID::SKETCH_ON_FACE, "On face");
     create_action_bar_button(ActionID::CREATE_GROUP_SKETCH, "New");
@@ -363,6 +367,9 @@ Gtk::Button &Editor::create_action_bar_button(ActionToolID action, const std::st
             {ActionID::ADD_CONE, "action-add-cone-symbolic"},
             {ActionID::ADD_TUBE, "action-add-tube-symbolic"},
             {ActionID::ADD_TORUS, "action-add-torus-symbolic"},
+            {ActionID::ADD_LAMP, "action-add-lamp-symbolic"},
+            {ActionID::ADD_SPOTLIGHT, "action-add-spotlight-symbolic"},
+            {ActionID::ADD_SUN, "action-add-sun-symbolic"},
             {ActionID::ADD_WEDGE, "action-add-wedge-symbolic"},
             {ActionID::ADD_TEXT, "action-draw-text-symbolic"},
     };
@@ -900,7 +907,13 @@ void Editor::init_properties_notebook()
                 if (!m_object_editor || m_object_drag)
                     return;
                 auto &doc = m_core.get_idocument_info(m_object_editor_doc).get_document();
-                if (doc.get_groups().contains(m_object_editor_body))
+                if (m_object_editor_light) {
+                    if (std::ranges::any_of(doc.m_lights, [this](auto &l) { return l.m_uuid == m_object_editor_light; }))
+                        show_light_editor(m_object_editor_doc, m_object_editor_light);
+                    else
+                        update_group_editor();
+                }
+                else if (doc.get_groups().contains(m_object_editor_body))
                     show_object_editor(m_object_editor_doc, m_object_editor_body);
                 else
                     update_group_editor();
@@ -1453,6 +1466,8 @@ void Editor::render_document(const IDocumentInfo &doc)
         renderer.m_highlight_body = m_object_editor_body;
         renderer.m_hide_constraints = true; // the object panel lists the dimensions
     }
+    if (doc.get_uuid() == m_core.get_current_idocument_info().get_uuid())
+        get_canvas().set_lights(get_canvas_lights(doc.get_document()));
 
     if (doc.get_uuid() == m_core.get_current_idocument_info().get_uuid())
         renderer.add_constraint_icons(m_constraint_tip_pos, m_constraint_tip_vec, m_constraint_tip_icons);
@@ -1628,6 +1643,8 @@ void Editor::handle_click(unsigned int button, unsigned int n)
     }
     else if (button == 1) {
         if (place_decal_under_cursor())
+            return;
+        if (pick_light_under_cursor())
             return;
         auto hover_sel = get_canvas().get_hover_selection();
         if (!hover_sel) {

@@ -27,6 +27,7 @@
     <file>canvas/shaders/picture-fragment.glsl</file>
     <file>canvas/shaders/decal-vertex.glsl</file>
     <file>canvas/shaders/decal-fragment.glsl</file>
+    <file>canvas/shaders/lighting.glsl</file>
     <file>preferences/key_sequences.ui</file>
     <file>preferences/keys_default.json</file>
     <file>preferences/in_tool_keys_default.json</file>
@@ -61,6 +62,9 @@
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-cylinder-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-sphere-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-cone-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-lamp-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-spotlight-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-sun-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-tube-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-torus-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-wedge-symbolic.svg</file>

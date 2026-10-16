@@ -1,5 +1,6 @@
 #pragma once
 #include "base_renderer.hpp"
+#include "lighting_uniforms.hpp"
 
 namespace dune3d {
 class FaceRenderer : public BaseRenderer {
@@ -26,6 +27,7 @@ private:
     GLuint m_clipping_value_loc;
     GLuint m_clipping_op_loc;
     GLuint m_material_loc;
+    LightingUniforms m_lighting;
     GLuint m_studio_lighting_loc;
 };
 } // namespace dune3d

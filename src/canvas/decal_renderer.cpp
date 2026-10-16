@@ -39,6 +39,7 @@ void DecalRenderer::realize()
     GET_LOC(this, studio_lighting);
     GET_LOC(this, clipping_value);
     GET_LOC(this, clipping_op);
+    m_lighting.realize(m_program);
 }
 
 void DecalRenderer::push()
@@ -83,6 +84,7 @@ void DecalRenderer::render()
     glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_ca.m_projmat));
     glUniform3fv(m_cam_normal_loc, 1, glm::value_ptr(m_ca.m_cam_normal));
     glUniform1i(m_studio_lighting_loc, m_ca.m_studio_lighting ? 1 : 0);
+    m_lighting.load(m_ca.m_lights);
     const auto &cp = m_ca.m_clipping_planes;
     glUniform3f(m_clipping_value_loc, cp.x.value, cp.y.value, cp.z.value);
     glUniform3i(m_clipping_op_loc, get_clipping_op(cp.x), get_clipping_op(cp.y), get_clipping_op(cp.z));
