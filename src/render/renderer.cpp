@@ -2,6 +2,7 @@
 #include "canvas/icanvas.hpp"
 #include "document/document.hpp"
 #include "document/entity/all_entities.hpp"
+#include "document/group/group_reference.hpp"
 #include "document/group/group_extrude.hpp"
 #include "document/constraint/all_constraints.hpp"
 #include "document/solid_model/solid_model.hpp"
@@ -435,6 +436,28 @@ void Renderer::visit(const EntityWorkplane &wrkpl)
             const auto p2 = wrkpl.transform(pts.at((i + 1) % (pts.size())) * .99f);
             m_ca.add_selectable(m_ca.draw_line(p1, p2), sr);
         }
+    }
+
+    // reference grid on the plane being worked in, or the XY plane when there's none
+    const auto &active_wrkpl = m_current_group->m_active_wrkpl;
+    if (wrkpl.m_uuid == active_wrkpl
+        || (!active_wrkpl && wrkpl.m_uuid == m_doc->get_reference_group().get_workplane_xy_uuid())) {
+        AutoSaveRestore asr{*this};
+        m_ca.set_selection_invisible(true);
+        m_ca.set_line_style(ICanvas::LineStyle::THIN);
+        m_ca.set_vertex_inactive(true);
+        // round step (1, 2 or 5 * 10^n) giving about ten cells across the shorter side
+        const float rough = std::min(sz.x, sz.y) * 2 / 10;
+        const float mag = std::pow(10.f, std::floor(std::log10(rough)));
+        float step = mag;
+        for (const float m : {2.f, 5.f, 10.f}) {
+            if (step < rough * .75f)
+                step = mag * m;
+        }
+        for (float x = std::ceil(-sz.x / step) * step; x <= sz.x + step * 1e-3f; x += step)
+            m_ca.draw_line(wrkpl.transform(glm::vec2(x, -sz.y)), wrkpl.transform(glm::vec2(x, sz.y)));
+        for (float y = std::ceil(-sz.y / step) * step; y <= sz.y + step * 1e-3f; y += step)
+            m_ca.draw_line(wrkpl.transform(glm::vec2(-sz.x, y)), wrkpl.transform(glm::vec2(sz.x, y)));
     }
 
     auto normal = wrkpl.get_normal_vector() * .05;

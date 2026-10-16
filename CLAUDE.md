@@ -42,5 +42,6 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   `src/preferences/color_presets/Default.light.json` (keep the last two in
   sync) - look and feel.
 - Tool palette: `Editor::create_action_bar_button` / `add_action_bar_section`.
+- Grid on the active workplane (XY when none): `Renderer::visit(const EntityWorkplane &)`.
 - `meson.build`: core sources form the `dune3d_common` static library shared
   by the app and the tests; tests stub `Preferences::get()`.
