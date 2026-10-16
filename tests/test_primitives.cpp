@@ -4,6 +4,9 @@
 #include "document/document.hpp"
 #include "document/primitives.hpp"
 #include "document/face_sketch.hpp"
+#include "document/body_solids.hpp"
+#include <filesystem>
+#include <fstream>
 #include "document/entity/entity_workplane.hpp"
 #include "document/constraint/constraint_point_distance.hpp"
 #include "document/group/group.hpp"
@@ -17,6 +20,7 @@
 #include <GProp_GProps.hxx>
 #include <cmath>
 #include <iostream>
+#include <sstream>
 #include <numbers>
 
 using namespace dune3d;
@@ -175,6 +179,37 @@ static void test_placement()
     check(std::abs((x0 + x1) / 2 + 50) < 1e-3, "changing X moves the box (centre x=" + std::to_string((x0 + x1) / 2) + ")");
 }
 
+static void test_export_stl()
+{
+    std::cout << "export all as STL" << std::endl;
+    Document doc;
+    check(!export_bodies_stl(doc, std::filesystem::temp_directory_path() / "dune3d-empty.stl"),
+          "nothing to export in an empty document");
+    auto &box = add_primitive(doc, doc.get_groups_sorted().back()->m_uuid, Primitive::BOX);
+    add_primitive(doc, box.m_uuid, Primitive::CYLINDER, {40, 0});
+    doc.update_pending();
+    const auto path = std::filesystem::temp_directory_path() / "dune3d-test-all.stl";
+    check(export_bodies_stl(doc, path), "export succeeds");
+    std::ifstream ifs(path);
+    std::string line;
+    unsigned int facets = 0;
+    double max_x = -1e9;
+    while (std::getline(ifs, line)) {
+        if (line.find("facet normal") != std::string::npos)
+            facets++;
+        if (auto i = line.find("vertex"); i != std::string::npos) {
+            std::istringstream iss(line.substr(i + 6));
+            double x;
+            iss >> x;
+            max_x = std::max(max_x, x);
+        }
+    }
+    check(facets > 12, "STL has triangles (" + std::to_string(facets) + ")");
+    check(std::abs(max_x - 50) < 1e-3, "STL contains both objects (max x " + std::to_string(max_x) + ")");
+    ifs.close();
+    std::filesystem::remove(path);
+}
+
 int main()
 {
     constexpr double pi = std::numbers::pi;
@@ -183,6 +218,7 @@ int main()
     test_primitive("sphere r10", Primitive::SPHERE, 4. / 3. * pi * 10. * 10. * 10.);
     test_sketch_on_face();
     test_placement();
+    test_export_stl();
     std::cout << (failures ? "FAILED" : "PASSED") << " (" << failures << " failures)" << std::endl;
     return failures ? 1 : 0;
 }

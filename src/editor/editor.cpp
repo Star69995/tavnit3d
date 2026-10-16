@@ -933,6 +933,29 @@ void Editor::init_header_bar()
     }
 
     {
+        add_tool_action(ActionID::EXPORT_ALL_SOLID_MODELS_STL, "export_all_stl");
+        add_tool_action(ActionID::EXPORT_ALL_SOLID_MODELS_STEP, "export_all_step");
+        add_tool_action(ActionID::EXPORT_SOLID_MODEL_STL, "export_stl");
+        add_tool_action(ActionID::EXPORT_SOLID_MODEL_STEP, "export_step");
+        add_tool_action(ActionID::EXPORT_DXF_CURRENT_GROUP, "export_dxf");
+        auto menu = Gio::Menu::create();
+        auto all = Gio::Menu::create();
+        all->append("All objects as STL (3D printing)…", "win.export_all_stl");
+        all->append("All objects as STEP (CAD)…", "win.export_all_step");
+        menu->append_section(all);
+        auto current = Gio::Menu::create();
+        current->append("Current object as STL…", "win.export_stl");
+        current->append("Current object as STEP…", "win.export_step");
+        current->append("Current sketch as DXF…", "win.export_dxf");
+        menu->append_section(current);
+        auto bu = Gtk::make_managed<Gtk::MenuButton>();
+        bu->set_label("Export");
+        bu->set_tooltip_text("Export to other programs and 3D printers");
+        bu->set_menu_model(menu);
+        m_win.get_header_bar().pack_end(*bu);
+    }
+
+    {
         auto top = Gio::Menu::create();
 
         top->append_item(Gio::MenuItem::create("Preferences", "app.preferences"));

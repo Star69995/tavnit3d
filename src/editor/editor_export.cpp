@@ -1,4 +1,5 @@
 #include "editor.hpp"
+#include "document/body_solids.hpp"
 #include "action/action_id.hpp"
 #include "util/util.hpp"
 #include "util/fs_util.hpp"
@@ -147,7 +148,8 @@ void Editor::on_export_solid_model(const ActionConnection &conn)
     filters->append(filter_any);
 
     // Use all-zeroes UUID for all-groups exports
-    auto group_uuid = (action == ActionID::EXPORT_ALL_SOLID_MODELS_STEP) ? UUID() : m_core.get_current_group();
+    const bool all = any_of(action, ActionID::EXPORT_ALL_SOLID_MODELS_STEP, ActionID::EXPORT_ALL_SOLID_MODELS_STL);
+    auto group_uuid = all ? UUID() : m_core.get_current_group();
     if (auto initial_file = get_export_initial_filename(
                 m_win.get_app().m_user_config, m_core.get_current_idocument_info(), group_uuid, suffix, export_type)) {
         dialog->set_initial_file(initial_file);
@@ -166,6 +168,9 @@ void Editor::on_export_solid_model(const ActionConnection &conn)
             auto &doc_info = m_core.get_current_idocument_info();
             if (action == ActionID::EXPORT_ALL_SOLID_MODELS_STEP) {
                 export_all_step(doc_info, path);
+            }
+            else if (action == ActionID::EXPORT_ALL_SOLID_MODELS_STL) {
+                export_bodies_stl(doc_info.get_document(), path);
             }
             else {
                 auto &group = doc_info.get_document().get_group(group_uuid);
