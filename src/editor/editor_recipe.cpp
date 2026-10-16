@@ -143,6 +143,8 @@ void Editor::add_half_sphere()
     }
     json o = {{"id", "dome"}, {"name", "Half sphere"}, {"shape", "revolve"}, {"smooth", true}, {"profile", profile}};
     add_from_recipe({{"objects", json::array({o})}}, "add half sphere");
+}
+
 // An M8 bolt: hexagon head, and a shank whose ridges are rings rather than a
 // real thread (a helix is slow and often fails in the solid kernel)
 void Editor::add_screw()
