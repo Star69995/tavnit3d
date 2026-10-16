@@ -32,16 +32,26 @@ bool SpinButtonDim::on_output()
 
     double min, max;
     get_range(min, max);
-    std::stringstream stream;
-    stream.imbue(get_locale());
-    if (value < 0)
-        stream << "−"; // this is U+2212 MINUS SIGN, has same width as +
-    else if (value >= 0 && min < 0)
-        stream << "+";
+    // as precise as it is, without trailing zeros: 20 mm, 20.5 mm, 0.125 mm
+    std::stringstream num;
+    num.imbue(get_locale());
+    num << std::fixed << std::setprecision(prec) << std::abs(value);
+    auto digits = num.str();
+    if (digits.find_first_of(".,") != std::string::npos) {
+        while (digits.size() && digits.back() == '0')
+            digits.pop_back();
+        if (digits.size() && (digits.back() == '.' || digits.back() == ','))
+            digits.pop_back();
+    }
+    const bool zero = digits == "0";
+    std::string text;
+    if (value < 0 && !zero)
+        text = "−"; // this is U+2212 MINUS SIGN, has same width as +
+    else if (value > 0 && min < 0 && m_show_plus)
+        text = "+";
+    text += digits + " mm";
 
-    stream << std::fixed << std::setprecision(prec) << std::abs(value) << " mm";
-
-    set_text(stream.str());
+    set_text(text);
     return true;
 }
 

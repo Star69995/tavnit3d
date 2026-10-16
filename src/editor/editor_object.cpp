@@ -331,7 +331,9 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         auto datum = dynamic_cast<IConstraintDatum *>(doc.m_constraints.at(dim.constraint).get());
         Gtk::SpinButton *sp = nullptr;
         if (datum->get_datum_unit() == DatumUnit::MM) {
-            sp = Gtk::make_managed<SpinButtonDim>();
+            auto spd = Gtk::make_managed<SpinButtonDim>();
+            spd->set_show_plus(dim.label == "X" || dim.label == "Y");
+            sp = spd;
             sp->set_increments(1, 10); // +/- by whole millimetres; any value can be typed
         }
         else {
