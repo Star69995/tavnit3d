@@ -22,6 +22,15 @@ public class U {
 [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
 [DllImport("user32.dll")] public static extern void keybd_event(byte k, byte s, uint f, UIntPtr e);
 [DllImport("user32.dll")] public static extern void SwitchToThisWindow(IntPtr h, bool alt);
+public delegate bool EnumProc(IntPtr h, IntPtr p);
+[DllImport("user32.dll")] public static extern bool EnumWindows(EnumProc cb, IntPtr p);
+[DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+[DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
+// visible top-level windows of a process, bottom-most first (EnumWindows goes top-down)
+public static System.Collections.Generic.List<IntPtr> ProcessWindows(uint pid) {
+    var l = new System.Collections.Generic.List<IntPtr>();
+    EnumWindows((h, p) => { uint q; GetWindowThreadProcessId(h, out q); if (q == pid && IsWindowVisible(h)) l.Add(h); return true; }, IntPtr.Zero);
+    l.Reverse(); return l; }
 [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
 [DllImport("user32.dll")] public static extern void mouse_event(uint f, int x, int y, uint d, UIntPtr e);
 public struct RECT { public int L, T, R, B; } }
@@ -34,13 +43,15 @@ try {
     [U]::MoveWindow($h, 0, 0, $Width, $Height, $true) | Out-Null
     Start-Sleep 3
     function Focus {
-        if ([U]::GetForegroundWindow() -ne $h) {
+        for ($try = 0; $try -lt 8 -and [U]::GetForegroundWindow() -ne $h; $try++) {
             # Windows only lets a process steal focus right after a key event; a bare Alt tap is enough.
             [U]::keybd_event(0x12, 0, 0, [UIntPtr]::Zero); [U]::keybd_event(0x12, 0, 2, [UIntPtr]::Zero)
-            [U]::SetForegroundWindow($h) | Out-Null; [U]::SwitchToThisWindow($h, $true) }
+            [U]::SetForegroundWindow($h) | Out-Null; [U]::SwitchToThisWindow($h, $true)
+            Start-Sleep -Milliseconds 400 }
         Start-Sleep -Milliseconds 300
         if ([U]::GetForegroundWindow() -ne $h) { throw "could not focus the app window; not sending input" } }
     function Origin { $r = New-Object U+RECT; [U]::GetWindowRect($h, [ref]$r) | Out-Null; $r }
+    Start-Sleep -Milliseconds 1500
     Focus; Start-Sleep -Milliseconds 700
     $btn = @{ left = @(0x2, 0x4); right = @(0x8, 0x10); middle = @(0x20, 0x40) }
     foreach ($step in $Steps.Split(",")) {
@@ -63,10 +74,20 @@ try {
                 [U]::mouse_event($b[1], 0, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 600 }
             "key" { Focus; [System.Windows.Forms.SendKeys]::SendWait($arg); Start-Sleep -Milliseconds 600 }
             "shot" {
+                # main window plus the app's own popups (menus are separate windows), nothing else
                 $r = Origin
                 $bmp = New-Object System.Drawing.Bitmap ($r.R - $r.L), ($r.B - $r.T)
-                $g = [System.Drawing.Graphics]::FromImage($bmp); $hdc = $g.GetHdc()
-                [U]::PrintWindow($h, $hdc, 2) | Out-Null; $g.ReleaseHdc($hdc); $bmp.Save($arg); $g.Dispose(); $bmp.Dispose() }
+                $g = [System.Drawing.Graphics]::FromImage($bmp)
+                foreach ($w in [U]::ProcessWindows([uint32]$p.Id)) {
+                    $wr = New-Object U+RECT; [U]::GetWindowRect($w, [ref]$wr) | Out-Null
+                    $ww = $wr.R - $wr.L; $wh = $wr.B - $wr.T
+                    if ($ww -le 0 -or $wh -le 0) { continue }
+                    $wb = New-Object System.Drawing.Bitmap $ww, $wh
+                    $wg = [System.Drawing.Graphics]::FromImage($wb); $hdc = $wg.GetHdc()
+                    [U]::PrintWindow($w, $hdc, 2) | Out-Null; $wg.ReleaseHdc($hdc); $wg.Dispose()
+                    $g.DrawImage($wb, $wr.L - $r.L, $wr.T - $r.T); $wb.Dispose()
+                }
+                $bmp.Save($arg); $g.Dispose(); $bmp.Dispose() }
             default { throw "unknown step: $step" }
         }
     }

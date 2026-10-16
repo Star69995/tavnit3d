@@ -2,6 +2,9 @@
 #include "fs_util.hpp"
 #include "nlohmann/json.hpp"
 #include <fstream>
+#include <sstream>
+#include <cmath>
+#include <algorithm>
 #include <giomm.h>
 #ifdef G_OS_WIN32
 #include <windows.h>
@@ -60,6 +63,31 @@ UUID hash_uuids(const UUID &ns, const std::vector<UUID> &uuids, std::span<const 
         *p++ = extra_data[i];
     }
     return UUID::UUID5(ns, path_bytes.data(), path_bytes.size());
+}
+
+std::string format_grid_step(double step, bool with_unit)
+{
+    std::ostringstream ss;
+    ss.imbue(std::locale::classic());
+    ss << step;
+    return with_unit ? ss.str() + " mm" : ss.str();
+}
+
+double get_grid_step(double user_step, double plane_width, double plane_height)
+{
+    double step = user_step;
+    if (step <= 0) {
+        const double rough = std::min(plane_width, plane_height) / 10;
+        const double mag = std::pow(10., std::floor(std::log10(rough)));
+        step = mag;
+        for (const double m : {2., 5., 10.}) {
+            if (step < rough * .75)
+                step = mag * m;
+        }
+    }
+    while (std::max(plane_width, plane_height) / step > 400)
+        step *= 2;
+    return step;
 }
 
 std::string append_suffix_if_required(const std::string &s, const std::string &suffix)

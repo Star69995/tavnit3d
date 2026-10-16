@@ -50,6 +50,11 @@ public:
     {
         return m_curvature_comb_scale;
     }
+    double m_grid_step = 0;
+    double get_grid_step() const override
+    {
+        return m_grid_step;
+    }
 
 
     bool document_is_visible(const UUID &uu_doc) const;

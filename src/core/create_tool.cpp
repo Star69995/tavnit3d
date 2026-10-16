@@ -25,6 +25,7 @@
 #include "tools/tool_select_edges.hpp"
 #include "tools/tool_constrain_perpendicular.hpp"
 #include "tools/tool_set_workplane.hpp"
+#include "tools/tool_sketch_on_face.hpp"
 #include "tools/tool_rotate.hpp"
 #include "tools/tool_draw_regular_polygon.hpp"
 #include "tools/tool_draw_rectangle.hpp"
@@ -166,6 +167,9 @@ std::unique_ptr<ToolBase> Core::create_tool(ToolID tool_id, ToolBase::Flags flag
     case ToolID::CONSTRAIN_ANGLE_3D:
     case ToolID::MEASURE_ANGLE:
         return std::make_unique<ToolConstrainPerpendicular>(tool_id, *this, m_intf, flags);
+
+    case ToolID::SKETCH_ON_FACE:
+        return std::make_unique<ToolSketchOnFace>(tool_id, *this, m_intf, flags);
 
     case ToolID::SET_WORKPLANE:
     case ToolID::UNSET_WORKPLANE:

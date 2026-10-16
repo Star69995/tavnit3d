@@ -446,18 +446,16 @@ void Renderer::visit(const EntityWorkplane &wrkpl)
         m_ca.set_selection_invisible(true);
         m_ca.set_line_style(ICanvas::LineStyle::THIN);
         m_ca.set_vertex_inactive(true);
-        // round step (1, 2 or 5 * 10^n) giving about ten cells across the shorter side
-        const float rough = std::min(sz.x, sz.y) * 2 / 10;
-        const float mag = std::pow(10.f, std::floor(std::log10(rough)));
-        float step = mag;
-        for (const float m : {2.f, 5.f, 10.f}) {
-            if (step < rough * .75f)
-                step = mag * m;
-        }
+        const float step = get_grid_step(m_workspace_view->get_grid_step(), sz.x * 2, sz.y * 2);
         for (float x = std::ceil(-sz.x / step) * step; x <= sz.x + step * 1e-3f; x += step)
             m_ca.draw_line(wrkpl.transform(glm::vec2(x, -sz.y)), wrkpl.transform(glm::vec2(x, sz.y)));
         for (float y = std::ceil(-sz.y / step) * step; y <= sz.y + step * 1e-3f; y += step)
             m_ca.draw_line(wrkpl.transform(glm::vec2(-sz.x, y)), wrkpl.transform(glm::vec2(sz.x, y)));
+
+        // say how big a cell is, in the corner next to the plane's name
+        const auto s = std::min(sz.x, sz.y) / 5;
+        m_ca.draw_bitmap_text_3d(wrkpl.transform(-sz + glm::vec2(s * (1.4f + .5f * wrkpl.m_name.size()), s * .25f)),
+                                 wrkpl.m_normal, s / 3, "grid " + format_grid_step(step));
     }
 
     auto normal = wrkpl.get_normal_vector() * .05;

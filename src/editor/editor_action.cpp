@@ -1,3 +1,4 @@
+#include "util/util.hpp"
 #include "editor.hpp"
 #include "action/action_id.hpp"
 #include "in_tool_action/in_tool_action.hpp"
@@ -352,6 +353,16 @@ void Editor::set_hide_irrelevant_workplanes(bool hide)
     update_view_hints();
 }
 
+
+void Editor::set_grid_step(double step)
+{
+    if (!m_core.has_documents())
+        return;
+    CanvasUpdater canvas_updater{*this};
+    get_current_workspace_view().m_grid_step = step;
+    m_grid_step_action->set_state(Glib::Variant<Glib::ustring>::create(format_grid_step(step, false)));
+    update_workplane_label();
+}
 
 void Editor::on_create_group_action(const ActionConnection &conn)
 {

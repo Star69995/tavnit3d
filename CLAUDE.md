@@ -27,7 +27,9 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 - `tools/drive.ps1 -Steps "click:X:Y,key:...,drag:...,shot:PATH"` launches
   `build/dune3d.exe`, sizes the window to 1400x900, drives it with real mouse
   and key input and captures only the app window (PrintWindow), then closes
-  it. Coordinates are window-relative, as seen in a previous shot.
+  it. Coordinates are window-relative, as seen in a previous shot. Shots
+  composite the app's own popup windows (menus) too. It refuses to send input
+  if it can't bring the app to the front (e.g. the user is typing elsewhere).
 - `tools/snap.ps1 -Out PATH [-Doc file.d3ddoc]` just launches and captures.
 - Sample documents: https://github.com/dune3d/samples
 
@@ -37,11 +39,18 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   normal constrained sketch + extrude/revolve groups in a new body. GUI-free.
 - `src/editor/editor_primitives.cpp` - editor glue for the above.
 - `src/editor/group_editor/group_editor_extrude.cpp` - "Distance" field,
-  backed by a distance constraint on the extrusion leader line.
+  backed by a distance constraint on the extrusion leader line. Negative =
+  against the workplane normal and switches the operation to Difference.
+- `src/document/face_sketch.*` + `src/core/tools/tool_sketch_on_face.cpp` -
+  "On face": ray-pick a flat face (OCC), new sketch with a workplane on it,
+  rotation locked and origin pinned to an existing point so it follows edits.
 - `src/dune3d.css` "Studio theme" section, `src/canvas/appearance.cpp` and
   `src/preferences/color_presets/Default.light.json` (keep the last two in
   sync) - look and feel.
 - Tool palette: `Editor::create_action_bar_button` / `add_action_bar_section`.
-- Grid on the active workplane (XY when none): `Renderer::visit(const EntityWorkplane &)`.
+- Grid on the active workplane (XY when none): `Renderer::visit(const EntityWorkplane &)`;
+  spacing from `get_grid_step()` in `src/util/util.cpp`, user choice stored per
+  workspace view (`WorkspaceView::m_grid_step`, View menu > Grid size), shown
+  in the status bar next to the workplane label.
 - `meson.build`: core sources form the `dune3d_common` static library shared
   by the app and the tests; tests stub `Preferences::get()`.

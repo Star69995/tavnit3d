@@ -18,6 +18,7 @@
 #include "document/constraint/constraint.hpp"
 #include "util/fs_util.hpp"
 #include "util/util.hpp"
+#include "document/group/group_reference.hpp"
 #include "selection_editor.hpp"
 #include "preferences/color_presets.hpp"
 #include "workspace_browser.hpp"
@@ -124,6 +125,7 @@ void Editor::init()
     create_action_bar_button(ActionID::ADD_CYLINDER, "Cylinder");
     create_action_bar_button(ActionID::ADD_SPHERE, "Sphere");
     m_win.add_action_bar_section("Sketch");
+    create_action_bar_button(ToolID::SKETCH_ON_FACE, "On face");
     create_action_bar_button(ActionID::CREATE_GROUP_SKETCH, "New");
     create_action_bar_button(ToolID::DRAW_CONTOUR, "Line");
     create_action_bar_button(ToolID::DRAW_RECTANGLE, "Rectangle");
@@ -240,6 +242,9 @@ void Editor::init_view_options()
         set_hide_irrelevant_workplanes(b);
     });
 
+    m_grid_step_action = m_win.add_action_radio_string(
+            "grid_step", [this](const Glib::ustring &s) { set_grid_step(std::stod(s)); }, "0");
+
     add_tool_action(ActionID::CLIPPING_PLANE_WINDOW, "clipping_planes");
     add_tool_action(ActionID::SELECTION_FILTER, "selection_filter");
 
@@ -249,6 +254,13 @@ void Editor::init_view_options()
     m_view_options_menu->append("Only solid models", "win.show_only_solid_models");
     m_view_options_menu->append("Hide irrelevant workplanes", "win.irrelevant_workplanes");
     m_view_options_menu->append("Perspective projection", "win.perspective");
+    {
+        auto grid_menu = Gio::Menu::create();
+        grid_menu->append("Automatic", "win.grid_step('0')");
+        for (const auto step : {"1", "2", "5", "10", "20", "50"})
+            grid_menu->append(std::string(step) + " mm", std::string("win.grid_step('") + step + "')");
+        m_view_options_menu->append_submenu("Grid size", grid_menu);
+    }
     {
         auto it = Gio::MenuItem::create("scale", "scale");
         it->set_attribute_value("custom", Glib::Variant<Glib::ustring>::create("scale"));
@@ -298,6 +310,7 @@ Gtk::Button &Editor::create_action_bar_button(ActionToolID action, const std::st
             {ToolID::DRAW_WORKPLANE, "action-draw-workplane-symbolic"},
             {ToolID::DRAW_TEXT, "action-draw-text-symbolic"},
             {ActionID::CREATE_GROUP_SKETCH, "action-create-sketch-symbolic"},
+            {ToolID::SKETCH_ON_FACE, "action-sketch-on-face-symbolic"},
             {ActionID::CREATE_GROUP_EXTRUDE, "action-create-extrude-symbolic"},
             {ActionID::CREATE_GROUP_REVOLVE, "action-create-revolve-symbolic"},
             {ActionID::CREATE_GROUP_LOFT, "action-create-loft-symbolic"},
@@ -1179,19 +1192,29 @@ void Editor::update_workplane_label()
         m_win.set_workplane_label("No documents");
         return;
     }
+    auto &doc = m_core.get_current_document();
     auto wrkpl_uu = m_core.get_current_workplane();
+    std::string s;
     if (!wrkpl_uu) {
-        m_win.set_workplane_label("No Workplane");
+        s = "No Workplane";
     }
     else {
-        auto &wrkpl = m_core.get_current_document().get_entity<EntityWorkplane>(wrkpl_uu);
-        auto &wrkpl_group = m_core.get_current_document().get_group<Group>(wrkpl.m_group);
-        std::string s = "Workplane ";
+        auto &wrkpl = doc.get_entity<EntityWorkplane>(wrkpl_uu);
+        auto &wrkpl_group = doc.get_group<Group>(wrkpl.m_group);
+        s = "Workplane ";
         if (wrkpl.m_name.size())
             s += wrkpl.m_name + " ";
         s += "in group " + wrkpl_group.m_name;
-        m_win.set_workplane_label(s);
     }
+    // the grid is drawn on the active workplane, or the XY plane without one
+    const auto &active_wrkpl = doc.get_group(m_core.get_current_group()).m_active_wrkpl;
+    const auto grid_wrkpl_uu = active_wrkpl ? active_wrkpl : doc.get_reference_group().get_workplane_xy_uuid();
+    if (auto grid_wrkpl = doc.get_entity_ptr<EntityWorkplane>(grid_wrkpl_uu)) {
+        const auto user_step = get_current_workspace_view().m_grid_step;
+        const auto step = get_grid_step(user_step, grid_wrkpl->m_size.x, grid_wrkpl->m_size.y);
+        s += "  ·  grid " + format_grid_step(step) + (user_step > 0 ? "" : " (auto)");
+    }
+    m_win.set_workplane_label(s);
 }
 
 KeyMatchResult Editor::keys_match(const KeySequence &keys) const

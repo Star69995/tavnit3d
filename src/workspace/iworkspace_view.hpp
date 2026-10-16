@@ -8,6 +8,8 @@ public:
     virtual bool show_only_solid_models() const = 0;
     virtual bool hide_irrelevant_workplanes() const = 0;
     virtual float get_curvature_comb_scale() const = 0;
+    // spacing of the workplane grid in mm, 0 for automatic
+    virtual double get_grid_step() const = 0;
 };
 
 } // namespace dune3d

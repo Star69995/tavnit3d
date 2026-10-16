@@ -4,6 +4,7 @@
 #include "core/core.hpp"
 #include "document/constraint/constraint_point_distance.hpp"
 #include "widgets/spin_button_dim.hpp"
+#include "document/entity/entity_workplane.hpp"
 
 namespace dune3d {
 
@@ -12,11 +13,12 @@ GroupEditorExtrude::GroupEditorExtrude(Core &core, const UUID &group_uu) : Group
     // Distance typed in directly, backed by a regular distance constraint on the
     // extrusion's leader line so it can still be edited on the canvas.
     m_height_sp = Gtk::make_managed<SpinButtonDim>();
-    m_height_sp->set_range(0, 100000);
+    m_height_sp->set_range(-100000, 100000);
     m_height_sp->set_hexpand(true);
     reload_height();
     connect_spinbutton(*m_height_sp, sigc::mem_fun(*this, &GroupEditorExtrude::update_height));
     grid_attach_label_and_widget(*this, "Distance", *m_height_sp, m_top).add_css_class("tnum");
+    m_height_sp->set_tooltip_text("Negative values extrude into the body and cut");
 
     m_normal_switch = Gtk::make_managed<Gtk::Switch>();
     m_normal_switch->set_valign(Gtk::Align::CENTER);
@@ -84,10 +86,14 @@ ConstraintPointDistance *GroupEditorExtrude::find_height_constraint()
 void GroupEditorExtrude::reload_height()
 {
     auto &group = get_group();
+    // negative means extruding against the workplane normal
+    const auto &doc = m_core.get_current_document();
+    const auto n = doc.get_entity<EntityWorkplane>(group.m_wrkpl).get_normal_vector();
+    const double sign = glm::dot(group.m_dvec, n) < 0 ? -1 : 1;
     if (auto co = find_height_constraint())
-        m_height_sp->set_value(co->m_distance);
+        m_height_sp->set_value(sign * co->m_distance);
     else
-        m_height_sp->set_value(glm::length(group.m_dvec));
+        m_height_sp->set_value(sign * glm::length(group.m_dvec));
     // with no constraint of ours, the height may already be pinned by one the user added
     m_height_sp->set_sensitive(find_height_constraint() || group.m_dof != 0);
 }
@@ -99,10 +105,12 @@ bool GroupEditorExtrude::update_height()
     auto &doc = m_core.get_current_document();
     auto &group = get_group();
     const double h = m_height_sp->get_value();
-    if (h <= 0)
+    if (h == 0)
         return false;
+    const auto n = doc.get_entity<EntityWorkplane>(group.m_wrkpl).get_normal_vector();
+    const bool was_negative = glm::dot(group.m_dvec, n) < 0;
     auto co = find_height_constraint();
-    if (co && co->m_distance == h)
+    if (co && co->m_distance == std::abs(h) && was_negative == (h < 0))
         return false;
     if (!co) {
         co = &doc.add_constraint<ConstraintPointDistance>(UUID::random());
@@ -111,9 +119,16 @@ bool GroupEditorExtrude::update_height()
         co->m_entity1 = {leader, 1};
         co->m_entity2 = {leader, 2};
     }
-    co->m_distance = h;
-    if (glm::length(group.m_dvec) > 0)
-        group.m_dvec = glm::normalize(group.m_dvec) * h;
+    co->m_distance = std::abs(h);
+    if (group.m_direction == GroupExtrude::Direction::NORMAL || glm::length(group.m_dvec) == 0)
+        group.m_dvec = n * h;
+    else
+        group.m_dvec = glm::normalize(group.m_dvec) * std::abs(h) * ((was_negative == (h < 0)) ? 1. : -1.);
+    // like pushing into / pulling out of a face: going inwards cuts, going outwards adds
+    if (was_negative != (h < 0))
+        group.set_operation(h < 0 ? IGroupSolidModel::Operation::DIFFERENCE : IGroupSolidModel::Operation::UNION);
+    // move the generated leader line too, or the solver starts from (and stays on) the old side
+    group.generate(doc);
     doc.set_group_solve_pending(group.m_uuid);
     return true;
 }
@@ -122,6 +137,5 @@ GroupExtrude &GroupEditorExtrude::get_group()
 {
     return m_core.get_current_document().get_group<GroupExtrude>(m_group_uu);
 }
-
 
 } // namespace dune3d
