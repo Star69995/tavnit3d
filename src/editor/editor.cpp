@@ -129,6 +129,7 @@ void Editor::init()
     create_action_bar_button(ActionID::ADD_TUBE, "Tube");
     create_action_bar_button(ActionID::ADD_TORUS, "Torus");
     create_action_bar_button(ActionID::ADD_WEDGE, "Wedge");
+    create_action_bar_button(ActionID::ADD_TEXT, "Text");
     m_win.add_action_bar_section("Sketch");
     create_action_bar_button(ToolID::SKETCH_ON_FACE, "On face");
     create_action_bar_button(ActionID::CREATE_GROUP_SKETCH, "New");
@@ -360,6 +361,7 @@ Gtk::Button &Editor::create_action_bar_button(ActionToolID action, const std::st
             {ActionID::ADD_TUBE, "action-add-tube-symbolic"},
             {ActionID::ADD_TORUS, "action-add-torus-symbolic"},
             {ActionID::ADD_WEDGE, "action-add-wedge-symbolic"},
+            {ActionID::ADD_TEXT, "action-draw-text-symbolic"},
     };
     auto bu = Gtk::make_managed<Gtk::Button>();
     auto img = Gtk::make_managed<Gtk::Image>();

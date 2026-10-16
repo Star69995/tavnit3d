@@ -99,6 +99,8 @@ private:
     // frame all solids (or the XY plane if there are none); with only_if_needed,
     // just when some of them are out of view
     void zoom_to_fit(bool only_if_needed = false);
+    void add_text_object();
+    class EntityText *find_text_entity(Document &doc, const UUID &body);
 
 public:
     // looks for a newer release; interactive shows "up to date" and errors too

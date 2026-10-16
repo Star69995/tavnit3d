@@ -202,7 +202,7 @@ void Editor::run_automation(const std::filesystem::path &script)
                 }
                 else if (auto en = dynamic_cast<Gtk::Entry *>(widget)) {
                     en->set_text(value);
-                    en->activate();
+                    g_signal_emit_by_name(en->gobj(), "activate"); // like pressing Enter
                 }
                 else if (auto dd = dynamic_cast<Gtk::DropDown *>(widget)) {
                     auto model = dd->get_model();

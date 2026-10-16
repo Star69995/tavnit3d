@@ -175,14 +175,29 @@ GroupRevolve &add_full_revolve(Document &doc, const UUID &sketch, const UUID &wr
     return rev;
 }
 
-void constrain_extrusion_height(PrimitiveBuilder &b, GroupExtrude &ex, double h)
+} // namespace
+
+GroupExtrude &add_extrusion(Document &doc, const UUID &sketch, const UUID &wrkpl, double height, bool symmetric)
 {
-    auto &dh = b.constraint<ConstraintPointDistance>(ex.m_uuid);
+    auto &ex = doc.insert_group<GroupExtrude>(UUID::random(), sketch);
+    ex.m_wrkpl = wrkpl;
+    ex.m_source_group = sketch;
+    if (symmetric)
+        ex.m_mode = GroupExtrude::Mode::OFFSET_SYMMETRIC;
+    ex.m_dvec = doc.get_entity<EntityWorkplane>(wrkpl).get_normal_vector() * height;
+    auto &dh = doc.add_constraint<ConstraintPointDistance>(UUID::random());
+    dh.m_group = ex.m_uuid;
     dh.m_entity1 = {ex.get_leader_line_uuid(GroupExtrude::Side::TOP), 1};
     dh.m_entity2 = {ex.get_leader_line_uuid(GroupExtrude::Side::TOP), 2};
-    dh.m_distance = h;
+    dh.m_distance = height;
+    return ex;
 }
-} // namespace
+
+void add_position(Document &doc, const UUID &sketch, const UUID &wrkpl, const EntityAndPoint &pt,
+                  const glm::dvec2 &pos)
+{
+    PrimitiveBuilder{doc, sketch, wrkpl}.position(pt, pos);
+}
 
 Group &add_primitive(Document &doc, const UUID &after, Primitive primitive, const glm::dvec2 &pos)
 {
@@ -257,12 +272,7 @@ Group &add_primitive(Document &doc, const UUID &after, Primitive primitive, cons
             dd.m_distance = d;
             dd.m_offset = {pos.x + w / 2 + 5, pos.y, 0};
         }
-        auto &ex = doc.insert_group<GroupExtrude>(UUID::random(), sk);
-        ex.m_wrkpl = wrkpl_uu;
-        ex.m_source_group = sk;
-        ex.m_dvec = normal * h;
-        solid_group = &ex;
-        constrain_extrusion_height(b, ex, h);
+        solid_group = &add_extrusion(doc, sk, wrkpl_uu, h);
         break;
     }
 
@@ -276,12 +286,7 @@ Group &add_primitive(Document &doc, const UUID &after, Primitive primitive, cons
         auto &dia = b.constraint<ConstraintDiameter>();
         dia.m_entity = circle.m_uuid;
         dia.m_distance = 2 * r;
-        auto &ex = doc.insert_group<GroupExtrude>(UUID::random(), sk);
-        ex.m_wrkpl = wrkpl_uu;
-        ex.m_source_group = sk;
-        ex.m_dvec = normal * h;
-        solid_group = &ex;
-        constrain_extrusion_height(b, ex, h);
+        solid_group = &add_extrusion(doc, sk, wrkpl_uu, h);
         break;
     }
 
@@ -349,12 +354,7 @@ Group &add_primitive(Document &doc, const UUID &after, Primitive primitive, cons
             dia.m_entity = circle->m_uuid;
             dia.m_distance = 2 * r;
         }
-        auto &ex = doc.insert_group<GroupExtrude>(UUID::random(), sk);
-        ex.m_wrkpl = wrkpl_uu;
-        ex.m_source_group = sk;
-        ex.m_dvec = normal * h;
-        solid_group = &ex;
-        constrain_extrusion_height(b, ex, h);
+        solid_group = &add_extrusion(doc, sk, wrkpl_uu, h);
         break;
     }
 
@@ -413,13 +413,8 @@ Group &add_primitive(Document &doc, const UUID &after, Primitive primitive, cons
         }
         add_hv_distance<ConstraintPointDistanceHorizontal>(b, {base->m_uuid, 1}, {base->m_uuid, 2}, up, w);
         add_hv_distance<ConstraintPointDistanceVertical>(b, {back->m_uuid, 2}, {back->m_uuid, 1}, up, h);
-        auto &ex = doc.insert_group<GroupExtrude>(UUID::random(), sk);
-        ex.m_wrkpl = up;
-        ex.m_source_group = sk;
-        ex.m_mode = GroupExtrude::Mode::OFFSET_SYMMETRIC; // centred on the foot along y too
-        ex.m_dvec = doc.get_entity<EntityWorkplane>(up).get_normal_vector() * (d / 2);
-        solid_group = &ex;
-        constrain_extrusion_height(b, ex, d / 2);
+        // symmetric: centred on the foot along y too
+        solid_group = &add_extrusion(doc, sk, up, d / 2, true);
         break;
     }
     }

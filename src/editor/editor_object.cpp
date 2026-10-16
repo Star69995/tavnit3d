@@ -19,6 +19,8 @@
 #include "document/combine.hpp"
 #include "document/duplicate.hpp"
 #include "document/round_edges.hpp"
+#include "document/entity/entity_text.hpp"
+#include "util/text_render.hpp"
 #include "document/group/group_fillet.hpp"
 #include "document/primitives.hpp"
 #include "document/solid_model/solid_model_occ.hpp"
@@ -203,6 +205,49 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
             m_workspace_browser->update_current_group(get_current_document_views());
         });
         grid_attach_label_and_widget(*grid, "Visible", *sw, top);
+    }
+
+    // 3D text: what it says and how tall it is
+    if (auto text = find_text_entity(doc, body_uu)) {
+        heading("Text");
+        auto en = Gtk::make_managed<Gtk::Entry>();
+        en->set_text(text->m_text);
+        en->set_hexpand(true);
+        const UUID text_uu = text->m_uuid;
+        en->signal_activate().connect([this, en, doc_uu, text_uu] {
+            auto &d = m_core.get_idocument_info(doc_uu).get_document();
+            auto &t = d.get_entity<EntityText>(text_uu);
+            if (en->get_text().empty() || t.m_text == en->get_text())
+                return;
+            t.m_text = en->get_text();
+            render_text(t, get_pango_context(), d);
+            d.set_group_generate_pending(t.m_group);
+            m_core.set_needs_save();
+            m_core.rebuild("edit text");
+            canvas_update_keep_selection();
+        });
+        grid_attach_label_and_widget(*grid, "Says", *en, top);
+        auto sp = Gtk::make_managed<SpinButtonDim>();
+        sp->set_range(0.1, 10000);
+        sp->set_hexpand(true);
+        {
+            const auto [lo, hi] = text->get_bbox();
+            sp->set_value(hi.y - lo.y);
+        }
+        sp->signal_activate().connect([this, sp, doc_uu, text_uu] {
+            sp->update();
+            auto &d = m_core.get_idocument_info(doc_uu).get_document();
+            auto &t = d.get_entity<EntityText>(text_uu);
+            const auto [lo, hi] = t.get_bbox();
+            if (hi.y <= lo.y || sp->get_value() <= 0)
+                return;
+            t.m_scale *= sp->get_value() / (hi.y - lo.y);
+            d.set_group_generate_pending(t.m_group);
+            m_core.set_needs_save();
+            m_core.rebuild("text size");
+            canvas_update_keep_selection();
+        });
+        grid_attach_label_and_widget(*grid, "Size", *sp, top).add_css_class("tnum");
     }
 
     // every dimension in the object's groups, editable in place
