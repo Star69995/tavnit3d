@@ -24,5 +24,7 @@ private:
 
     GLuint m_clipping_value_loc;
     GLuint m_clipping_op_loc;
+    GLuint m_material_loc;
+    GLuint m_studio_lighting_loc;
 };
 } // namespace dune3d

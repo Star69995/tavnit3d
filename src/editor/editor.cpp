@@ -143,6 +143,21 @@ void Editor::init()
 
     init_view_options();
 
+    for (const auto &[act, label, tip] : std::vector<std::tuple<ActionID, const char *, const char *>>{
+                 {ActionID::VIEW_FIT, "Fit", "Show everything"},
+                 {ActionID::VIEW_ISO, "3D", "3D view from the front right"},
+                 {ActionID::VIEW_TOP, "Top", "View from above"},
+                 {ActionID::VIEW_FRONT, "Front", "View from the front"},
+                 {ActionID::VIEW_RIGHT, "Right", "View from the right"},
+         }) {
+        auto bu = Gtk::make_managed<Gtk::Button>(label);
+        bu->set_tooltip_text(tip);
+        bu->set_has_frame(false);
+        bu->add_css_class("view-bar-button");
+        attach_action_button(*bu, act);
+        m_win.get_view_bar().append(*bu);
+    }
+
     m_clipping_plane_window = std::make_unique<ClippingPlaneWindow>();
     m_clipping_plane_window->set_transient_for(m_win);
     connect_action(ActionID::CLIPPING_PLANE_WINDOW, [this](const auto &a) { m_clipping_plane_window->present(); });
@@ -242,6 +257,10 @@ void Editor::init_view_options()
         set_hide_irrelevant_workplanes(b);
     });
 
+    m_studio_lighting_action = m_win.add_action_bool("studio_lighting", true);
+    m_studio_lighting_action->signal_change_state().connect([this](const Glib::VariantBase &v) {
+        set_studio_lighting(Glib::VariantBase::cast_dynamic<Glib::Variant<bool>>(v).get());
+    });
     m_grid_step_action = m_win.add_action_radio_string(
             "grid_step", [this](const Glib::ustring &s) { set_grid_step(std::stod(s)); }, "0");
 
@@ -254,6 +273,7 @@ void Editor::init_view_options()
     m_view_options_menu->append("Only solid models", "win.show_only_solid_models");
     m_view_options_menu->append("Hide irrelevant workplanes", "win.irrelevant_workplanes");
     m_view_options_menu->append("Perspective projection", "win.perspective");
+    m_view_options_menu->append("Studio lighting", "win.studio_lighting");
     {
         auto grid_menu = Gio::Menu::create();
         grid_menu->append("Automatic", "win.grid_step('0')");

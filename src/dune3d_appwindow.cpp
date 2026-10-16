@@ -155,8 +155,15 @@ Dune3DAppWindow::Dune3DAppWindow(BaseObjectType *cobject, const Glib::RefPtr<Gtk
 
     {
         Gtk::Box *cube_box = refBuilder->get_widget<Gtk::Box>("cube_box");
+        cube_box->set_orientation(Gtk::Orientation::VERTICAL);
         auto axes_cube = Gtk::make_managed<AxesCube>();
+        axes_cube->set_halign(Gtk::Align::CENTER);
         cube_box->append(*axes_cube);
+        m_view_bar = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 2);
+        m_view_bar->add_css_class("view-bar");
+        m_view_bar->set_halign(Gtk::Align::CENTER);
+        m_view_bar->set_margin_top(6);
+        cube_box->append(*m_view_bar);
         get_canvas().signal_view_changed().connect(
                 sigc::track_obj([this, axes_cube] { axes_cube->set_quat(get_canvas().get_cam_quat()); }, *axes_cube));
         axes_cube->set_quat(get_canvas().get_cam_quat());

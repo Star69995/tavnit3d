@@ -600,6 +600,23 @@ void Canvas::set_cam_distance(float dist, ZoomCenter zoom_center)
     m_signal_view_changed.emit();
 }
 
+void Canvas::zoom_to_fit(const glm::vec3 &center, float radius)
+{
+    const float aspect = m_height ? (float)m_width / m_height : 1;
+    const float dist = radius * 1.25f / (tan(.5f * glm::radians(m_cam_fov)) * std::min(1.f, aspect));
+    m_cam_distance = std::max(dist, 1.f);
+    set_center(center);
+    queue_draw();
+    m_signal_view_changed.emit();
+}
+
+bool Canvas::is_in_view(const glm::vec3 &p) const
+{
+    auto c = m_projmat * m_viewmat * glm::vec4(p, 1);
+    c /= c.w;
+    return std::abs(c.x) <= 1 && std::abs(c.y) <= 1;
+}
+
 void Canvas::animate_zoom(float factor, ZoomCenter zoom_center)
 {
     m_zoom_animator.set_params(msd_params_slow);
@@ -1021,8 +1038,14 @@ std::vector<unsigned int> Canvas::get_chunk_ids() const
     return chunk_ids;
 }
 
+void Canvas::set_studio_lighting(bool studio)
+{
+    m_studio_lighting = studio;
+    queue_draw();
+}
+
 ICanvas::VertexRef Canvas::add_face_group(const face::Faces &faces, glm::vec3 origin, glm::quat normal,
-                                          FaceColor face_color)
+                                          FaceColor face_color, unsigned int material)
 {
     auto offset = m_current_chunk->m_face_index_buffer.size();
     add_faces(faces);
@@ -1033,6 +1056,7 @@ ICanvas::VertexRef Canvas::add_face_group(const face::Faces &faces, glm::vec3 or
             .origin = origin,
             .normal = normal,
             .color = face_color,
+            .material = material,
     });
 
     return {VertexType::FACE_GROUP, m_current_chunk->m_face_groups.size() - 1, m_current_chunk_id};

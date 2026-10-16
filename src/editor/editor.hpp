@@ -92,6 +92,9 @@ private:
     void on_add_group(Group::Type group_type, WorkspaceBrowserAddGroupMode add_group_mode);
     void finish_add_group(Group *new_group);
     void add_primitive(Primitive primitive);
+    // frame all solids (or the XY plane if there are none); with only_if_needed,
+    // just when some of them are out of view
+    void zoom_to_fit(bool only_if_needed = false);
     void show_object_editor(const UUID &doc_uu, const UUID &body_uu);
     void delete_body(const UUID &doc_uu, const UUID &body_uu);
     Gtk::Widget *m_object_editor = nullptr;
@@ -196,6 +199,8 @@ private:
     void set_hide_irrelevant_workplanes(bool hide);
     Glib::RefPtr<Gio::SimpleAction> m_grid_step_action;
     void set_grid_step(double step);
+    Glib::RefPtr<Gio::SimpleAction> m_studio_lighting_action;
+    void set_studio_lighting(bool studio);
     void add_tool_action(ActionToolID id, const std::string &action);
     Gtk::Scale *m_curvature_comb_scale = nullptr;
 

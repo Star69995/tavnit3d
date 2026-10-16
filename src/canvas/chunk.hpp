@@ -48,6 +48,7 @@ public:
         glm::vec3 origin;
         glm::quat normal;
         ICanvas::FaceColor color;
+        unsigned int material = 0;
 
         VertexFlags flags = VertexFlags::DEFAULT;
     };

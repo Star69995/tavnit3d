@@ -189,6 +189,19 @@ void Editor::init_actions()
     connect_action(ActionID::VIEW_TILT_LEFT, sigc::mem_fun(*this, &Editor::on_view_rotate));
     connect_action(ActionID::VIEW_TILT_RIGHT, sigc::mem_fun(*this, &Editor::on_view_rotate));
 
+    connect_action(ActionID::VIEW_FIT, [this](auto &a) { zoom_to_fit(); });
+    m_core.signal_documents_changed().connect([this] {
+        static size_t n_docs = 0;
+        const auto n = m_core.get_documents().size();
+        if (n > n_docs && m_core.has_documents() && !m_core.get_current_idocument_info().has_path()) {
+            Glib::signal_idle().connect_once([this] {
+                get_canvas().set_cam_quat(glm::quatLookAt(glm::normalize(glm::vec3(-1, 1.3, -.9)), glm::vec3(0, 0, 1)));
+                zoom_to_fit();
+            });
+        }
+        n_docs = n;
+    });
+    connect_action(ActionID::VIEW_ISO, sigc::mem_fun(*this, &Editor::on_view_set));
     connect_action(ActionID::VIEW_FRONT, sigc::mem_fun(*this, &Editor::on_view_set));
     connect_action(ActionID::VIEW_BACK, sigc::mem_fun(*this, &Editor::on_view_set));
     connect_action(ActionID::VIEW_TOP, sigc::mem_fun(*this, &Editor::on_view_set));
@@ -353,6 +366,14 @@ void Editor::set_hide_irrelevant_workplanes(bool hide)
     update_view_hints();
 }
 
+
+void Editor::set_studio_lighting(bool studio)
+{
+    if (m_core.has_documents())
+        get_current_workspace_view().m_studio_lighting = studio;
+    get_canvas().set_studio_lighting(studio);
+    m_studio_lighting_action->set_state(Glib::Variant<bool>::create(studio));
+}
 
 void Editor::set_grid_step(double step)
 {
@@ -1063,6 +1084,9 @@ void Editor::on_view_set(const ActionConnection &conn)
     switch (action) {
     case ActionID::VIEW_FRONT:
         q = glm::quatLookAt(glm::vec3(0, 1, 0), glm::vec3(0, 0, 1));
+        break;
+    case ActionID::VIEW_ISO:
+        q = glm::quatLookAt(glm::normalize(glm::vec3(-1, 1.3, -.9)), glm::vec3(0, 0, 1));
         break;
     case ActionID::VIEW_BACK:
         q = glm::quatLookAt(glm::vec3(0, -1, 0), glm::vec3(0, 0, 1));

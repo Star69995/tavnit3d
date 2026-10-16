@@ -8,6 +8,8 @@
 #include "document/group/group.hpp"
 #include "document/constraint/constraint.hpp"
 #include "document/constraint/iconstraint_datum.hpp"
+#include "document/constraint/constraint_point_distance.hpp"
+#include "document/entity/entity.hpp"
 #include "widgets/spin_button_dim.hpp"
 #include "util/gtk_util.hpp"
 #include "util/util.hpp"
@@ -23,14 +25,20 @@ namespace dune3d {
 
 namespace {
 // friendlier names for the dimensions the ready-made shapes use
-std::string datum_label(const Constraint &co, const IConstraintDatum &datum, const Group &group)
+std::string datum_label(const Document &doc, const Constraint &co, const IConstraintDatum &datum, const Group &group)
 {
     using T = Constraint::Type;
+    // horizontal/vertical distance from a workplane's origin: a position
+    bool from_origin = false;
+    if (auto pd = dynamic_cast<const ConstraintPointDistanceBase *>(&co)) {
+        auto en = doc.get_entity_ptr(pd->m_entity1.entity);
+        from_origin = en && en->get_type() == Entity::Type::WORKPLANE;
+    }
     switch (co.get_type()) {
     case T::POINT_DISTANCE_HORIZONTAL:
-        return "Width";
+        return from_origin ? "X" : "Width";
     case T::POINT_DISTANCE_VERTICAL:
-        return "Depth";
+        return from_origin ? "Y" : "Depth";
     case T::DIAMETER:
         return "Diameter";
     case T::RADIUS:
@@ -42,6 +50,13 @@ std::string datum_label(const Constraint &co, const IConstraintDatum &datum, con
     default:;
     }
     return datum.get_datum_name();
+}
+
+int label_order(const std::string &label)
+{
+    static const std::vector<std::string> order = {"Width", "Depth", "Height", "Diameter", "Radius", "X", "Y"};
+    auto it = std::ranges::find(order, label);
+    return it - order.begin();
 }
 } // namespace
 
@@ -133,6 +148,17 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         grid_attach_label_and_widget(*grid, "Colour", *box, top);
     }
     {
+        auto items = Gtk::StringList::create({"Satin", "Matte", "Glossy", "Metal"});
+        auto dd = Gtk::make_managed<Gtk::DropDown>(items);
+        dd->set_selected(static_cast<guint>(body_group.m_body->m_material));
+        dd->property_selected().signal_changed().connect([this, dd, doc_uu, body_uu, changed] {
+            auto &d = m_core.get_idocument_info(doc_uu).get_document();
+            d.get_group(body_uu).m_body->m_material = static_cast<Body::Material>(dd->get_selected());
+            changed(body_uu, false);
+        });
+        grid_attach_label_and_widget(*grid, "Material", *dd, top);
+    }
+    {
         auto sw = Gtk::make_managed<Gtk::Switch>();
         sw->set_halign(Gtk::Align::START);
         sw->set_active(get_current_document_views()[doc_uu].m_body_views[body_uu].m_visible);
@@ -150,7 +176,12 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
     std::vector<const Group *> groups;
     if (it != body_groups.end())
         groups = it->groups;
-    bool have_dims = false;
+    struct Dim {
+        std::string label;
+        UUID constraint;
+        UUID group;
+    };
+    std::vector<Dim> dims;
     for (auto gr : groups) {
         for (auto &[uu, co] : doc.m_constraints) {
             if (co->m_group != gr->m_uuid)
@@ -158,34 +189,37 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
             auto datum = dynamic_cast<IConstraintDatum *>(co.get());
             if (!datum || datum->is_measurement())
                 continue;
-            if (!have_dims) {
-                heading("Dimensions");
-                have_dims = true;
-            }
-            Gtk::SpinButton *sp = nullptr;
-            if (datum->get_datum_unit() == DatumUnit::MM) {
-                sp = Gtk::make_managed<SpinButtonDim>();
-            }
-            else {
-                sp = Gtk::make_managed<Gtk::SpinButton>();
-                sp->set_digits(datum->get_datum_unit() == DatumUnit::INTEGER ? 0 : 3);
-                sp->set_increments(1, 10);
-            }
-            const auto [lo, hi] = datum->get_datum_range();
-            sp->set_range(lo, hi);
-            sp->set_value(datum->get_datum());
-            sp->set_hexpand(true);
-            const UUID co_uu = uu;
-            const UUID group_uu = gr->m_uuid;
-            sp->signal_activate().connect([this, sp, doc_uu, co_uu, group_uu, changed] {
-                sp->update();
-                auto &d = m_core.get_idocument_info(doc_uu).get_document();
-                auto &c = *d.m_constraints.at(co_uu);
-                dynamic_cast<IConstraintDatum &>(c).set_datum(sp->get_value());
-                changed(group_uu, true);
-            });
-            grid_attach_label_and_widget(*grid, datum_label(*co, *datum, *gr), *sp, top).add_css_class("tnum");
+            dims.push_back({datum_label(doc, *co, *datum, *gr), uu, gr->m_uuid});
         }
+    }
+    std::ranges::stable_sort(dims, {}, [](const Dim &d) { return label_order(d.label); });
+    if (dims.size())
+        heading("Dimensions");
+    for (const auto &dim : dims) {
+        auto datum = dynamic_cast<IConstraintDatum *>(doc.m_constraints.at(dim.constraint).get());
+        Gtk::SpinButton *sp = nullptr;
+        if (datum->get_datum_unit() == DatumUnit::MM) {
+            sp = Gtk::make_managed<SpinButtonDim>();
+        }
+        else {
+            sp = Gtk::make_managed<Gtk::SpinButton>();
+            sp->set_digits(datum->get_datum_unit() == DatumUnit::INTEGER ? 0 : 3);
+            sp->set_increments(1, 10);
+        }
+        const auto [lo, hi] = datum->get_datum_range();
+        sp->set_range(lo, hi);
+        sp->set_value(datum->get_datum());
+        sp->set_hexpand(true);
+        const UUID co_uu = dim.constraint;
+        const UUID group_uu = dim.group;
+        sp->signal_activate().connect([this, sp, doc_uu, co_uu, group_uu, changed] {
+            sp->update();
+            auto &d = m_core.get_idocument_info(doc_uu).get_document();
+            auto &c = *d.m_constraints.at(co_uu);
+            dynamic_cast<IConstraintDatum &>(c).set_datum(sp->get_value());
+            changed(group_uu, true);
+        });
+        grid_attach_label_and_widget(*grid, dim.label, *sp, top).add_css_class("tnum");
     }
 
     {

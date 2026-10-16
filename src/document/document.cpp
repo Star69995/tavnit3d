@@ -64,6 +64,10 @@ Document::Document() : m_version(app_version)
     auto &grp = add_group<GroupReference>(UUID::random());
     grp.m_name = "Reference";
     grp.m_body.emplace();
+    // just the floor, like a work surface; the upright planes can be shown from the group
+    grp.m_show_yz = false;
+    grp.m_show_zx = false;
+    grp.m_xy_size = {200, 200};
 
     auto &sketch = add_group<GroupSketch>(UUID::random());
     sketch.set_index({}, 1);

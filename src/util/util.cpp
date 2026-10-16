@@ -77,7 +77,7 @@ double get_grid_step(double user_step, double plane_width, double plane_height)
 {
     double step = user_step;
     if (step <= 0) {
-        const double rough = std::min(plane_width, plane_height) / 10;
+        const double rough = std::min(plane_width, plane_height) / 20;
         const double mag = std::pow(10., std::floor(std::log10(rough)));
         step = mag;
         for (const double m : {2., 5., 10.}) {

@@ -41,7 +41,16 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 ## Code map (our additions)
 
 - `src/document/primitives.*` - ready-made Box/Cylinder/Sphere, built from
-  normal constrained sketch + extrude/revolve groups in a new body. GUI-free.
+  normal constrained sketch + extrude/revolve groups in a new body, standing
+  on the workplane at a position given by signed H/V distances from its
+  origin (shown as X/Y in the object panel). `find_free_spot` places new
+  ones next to existing solids. GUI-free. `body_solids.*`: final solid per body.
+- Materials (Body::m_material: satin/matte/glossy/metal) and studio lighting
+  live in `src/canvas/shaders/face-fragment.glsl`; per face group material via
+  `ICanvas::add_face_group`, lighting toggle per workspace view (View menu).
+- View bar under the axes cube (Fit/3D/Top/Front/Right); `Editor::zoom_to_fit`,
+  `Canvas::zoom_to_fit`. New documents open in a 3D view, show only a
+  200 mm XY plane (YZ/ZX hidden, see `Document::Document`).
 - `src/editor/editor_primitives.cpp` - editor glue for the above.
 - `src/editor/group_editor/group_editor_extrude.cpp` - "Distance" field,
   backed by a distance constraint on the extrusion leader line. Negative =

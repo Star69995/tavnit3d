@@ -71,6 +71,8 @@ void FaceRenderer::realize()
     GET_LOC(this, override_color);
     GET_LOC(this, clipping_value);
     GET_LOC(this, clipping_op);
+    GET_LOC(this, material);
+    GET_LOC(this, studio_lighting);
 }
 
 void FaceRenderer::push()
@@ -159,6 +161,7 @@ void FaceRenderer::render()
     glUniform3iv(m_clipping_op_loc, 1, glm::value_ptr(clipping_op));
 
     glUniform3fv(m_cam_normal_loc, 1, glm::value_ptr(m_ca.m_cam_normal));
+    glUniform1i(m_studio_lighting_loc, m_ca.m_studio_lighting ? 1 : 0);
 
     size_t group_idx = 0;
     const auto chunk_ids = m_ca.get_chunk_ids();
@@ -169,6 +172,7 @@ void FaceRenderer::render()
             glUniform1ui(m_pick_base_loc, m_type_pick_base + group_idx);
             glUniform1ui(m_flags_loc, static_cast<uint32_t>(group.flags));
             glUniform3fv(m_origin_loc, 1, glm::value_ptr(group.origin));
+            glUniform1i(m_material_loc, group.material);
             if (group.color == ICanvas::FaceColor::AS_IS) {
                 glUniform3f(m_override_color_loc, NAN, NAN, NAN);
             }

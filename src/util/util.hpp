@@ -26,7 +26,7 @@ std::string append_suffix_if_required(const std::string &s, const std::string &s
 // "10 mm", "0.5 mm"; without unit and trailing zeros when with_unit is false
 std::string format_grid_step(double step, bool with_unit = true);
 // grid spacing actually drawn on a workplane of the given size: the user's
-// choice (0 = automatic, a round 1/2/5 step for about ten cells), coarsened
+// choice (0 = automatic, a round 1/2/5 step for about twenty cells), coarsened
 // so a plane never gets more than 400 lines per direction
 double get_grid_step(double user_step, double plane_width, double plane_height);
 

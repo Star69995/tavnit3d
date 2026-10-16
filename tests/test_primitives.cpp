@@ -10,6 +10,10 @@
 #include "document/solid_model/solid_model_occ.hpp"
 #include "preferences/preferences.hpp"
 #include <BRepGProp.hxx>
+#include <BRepBndLib.hxx>
+#include <Bnd_Box.hxx>
+#include "document/constraint/constraint_point_distance_hv.hpp"
+#include "document/entity/entity.hpp"
 #include <GProp_GProps.hxx>
 #include <cmath>
 #include <iostream>
@@ -122,6 +126,55 @@ static void test_sketch_on_face()
     check(std::abs(z - 30) < 1e-6, "workplane follows the face when the box gets taller (z=" + std::to_string(z) + ")");
 }
 
+static Bnd_Box solid_bbox(const Document &doc, const Group &group)
+{
+    Bnd_Box box;
+    auto sm = dynamic_cast<const SolidModelOcc *>(
+            SolidModel::get_last_solid_model(doc, group, SolidModel::IncludeGroup::YES));
+    if (sm && !sm->m_shape_acc.IsNull())
+        BRepBndLib::AddOptimal(sm->m_shape_acc, box, false, false);
+    return box;
+}
+
+static void test_placement()
+{
+    std::cout << "placement" << std::endl;
+    Document doc;
+    auto &sphere = add_primitive(doc, doc.get_groups_sorted().back()->m_uuid, Primitive::SPHERE);
+    doc.update_pending();
+    {
+        double x0, y0, z0, x1, y1, z1;
+        solid_bbox(doc, sphere).Get(x0, y0, z0, x1, y1, z1);
+        check(std::abs(z0) < 1e-3 && std::abs(z1 - 20) < 1e-3,
+              "sphere rests on the plane (z " + std::to_string(z0) + ".." + std::to_string(z1) + ")");
+    }
+
+    const auto spot = find_free_spot(doc, sphere.m_uuid);
+    check(spot.x >= 20, "free spot is clear of the sphere (x=" + std::to_string(spot.x) + ")");
+    auto &box = add_primitive(doc, sphere.m_uuid, Primitive::BOX, spot);
+    doc.update_pending();
+    double x0, y0, z0, x1, y1, z1;
+    solid_bbox(doc, box).Get(x0, y0, z0, x1, y1, z1);
+    check(x0 > 10 + 1e-3, "box placed next to the sphere doesn't overlap it (x0=" + std::to_string(x0) + ")");
+    check(std::abs((x0 + x1) / 2 - spot.x) < 1e-3, "box is centred on the spot");
+    for (auto gr : doc.get_groups_sorted()) {
+        if (gr->get_type() == Group::Type::SKETCH && gr->m_body)
+            check(gr->m_dof == 0, "sketch '" + gr->m_name + "' fully constrained");
+    }
+
+    // moving it: the X position is a horizontal distance from the workplane origin
+    const auto box_sketch = doc.get_group_rel(box.m_uuid, -1);
+    for (auto &[uu, co] : doc.m_constraints) {
+        auto h = dynamic_cast<ConstraintPointDistanceHorizontal *>(co.get());
+        if (h && co->m_group == box_sketch && doc.get_entity(h->m_entity1.entity).get_type() == Entity::Type::WORKPLANE)
+            h->m_distance = -50;
+    }
+    doc.set_group_solve_pending(box_sketch);
+    doc.update_pending();
+    solid_bbox(doc, box).Get(x0, y0, z0, x1, y1, z1);
+    check(std::abs((x0 + x1) / 2 + 50) < 1e-3, "changing X moves the box (centre x=" + std::to_string((x0 + x1) / 2) + ")");
+}
+
 int main()
 {
     constexpr double pi = std::numbers::pi;
@@ -129,6 +182,7 @@ int main()
     test_primitive("cylinder r10 h20", Primitive::CYLINDER, pi * 10. * 10. * 20.);
     test_primitive("sphere r10", Primitive::SPHERE, 4. / 3. * pi * 10. * 10. * 10.);
     test_sketch_on_face();
+    test_placement();
     std::cout << (failures ? "FAILED" : "PASSED") << " (" << failures << " failures)" << std::endl;
     return failures ? 1 : 0;
 }

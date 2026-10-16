@@ -79,8 +79,14 @@ public:
     void save() override;
     void restore() override;
 
-    VertexRef add_face_group(const face::Faces &faces, glm::vec3 origin, glm::quat normal,
-                             FaceColor face_color) override;
+    VertexRef add_face_group(const face::Faces &faces, glm::vec3 origin, glm::quat normal, FaceColor face_color,
+                             unsigned int material = 0) override;
+    // studio: several lights and specular highlights; otherwise the original headlight
+    void set_studio_lighting(bool studio);
+    bool get_studio_lighting() const
+    {
+        return m_studio_lighting;
+    }
 
     VertexRef draw_icon(IconTexture::IconTextureID id, glm::vec3 origin, glm::vec2 shift, glm::vec3 v) override;
     VertexRef draw_point(glm::vec3 point, IconTexture::IconTextureID id) override;
@@ -137,6 +143,9 @@ public:
     void animate_to_cam_quat(const glm::quat &quat);
     void animate_to_cam_quat_rel(const glm::quat &quat);
     void animate_to_center_abs(const glm::vec3 &center);
+    // frame a sphere around center with the given radius, keeping the rotation
+    void zoom_to_fit(const glm::vec3 &center, float radius);
+    bool is_in_view(const glm::vec3 &p) const;
 
     glm::quat get_tilt_snapped_quat(const glm::quat &q) const;
 
@@ -268,6 +277,7 @@ private:
     GLint get_samples() const;
 
     Appearance m_appearance;
+    bool m_studio_lighting = true;
 
     using pick_buf_t = uint32_t;
 

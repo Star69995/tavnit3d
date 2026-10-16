@@ -192,6 +192,7 @@ void Editor::set_current_workspace_view(const UUID &uu)
         set_show_only_solid_models(wv.m_show_only_solid_models);
         set_hide_irrelevant_workplanes(wv.m_hide_irrelevant_workplanes);
         set_grid_step(wv.m_grid_step);
+        set_studio_lighting(wv.m_studio_lighting);
         if (wv.m_curvature_comb_scale == 0)
             m_curvature_comb_scale->set_value(m_curvature_comb_scale->get_adjustment()->get_lower());
         else

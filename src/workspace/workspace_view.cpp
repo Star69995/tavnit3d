@@ -22,6 +22,7 @@ json WorkspaceView::serialize(const UUID &uu_doc) const
     j["show_construction_entities_from_previous_groups"] = m_show_construction_entities_from_previous_groups;
     j["hide_irrelevant_workplanes"] = m_hide_irrelevant_workplanes;
     j["grid_step"] = m_grid_step;
+    j["studio_lighting"] = m_studio_lighting;
     return j;
 }
 
@@ -61,7 +62,7 @@ WorkspaceView::WorkspaceView(const json &j)
       m_show_construction_entities_from_previous_groups(
               j.value("show_construction_entities_from_previous_groups", false)),
       m_hide_irrelevant_workplanes(j.value("hide_irrelevant_workplanes", false)),
-      m_grid_step(j.value("grid_step", 0.))
+      m_grid_step(j.value("grid_step", 0.)), m_studio_lighting(j.value("studio_lighting", true))
 {
     m_documents.emplace(UUID{}, j.at("document"));
     if (m_name == "Default")

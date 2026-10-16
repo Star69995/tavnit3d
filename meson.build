@@ -50,6 +50,7 @@ src_common = files(
   'src/document/document.cpp',
   'src/document/primitives.cpp',
   'src/document/face_sketch.cpp',
+  'src/document/body_solids.cpp',
   'src/document/entity/entity.cpp',
   'src/document/entity/entity_and_point.cpp',
   'src/document/entity/entity_line3d.cpp',

@@ -144,8 +144,10 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
             if (body_groups.body.m_color.has_value())
                 color = ICanvas::FaceColor::AS_IS;
             set_chunk_from_group(*last_solid_model_group);
-            const auto vref = m_ca.add_face_group(last_solid_model->m_faces, {0, 0, 0},
-                                                  glm::quat_identity<float, glm::defaultp>(), color);
+            const auto vref =
+                    m_ca.add_face_group(last_solid_model->m_faces, {0, 0, 0},
+                                        glm::quat_identity<float, glm::defaultp>(), color,
+                                        static_cast<unsigned int>(body_groups.body.m_material));
             if (sr)
                 m_ca.add_selectable(vref, *sr);
         }

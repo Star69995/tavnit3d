@@ -1,4 +1,5 @@
 #include "face_sketch.hpp"
+#include "body_solids.hpp"
 #include "document/document.hpp"
 #include "document/group/all_groups.hpp"
 #include "document/group/igroup_solid_model.hpp"
@@ -22,20 +23,10 @@ namespace dune3d {
 std::optional<FacePick> pick_planar_face(const Document &doc, const UUID &upto, const glm::dvec3 &ray_origin,
                                          const glm::dvec3 &ray_dir)
 {
-    // only the last solid of each body is what's actually there
-    std::map<UUID, const SolidModelOcc *> body_solids;
-    for (auto gr : doc.get_groups_sorted()) {
-        auto sm = dynamic_cast<const SolidModelOcc *>(IGroupSolidModel::try_get_solid_model(*gr));
-        if (sm && !sm->m_shape_acc.IsNull())
-            body_solids[gr->find_body(doc).group.m_uuid] = sm;
-        if (gr->m_uuid == upto)
-            break;
-    }
-
     const gp_Lin ray{gp_Pnt(ray_origin.x, ray_origin.y, ray_origin.z), gp_Dir(ray_dir.x, ray_dir.y, ray_dir.z)};
     double best_w = std::numeric_limits<double>::infinity();
     TopoDS_Face best_face;
-    for (const auto &[body, sm] : body_solids) {
+    for (auto sm : get_body_solids(doc, upto)) {
         IntCurvesFace_ShapeIntersector inter;
         inter.Load(sm->m_shape_acc, 1e-6);
         inter.Perform(ray, -1e9, 1e9);

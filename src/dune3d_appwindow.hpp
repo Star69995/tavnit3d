@@ -140,6 +140,10 @@ public:
 
     void add_action_button(Gtk::Widget &widget);
     void add_action_bar_section(const std::string &title);
+    Gtk::Box &get_view_bar()
+    {
+        return *m_view_bar;
+    }
     void set_action_bar_visible(bool v);
 
     void set_view_hints_label(const std::vector<std::string> &s);
@@ -239,6 +243,7 @@ private:
 
     Gtk::Box *m_action_bar_box = nullptr;
     Gtk::Grid *m_action_bar_grid = nullptr;
+    Gtk::Box *m_view_bar = nullptr;
     unsigned int m_action_bar_grid_n = 0;
     Gtk::Revealer *m_action_bar_revealer = nullptr;
 

@@ -51,6 +51,7 @@ public:
         return m_curvature_comb_scale;
     }
     double m_grid_step = 0;
+    bool m_studio_lighting = true;
     double get_grid_step() const override
     {
         return m_grid_step;

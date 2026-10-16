@@ -1,4 +1,5 @@
 #include "group.hpp"
+#include "util/lut.hpp"
 #include "nlohmann/json.hpp"
 #include "all_groups.hpp"
 #include "document/document.hpp"
@@ -27,6 +28,13 @@ static void from_json(const json &j, std::optional<Body> &b)
 }
 
 
+static const LutEnumStr<Body::Material> body_material_lut = {
+        {"satin", Body::Material::SATIN},
+        {"matte", Body::Material::MATTE},
+        {"glossy", Body::Material::GLOSSY},
+        {"metal", Body::Material::METAL},
+};
+
 Body::Body(const json &j) : m_name(j.at("name").get<std::string>())
 {
     if (j.contains("color")) {
@@ -34,6 +42,8 @@ Body::Body(const json &j) : m_name(j.at("name").get<std::string>())
         if (jc != nullptr)
             m_color = jc;
     }
+    if (j.contains("material"))
+        m_material = body_material_lut.lookup_opt(j.at("material").get<std::string>()).value_or(Material::SATIN);
 }
 
 Body::Body()
@@ -47,6 +57,8 @@ json Body::serialize() const
         j["color"] = Color{*m_color};
     else
         j["color"] = nullptr;
+    if (m_material != Material::SATIN)
+        j["material"] = body_material_lut.lookup_reverse(m_material);
     return j;
 }
 
