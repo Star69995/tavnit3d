@@ -1,6 +1,7 @@
 #include "editor.hpp"
 #include "dune3d_appwindow.hpp"
 #include "canvas/canvas.hpp"
+#include "workspace_browser.hpp"
 #include "action/action_catalog.hpp"
 #include "core/tool_id.hpp"
 #include "logger/logger.hpp"
@@ -25,10 +26,12 @@ namespace dune3d {
  *   rotate X1 Y1 X2 Y2       orbit the view as if dragging between the points
  *   button LABEL             click the visible, enabled button whose text is LABEL
  *   field LABEL VALUE        type VALUE into the input next to the panel label LABEL
+ *   tree NAME [N]            select the N-th (from 0) row called NAME in the workspace browser
  *   escape / commit          cancel / confirm the active tool
  *   winaction NAME [PARAM]   activate a window action, e.g. "winaction grid_step 5"
  *   size W H                 resize the window
  *   shot PATH                save the window contents as PNG
+ *   windows                  print the visible windows and their texts (dialogs aren't in shots)
  *   quit                     close the app
  */
 
@@ -191,6 +194,18 @@ void Editor::run_automation(const std::filesystem::path &script)
                 }
                 delay = 800;
             }
+            else if (cmd == "tree") {
+                // tree NAME [N]: the N-th row called NAME, N counting from 0
+                std::string name = rest;
+                unsigned int nth = 0;
+                if (auto sp = rest.rfind(' '); sp != std::string::npos && std::isdigit((unsigned char)rest[sp + 1])) {
+                    name = rest.substr(0, sp);
+                    nth = std::stoi(rest.substr(sp + 1));
+                }
+                if (!m_workspace_browser->select_row_by_name(name, nth))
+                    throw std::runtime_error("no tree row " + name);
+                delay = 600;
+            }
             else if (cmd == "escape") {
                 in_tool(InToolActionID::CANCEL);
             }
@@ -229,6 +244,24 @@ void Editor::run_automation(const std::filesystem::path &script)
                     gsk_render_node_unref(node);
                 }
                 g_object_unref(paintable);
+            }
+            else if (cmd == "windows") {
+                // print every toplevel and the texts in it, e.g. to see what a dialog says
+                std::function<void(Gtk::Widget &, std::string &)> collect = [&collect](Gtk::Widget &w,
+                                                                                      std::string &out) {
+                    if (auto la = dynamic_cast<Gtk::Label *>(&w); la && la->get_text().size())
+                        out += " | " + la->get_text();
+                    for (auto ch = w.get_first_child(); ch; ch = ch->get_next_sibling())
+                        collect(*ch, out);
+                };
+                for (auto win : Gtk::Window::list_toplevels()) {
+                    if (!win->get_visible())
+                        continue;
+                    std::string texts;
+                    collect(*win, texts);
+                    std::cerr << "automation: window '" << win->get_title() << "' " << G_OBJECT_TYPE_NAME(win->gobj())
+                              << texts.substr(0, 600) << std::endl;
+                }
             }
             else if (cmd == "quit") {
                 m_win.close();

@@ -92,6 +92,11 @@ private:
     void on_add_group(Group::Type group_type, WorkspaceBrowserAddGroupMode add_group_mode);
     void finish_add_group(Group *new_group);
     void add_primitive(Primitive primitive);
+    void show_object_editor(const UUID &doc_uu, const UUID &body_uu);
+    void delete_body(const UUID &doc_uu, const UUID &body_uu);
+    Gtk::Widget *m_object_editor = nullptr;
+    UUID m_object_editor_doc;
+    UUID m_object_editor_body;
 
 public:
     void run_automation(const std::filesystem::path &script);

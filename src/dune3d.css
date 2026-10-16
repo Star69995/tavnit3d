@@ -119,6 +119,9 @@ notebook > header tab:checked {box-shadow: inset 0 -3px @accent_bg_color;}
 /* bottom tool hint bar */
 .osd {border-radius: 12px;}
 
+/* object panel */
+.object-editor-heading {font-weight: 700; font-size: 85%; color: @studio_dim; margin-top: 6px;}
+
 /* welcome screen */
 .welcome-box {
   background: @studio_panel;

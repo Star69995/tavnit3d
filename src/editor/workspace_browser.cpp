@@ -802,6 +802,10 @@ WorkspaceBrowser::WorkspaceBrowser(Core &core) : Gtk::Box(Gtk::Orientation::VERT
         if (auto gr = std::dynamic_pointer_cast<WorkspaceBrowser::GroupItem>(tr->get_item())) {
             m_signal_group_selected.emit(gr->m_doc, gr->m_uuid);
         }
+        else if (auto body = std::dynamic_pointer_cast<WorkspaceBrowser::BodyItem>(tr->get_item())) {
+            if (!m_blocked_count)
+                m_signal_body_selected.emit(body->m_doc, body->m_uuid);
+        }
     });
     m_view->add_css_class("navigation-sidebar");
     {
@@ -964,6 +968,7 @@ WorkspaceBrowser::WorkspaceBrowser(Core &core) : Gtk::Box(Gtk::Orientation::VERT
             "reset_color", [this] { signal_reset_body_color().emit(m_body_menu_document, m_body_menu_body); });
     actions->add_action("rename", [this] { signal_rename_body().emit(m_body_menu_document, m_body_menu_body); });
     actions->add_action("set_color", [this] { signal_set_body_color().emit(m_body_menu_document, m_body_menu_body); });
+    actions->add_action("delete", [this] { signal_delete_body().emit(m_body_menu_document, m_body_menu_body); });
     m_move_body_up_action = actions->add_action(
             "move_up", [this] { signal_move_body().emit(m_body_menu_document, m_body_menu_body, 1); });
     m_move_body_down_action = actions->add_action(
@@ -974,6 +979,7 @@ WorkspaceBrowser::WorkspaceBrowser(Core &core) : Gtk::Box(Gtk::Orientation::VERT
     m_body_menu->append("Rename", "body.rename");
     m_body_menu->append("Move up", "body.move_up");
     m_body_menu->append("Move down", "body.move_down");
+    m_body_menu->append("Delete", "body.delete");
 
 
     m_body_popover = Gtk::make_managed<Gtk::PopoverMenu>();
@@ -1066,6 +1072,26 @@ void WorkspaceBrowser::select_group(const UUID &doc_uu, const UUID &uu)
             return;
         }
     }
+}
+
+bool WorkspaceBrowser::select_row_by_name(const std::string &name, unsigned int nth)
+{
+    const auto n = m_selection_model->get_n_items();
+    for (guint i = 0; i < n; i++) {
+        auto row = std::dynamic_pointer_cast<Gtk::TreeListRow>(m_selection_model->get_object(i));
+        if (!row)
+            continue;
+        Glib::ustring row_name;
+        if (auto it = std::dynamic_pointer_cast<BodyItem>(row->get_item()))
+            row_name = it->m_name.get_value();
+        else if (auto it = std::dynamic_pointer_cast<GroupItem>(row->get_item()))
+            row_name = it->m_name.get_value();
+        if (row_name == name && nth-- == 0) {
+            m_selection_model->select_item(i, true);
+            return true;
+        }
+    }
+    return false;
 }
 
 void WorkspaceBrowser::show_toast(const std::string &msg)

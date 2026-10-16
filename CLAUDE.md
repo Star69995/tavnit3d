@@ -52,6 +52,10 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 - `src/dune3d.css` "Studio theme" section, `src/canvas/appearance.cpp` and
   `src/preferences/color_presets/Default.light.json` (keep the last two in
   sync) - look and feel.
+- Object panel (`src/editor/editor_object.cpp`): picking a body in the
+  workspace browser shows name/colour/visibility, every non-measurement
+  dimension in the body's groups, "Edit features" and "Delete object"
+  (`Editor::delete_body`, also in the body's context menu).
 - Tool palette: `Editor::create_action_bar_button` / `add_action_bar_section`.
 - Grid on the active workplane (XY when none): `Renderer::visit(const EntityWorkplane &)`;
   spacing from `get_grid_step()` in `src/util/util.cpp`, user choice stored per

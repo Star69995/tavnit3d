@@ -1141,6 +1141,10 @@ void Editor::do_close_document(const UUID &doc_uu)
 
 void Editor::update_group_editor()
 {
+    if (m_object_editor) {
+        m_group_editor_box->remove(*m_object_editor);
+        m_object_editor = nullptr;
+    }
     if (m_group_editor) {
         if (m_delayed_commit_connection.connected()) {
             commit_from_editor();

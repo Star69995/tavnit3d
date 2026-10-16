@@ -43,6 +43,13 @@ void Editor::init_workspace_browser()
     m_workspace_browser->signale_active_link().connect(
             sigc::mem_fun(*this, &Editor::on_workspace_browser_activate_link));
     m_workspace_browser->signal_rename_body().connect(sigc::mem_fun(*this, &Editor::on_workspace_browser_rename_body));
+    m_workspace_browser->signal_body_selected().connect([this](const UUID &doc, const UUID &body) {
+        if (!m_core.tool_is_active() && m_core.has_documents())
+            show_object_editor(doc, body);
+    });
+    m_workspace_browser->signal_delete_body().connect([this](const UUID &doc, const UUID &body) {
+        Glib::signal_idle().connect_once([this, doc, body] { delete_body(doc, body); });
+    });
     m_workspace_browser->signal_reset_body_color().connect(
             sigc::mem_fun(*this, &Editor::on_workspace_browser_reset_body_color));
     m_workspace_browser->signal_set_body_color().connect(
@@ -79,8 +86,11 @@ void Editor::on_workspace_browser_group_selected(const UUID &uu_doc, const UUID 
     if (m_core.tool_is_active())
         return;
     auto &idoc = m_core.get_current_idocument_info();
-    if (idoc.get_uuid() == uu_doc && idoc.get_current_group() == uu_group)
+    if (idoc.get_uuid() == uu_doc && idoc.get_current_group() == uu_group) {
+        if (m_object_editor) // back from the object panel to the group's own
+            update_group_editor();
         return;
+    }
     m_core.set_current_document(uu_doc);
     m_workspace_views.at(m_current_workspace_view).m_current_document = uu_doc;
     update_version_info();

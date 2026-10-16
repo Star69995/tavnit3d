@@ -32,6 +32,19 @@ public:
         return m_signal_rename_body;
     }
 
+    // selects the n-th visible row (body or group) with that name, as a click would
+    bool select_row_by_name(const std::string &name, unsigned int nth = 0);
+
+    type_signal_group_selected signal_body_selected()
+    {
+        return m_signal_body_selected;
+    }
+
+    type_signal_group_selected signal_delete_body()
+    {
+        return m_signal_delete_body;
+    }
+
     type_signal_group_selected signal_set_body_color()
     {
         return m_signal_set_body_color;
@@ -149,6 +162,8 @@ private:
     type_signal_activate_link m_signal_activate_link;
 
     type_signal_group_selected m_signal_rename_body;
+    type_signal_group_selected m_signal_body_selected;
+    type_signal_group_selected m_signal_delete_body;
     type_signal_group_selected m_signal_set_body_color;
     type_signal_group_selected m_signal_reset_body_color;
     type_signal_move_body m_signal_move_body;
