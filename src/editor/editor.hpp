@@ -139,6 +139,8 @@ private:
     bool pick_light_under_cursor();
     std::vector<struct CanvasLight> get_canvas_lights(const Document &doc) const;
     UUID m_object_editor_light; // the panel shows this light rather than an object
+    void show_render_window();
+    std::unique_ptr<class RenderWindow> m_render_window;
     void on_import_object();
     void import_object_file(const std::filesystem::path &path);
     struct GltfExportOptions get_gltf_export_options();

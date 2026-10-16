@@ -1,4 +1,5 @@
 #include "editor.hpp"
+#include "render_window.hpp"
 #include "util/branding.hpp"
 #include "dune3d_appwindow.hpp"
 #include "core/tool_id.hpp"
@@ -1008,6 +1009,11 @@ void Editor::init_header_bar()
         bu->set_label("Export");
         bu->set_menu_model(menu);
         m_win.get_header_bar().pack_end(*bu);
+
+        auto render = Gtk::make_managed<Gtk::Button>("Render");
+        render->set_tooltip_text("A photo-like picture of the objects as you see them now (uses Blender)");
+        render->signal_clicked().connect([this] { show_render_window(); });
+        m_win.get_header_bar().pack_end(*render);
 
         auto import = Gtk::make_managed<Gtk::Button>("Import");
         import->set_tooltip_text("Add objects from a STEP, IGES, glTF or OBJ file, with their colours and materials");

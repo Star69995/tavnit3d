@@ -37,6 +37,7 @@ namespace dune3d {
  *   shotwin TITLE PATH       the same for another window, e.g. a dialog
  *   sticker PATH             add a sticker with this picture to the object in the panel (then click on it)
  *   save PATH                save the current document under this name
+ *   render-window            open the render window (then "button Render", "shotwin Render picture PATH")
  *   import PATH              import objects from a model file
  *   export-gltf PATH         export the shown objects as glTF, from the current view
  *   update-check             check for updates as from the menu (feed: DUNE3D_UPDATE_FEED)
@@ -177,6 +178,10 @@ void Editor::run_automation(const std::filesystem::path &script)
             }
             else if (cmd == "save") {
                 m_core.save_as(path_from_string(rest));
+            }
+            else if (cmd == "render-window") {
+                show_render_window();
+                delay = 800;
             }
             else if (cmd == "import") {
                 import_object_file(path_from_string(rest));

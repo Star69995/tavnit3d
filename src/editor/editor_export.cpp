@@ -14,6 +14,7 @@
 #include "util/template_util.hpp"
 #include "util/step_exporter.hpp"
 #include "document/export_gltf.hpp"
+#include "render_window.hpp"
 #include "workspace_browser.hpp"
 #include <iostream>
 
@@ -223,6 +224,26 @@ GltfExportOptions Editor::get_gltf_export_options()
         cam.aspect = (double)ca.get_width() / ca.get_height();
     opts.camera = cam;
     return opts;
+}
+
+void Editor::show_render_window()
+{
+    if (!m_core.has_documents())
+        return;
+    if (m_render_window && m_render_window->is_rendering()) {
+        m_render_window->present();
+        return;
+    }
+    auto &ca = get_canvas();
+    const double aspect = ca.get_height() > 0 ? static_cast<double>(ca.get_width()) / ca.get_height() : 16. / 9.;
+    m_render_window = std::make_unique<RenderWindow>(
+            m_win, m_win.get_app().m_user_config.blender_path, aspect,
+            [this](const std::filesystem::path &path, double aspect) {
+                auto opts = get_gltf_export_options();
+                opts.camera->aspect = aspect;
+                return export_gltf(m_core.get_current_document(), path, opts);
+            });
+    m_render_window->present();
 }
 
 void Editor::export_gltf_now(const std::filesystem::path &path)

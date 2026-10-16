@@ -42,6 +42,7 @@ public:
         // Keys are (document path, group UUID). Group UUID is all zeroes for all-groups exports.
         std::map<std::pair<std::filesystem::path, UUID>, ExportPaths> export_paths;
         bool check_for_updates = true;
+        std::filesystem::path blender_path; // for rendering pictures; found by itself if empty
     };
 
     UserConfig m_user_config;
