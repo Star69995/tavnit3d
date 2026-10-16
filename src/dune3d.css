@@ -204,7 +204,7 @@ headerbar .linked > button:not(:first-child), headerbar .linked > button:not(:la
 
 /* fields: a soft fill, a clear blue ring when typing in them */
 entry, spinbutton, .object-editor dropdown > button, .studio-dialog dropdown > button,
-.object-editor colordialogbutton > button {
+.object-editor colorbutton > button {
   background: @studio_field;
   border: 1px solid transparent;
   box-shadow: none;
@@ -264,3 +264,13 @@ notebook > header tab:checked {background: alpha(@accent_bg_color, .12); color: 
 .object-editor spinbutton > button:hover, .studio-dialog spinbutton > button:hover {
   background: alpha(@accent_bg_color, .10); color: @accent_bg_color;}
 .object-editor spinbutton > text {min-width: 40px;}
+/* colour fields: the colour fills the whole field */
+.object-editor colorbutton > button, .studio-dialog colorbutton > button {
+  padding: 3px; min-height: 30px; background: @studio_field; border: 1px solid transparent; box-shadow: none;
+}
+.object-editor colorbutton > button:hover, .studio-dialog colorbutton > button:hover {
+  border-color: alpha(@accent_bg_color, .45);}
+colorbutton colorswatch, colorbutton colorswatch > overlay {border-radius: 7px; min-height: 26px;}
+colorbutton colorswatch {box-shadow: inset 0 0 0 1px alpha(black, .08);}
+colorbutton > button > colorswatch {min-width: 0;}
+colorbutton > button {padding: 3px;}

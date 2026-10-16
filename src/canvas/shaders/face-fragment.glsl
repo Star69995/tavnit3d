@@ -41,9 +41,16 @@ void main() {
   if(FLAG_IS_SET(flags, VERTEX_FLAG_HOVER | VERTEX_FLAG_SELECTED))
       color = mix(color, get_color(flags), .5);
   int mat = material & 0xff;
-  if((material & 0x100) != 0) // highlighted object
-      color = mix(color, vec3(.18, .42, .94), .35);
+  bool highlighted = (material & 0x100) != 0; // the picked object
+  if(highlighted)
+      color = mix(color, vec3(.18, .42, .94), .12); // barely: its own colour stays recognisable
   outputColor = shade_surface(color, normal_to_fragment, pos_to_fragment, mat);
+  if(highlighted) {
+      // a blue glow towards its outline instead
+      float facing = abs(dot(normalize(normal_to_fragment), normalize(cam_normal)));
+      float rim = pow(1 - facing, 2.5);
+      outputColor.rgb = mix(outputColor.rgb, vec3(.25, .52, 1), rim * .55);
+  }
   select = outputColor*select_alpha_to_frag;
   pick = pick_base;
 }
