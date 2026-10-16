@@ -69,6 +69,12 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   workspace browser shows name/colour/visibility, every non-measurement
   dimension in the body's groups, "Edit features" and "Delete object"
   (`Editor::delete_body`, also in the body's context menu).
+- Clicking a solid picks its body (`Editor::select_object_under_cursor`,
+  `pick_body` in face_sketch.cpp, hidden bodies excluded via
+  `Editor::body_is_shown`); dragging moves objects that have X/Y position
+  dimensions (`src/editor/editor_object_drag.cpp`).
+- Combine (object panel, `src/document/combine.*`): solid model operation
+  group in a new body after everything; the sources get hidden, not removed.
 - Tool palette: `Editor::create_action_bar_button` / `add_action_bar_section`.
 - Grid on the active workplane (XY when none): `Renderer::visit(const EntityWorkplane &)`;
   spacing from `get_grid_step()` in `src/util/util.cpp`, user choice stored per

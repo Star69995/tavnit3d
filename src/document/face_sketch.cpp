@@ -28,12 +28,12 @@ struct RayHit {
 
 // nearest face of any body's final solid along the ray
 std::optional<RayHit> cast_ray(const Document &doc, const UUID &upto, const glm::dvec3 &ray_origin,
-                               const glm::dvec3 &ray_dir)
+                               const glm::dvec3 &ray_dir, const BodyFilter &filter)
 {
     const gp_Lin ray{gp_Pnt(ray_origin.x, ray_origin.y, ray_origin.z), gp_Dir(ray_dir.x, ray_dir.y, ray_dir.z)};
     double best_w = std::numeric_limits<double>::infinity();
     std::optional<RayHit> best;
-    for (const auto &bs : get_body_solids(doc, upto)) {
+    for (const auto &bs : get_body_solids(doc, upto, filter)) {
         IntCurvesFace_ShapeIntersector inter;
         inter.Load(bs.solid->m_shape_acc, 1e-6);
         inter.Perform(ray, -1e9, 1e9);
@@ -51,17 +51,17 @@ std::optional<RayHit> cast_ray(const Document &doc, const UUID &upto, const glm:
 } // namespace
 
 std::optional<UUID> pick_body(const Document &doc, const UUID &upto, const glm::dvec3 &ray_origin,
-                              const glm::dvec3 &ray_dir)
+                              const glm::dvec3 &ray_dir, const BodyFilter &filter)
 {
-    if (auto hit = cast_ray(doc, upto, ray_origin, ray_dir))
+    if (auto hit = cast_ray(doc, upto, ray_origin, ray_dir, filter))
         return hit->body;
     return {};
 }
 
 std::optional<FacePick> pick_planar_face(const Document &doc, const UUID &upto, const glm::dvec3 &ray_origin,
-                                         const glm::dvec3 &ray_dir)
+                                         const glm::dvec3 &ray_dir, const BodyFilter &filter)
 {
-    auto hit = cast_ray(doc, upto, ray_origin, ray_dir);
+    auto hit = cast_ray(doc, upto, ray_origin, ray_dir, filter);
     if (!hit)
         return {};
     const TopoDS_Face best_face = hit->face;

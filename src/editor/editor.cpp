@@ -140,7 +140,7 @@ void Editor::init()
     create_action_bar_button(ActionID::CREATE_GROUP_LOFT, "Loft");
     create_action_bar_button(ActionID::CREATE_GROUP_FILLET, "Fillet");
     create_action_bar_button(ActionID::CREATE_GROUP_CHAMFER, "Chamfer");
-    create_action_bar_button(ActionID::CREATE_GROUP_SOLID_MODEL_OPERATION, "Combine");
+    create_action_bar_button(ActionID::COMBINE_OBJECTS, "Combine");
 
     init_view_options();
 
@@ -343,6 +343,7 @@ Gtk::Button &Editor::create_action_bar_button(ActionToolID action, const std::st
             {ActionID::CREATE_GROUP_FILLET, "action-create-fillet-symbolic"},
             {ActionID::CREATE_GROUP_CHAMFER, "action-create-chamfer-symbolic"},
             {ActionID::CREATE_GROUP_SOLID_MODEL_OPERATION, "action-create-boolean-symbolic"},
+            {ActionID::COMBINE_OBJECTS, "action-create-boolean-symbolic"},
             {ActionID::ADD_BOX, "action-add-box-symbolic"},
             {ActionID::ADD_CYLINDER, "action-add-cylinder-symbolic"},
             {ActionID::ADD_SPHERE, "action-add-sphere-symbolic"},
@@ -1474,6 +1475,18 @@ glm::vec3 Editor::get_cam_normal() const
 glm::quat Editor::get_cam_quat() const
 {
     return get_canvas().get_cam_quat();
+}
+
+bool Editor::body_is_shown(const UUID &body) const
+{
+    if (!m_core.has_documents())
+        return false;
+    auto &wv = m_workspace_views.at(m_current_workspace_view);
+    const auto doc = wv.m_current_document;
+    if (!wv.m_documents.contains(doc))
+        return true;
+    const auto &dv = wv.m_documents.at(doc);
+    return dv.body_is_visible(body) && dv.body_solid_model_is_visible(body);
 }
 
 double Editor::get_grid_snap(const EntityWorkplane &wrkpl) const

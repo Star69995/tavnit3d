@@ -26,7 +26,8 @@ ToolResponse ToolSketchOnFace::update(const ToolArgs &args)
     switch (args.action) {
     case InToolActionID::LMB: {
         const auto [origin, dir] = m_intf.get_cursor_ray();
-        auto face = pick_planar_face(get_doc(), m_core.get_current_group(), origin, dir);
+        auto face = pick_planar_face(get_doc(), m_core.get_current_group(), origin, dir,
+                                     [this](const UUID &body) { return m_intf.body_is_shown(body); });
         if (!face) {
             m_intf.tool_bar_flash("No flat face there");
             return ToolResponse();

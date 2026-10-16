@@ -603,7 +603,7 @@ void Canvas::set_cam_distance(float dist, ZoomCenter zoom_center)
 void Canvas::zoom_to_fit(const glm::vec3 &center, float radius)
 {
     const float aspect = m_height ? (float)m_width / m_height : 1;
-    const float dist = radius * 1.25f / (tan(.5f * glm::radians(m_cam_fov)) * std::min(1.f, aspect));
+    const float dist = radius * 1.7f / (tan(.5f * glm::radians(m_cam_fov)) * std::min(1.f, aspect));
     m_cam_distance = std::max(dist, 1.f);
     set_center(center);
     queue_draw();

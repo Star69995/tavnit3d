@@ -26,6 +26,8 @@ public:
     virtual std::pair<glm::dvec3, glm::dvec3> get_cursor_ray() const = 0;
     // grid spacing cursor positions on this workplane snap to, 0 when not snapping
     virtual double get_grid_snap(const class EntityWorkplane &wrkpl) const = 0;
+    // true for bodies of the current document that are shown
+    virtual bool body_is_shown(const UUID &body) const = 0;
 
     virtual void tool_bar_set_actions(const std::vector<ActionLabelInfo> &labels) = 0;
     virtual void tool_bar_set_tool_tip(const std::string &s) = 0;

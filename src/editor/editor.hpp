@@ -3,6 +3,7 @@
 #include "core/core.hpp"
 #include <gtkmm.h>
 #include "document/primitives.hpp"
+#include "document/group/igroup_solid_model.hpp"
 #include "action/action.hpp"
 #include "preferences/preferences.hpp"
 #include "workspace/workspace_view.hpp"
@@ -49,6 +50,7 @@ public:
     glm::dvec3 get_cursor_pos_for_plane(glm::dvec3 origin, glm::dvec3 normal) const override;
     std::pair<glm::dvec3, glm::dvec3> get_cursor_ray() const override;
     double get_grid_snap(const EntityWorkplane &wrkpl) const override;
+    bool body_is_shown(const UUID &body) const override;
     void tool_update_data(std::unique_ptr<ToolData> data) override;
     void enable_hover_selection(bool enable) override;
     std::optional<SelectableRef> get_hover_selection() const override;
@@ -100,6 +102,8 @@ private:
     void show_object_editor(const UUID &doc_uu, const UUID &body_uu);
     void delete_body(const UUID &doc_uu, const UUID &body_uu);
     void select_object_under_cursor();
+    void combine_bodies(const UUID &doc_uu, const UUID &body_a, const UUID &body_b, IGroupSolidModel::Operation op);
+    Gtk::DropDown *m_object_combine_dropdown = nullptr;
     struct ObjectDrag {
         UUID doc, body, group, wrkpl;
         UUID cx, cy;     // position constraints

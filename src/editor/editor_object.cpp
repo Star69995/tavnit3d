@@ -14,6 +14,8 @@
 #include "util/gtk_util.hpp"
 #include "util/util.hpp"
 #include "document/face_sketch.hpp"
+#include "document/body_solids.hpp"
+#include "document/combine.hpp"
 #include "canvas/canvas.hpp"
 #include <ranges>
 
@@ -83,6 +85,7 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         return;
     m_object_editor_doc = doc_uu;
     m_object_editor_body = body_uu;
+    m_object_combine_dropdown = nullptr;
 
     auto grid = Gtk::make_managed<Gtk::Grid>();
     grid->set_row_spacing(5);
@@ -224,6 +227,46 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         grid_attach_label_and_widget(*grid, dim.label, *sp, top).add_css_class("tnum");
     }
 
+    // combine with another shown object that has a solid
+    {
+        std::vector<std::pair<UUID, std::string>> others;
+        for (const auto &bs : get_body_solids(doc, UUID(), [this](const UUID &b) { return body_is_shown(b); })) {
+            if (bs.body != body_uu)
+                others.emplace_back(bs.body, doc.get_group(bs.body).m_body->m_name);
+        }
+        const bool has_solid = std::ranges::any_of(get_body_solids(doc, UUID()),
+                                                   [&body_uu](const auto &bs) { return bs.body == body_uu; });
+        if (has_solid && others.size()) {
+            heading("Combine");
+            auto names = Gtk::StringList::create();
+            for (const auto &[uu, name] : others)
+                names->append(name);
+            auto dd = Gtk::make_managed<Gtk::DropDown>(names);
+            dd->set_hexpand(true);
+            m_object_combine_dropdown = dd;
+            grid_attach_label_and_widget(*grid, "With", *dd, top);
+            auto box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 0);
+            box->add_css_class("linked");
+            using Op = IGroupSolidModel::Operation;
+            for (const auto &[label, tip, op] : std::vector<std::tuple<const char *, const char *, Op>>{
+                         {"Join", "Merge both into one object", Op::UNION},
+                         {"Subtract", "Cut the other object away from this one", Op::DIFFERENCE},
+                         {"Intersect", "Keep only where they overlap", Op::INTERSECTION},
+                 }) {
+                auto bu = Gtk::make_managed<Gtk::Button>(label);
+                bu->set_tooltip_text(tip);
+                bu->set_hexpand(true);
+                bu->signal_clicked().connect([this, dd, others, doc_uu, body_uu, op] {
+                    const auto other = others.at(dd->get_selected()).first;
+                    Glib::signal_idle().connect_once(
+                            [this, doc_uu, body_uu, other, op] { combine_bodies(doc_uu, body_uu, other, op); });
+                });
+                box->append(*bu);
+            }
+            grid->attach(*box, 0, top++, 2, 1);
+        }
+    }
+
     {
         auto box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 5);
         box->set_margin_top(10);
@@ -257,13 +300,36 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
     canvas_update_keep_selection(); // highlight it
 }
 
+void Editor::combine_bodies(const UUID &doc_uu, const UUID &body_a, const UUID &body_b,
+                            IGroupSolidModel::Operation op)
+{
+    if (m_core.tool_is_active())
+        return;
+    auto &doc = m_core.get_idocument_info(doc_uu).get_document();
+    m_core.set_current_document(doc_uu);
+    auto &group = add_combination(doc, body_a, body_b, op);
+    // the result replaces the two on screen; they stay in the tree for editing
+    for (const auto &b : {body_a, body_b})
+        get_current_document_views()[doc_uu].m_body_views[b].m_visible = false;
+    get_current_document_view().m_current_group = group.m_uuid;
+    m_core.set_current_group(group.m_uuid);
+    m_core.set_needs_save();
+    m_core.rebuild("combine objects");
+    m_workspace_browser->update_documents(get_current_document_views());
+    set_current_group(group.m_uuid);
+    if (!m_workspace_browser->select_body(doc_uu, group.m_uuid))
+        show_object_editor(doc_uu, group.m_uuid);
+    canvas_update_keep_selection();
+}
+
 void Editor::select_object_under_cursor()
 {
     if (!m_core.has_documents())
         return;
     const auto [origin, dir] = get_canvas().get_cursor_ray();
     auto &doc = m_core.get_current_document();
-    if (auto body = pick_body(doc, m_core.get_current_group(), origin, dir)) {
+    if (auto body = pick_body(doc, m_core.get_current_group(), origin, dir,
+                              [this](const UUID &b) { return body_is_shown(b); })) {
         // selecting the row shows the object panel, like clicking it in the browser
         const auto doc_uu = m_core.get_current_idocument_info().get_uuid();
         if (!m_workspace_browser->select_body(doc_uu, *body))

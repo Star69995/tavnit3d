@@ -5,6 +5,7 @@
 #include "document/primitives.hpp"
 #include "document/face_sketch.hpp"
 #include "document/body_solids.hpp"
+#include "document/combine.hpp"
 #include <filesystem>
 #include <fstream>
 #include "document/entity/entity_workplane.hpp"
@@ -210,6 +211,47 @@ static void test_export_stl()
     std::filesystem::remove(path);
 }
 
+static double body_volume(const Document &doc, const Group &group)
+{
+    auto sm = dynamic_cast<const SolidModelOcc *>(
+            SolidModel::get_last_solid_model(doc, group, SolidModel::IncludeGroup::YES));
+    if (!sm || sm->m_shape_acc.IsNull())
+        return -1;
+    GProp_GProps props;
+    BRepGProp::VolumeProperties(sm->m_shape_acc, props);
+    return props.Mass();
+}
+
+static void test_combine()
+{
+    std::cout << "combine" << std::endl;
+    constexpr double pi = std::numbers::pi;
+    const double half_cylinder = pi * 10 * 10 / 2 * 20; // the part of the cylinder inside the box
+    const struct {
+        IGroupSolidModel::Operation op;
+        const char *name;
+        double volume;
+    } cases[] = {
+            {IGroupSolidModel::Operation::UNION, "join", 8000 + pi * 100 * 20 - half_cylinder},
+            {IGroupSolidModel::Operation::DIFFERENCE, "subtract", 8000 - half_cylinder},
+            {IGroupSolidModel::Operation::INTERSECTION, "intersect", half_cylinder},
+    };
+    for (const auto &c : cases) {
+        Document doc;
+        auto &box = add_primitive(doc, doc.get_groups_sorted().back()->m_uuid, Primitive::BOX);
+        auto &cyl = add_primitive(doc, box.m_uuid, Primitive::CYLINDER, {10, 0});
+        doc.update_pending();
+        const auto box_body = box.find_body(doc).group.m_uuid;
+        const auto cyl_body = cyl.find_body(doc).group.m_uuid;
+        auto &comb = add_combination(doc, box_body, cyl_body, c.op);
+        doc.update_pending();
+        const auto vol = body_volume(doc, comb);
+        check(std::abs(vol - c.volume) / c.volume < 1e-3,
+              std::string(c.name) + " volume " + std::to_string(vol) + " ~ " + std::to_string(c.volume));
+        check(comb.m_body.has_value() && comb.find_body(doc).group.m_uuid == comb.m_uuid, std::string(c.name) + " is a new body");
+    }
+}
+
 int main()
 {
     constexpr double pi = std::numbers::pi;
@@ -219,6 +261,7 @@ int main()
     test_sketch_on_face();
     test_placement();
     test_export_stl();
+    test_combine();
     std::cout << (failures ? "FAILED" : "PASSED") << " (" << failures << " failures)" << std::endl;
     return failures ? 1 : 0;
 }

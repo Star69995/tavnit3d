@@ -1,5 +1,6 @@
 #pragma once
 #include "util/uuid.hpp"
+#include "body_solids.hpp"
 #include <glm/glm.hpp>
 #include <optional>
 
@@ -19,11 +20,11 @@ struct FacePick {
 // Finds the nearest flat face along the ray among the final solids of the
 // bodies up to and including group `upto`. Curved faces yield nothing.
 std::optional<FacePick> pick_planar_face(const Document &doc, const UUID &upto, const glm::dvec3 &ray_origin,
-                                         const glm::dvec3 &ray_dir);
+                                         const glm::dvec3 &ray_dir, const BodyFilter &filter = {});
 
 // The body (its first group) whose final solid the ray hits first, if any.
 std::optional<UUID> pick_body(const Document &doc, const UUID &upto, const glm::dvec3 &ray_origin,
-                              const glm::dvec3 &ray_dir);
+                              const glm::dvec3 &ray_dir, const BodyFilter &filter = {});
 
 // Inserts a sketch after `after` whose active workplane lies on the face. The
 // workplane's rotation is locked and, where possible, its origin is pinned to
