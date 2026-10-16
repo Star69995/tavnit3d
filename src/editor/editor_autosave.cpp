@@ -171,7 +171,7 @@ void Editor::init_autosave()
             "autosave_interval",
             [this](const Glib::ustring &v) {
                 auto &cfg = m_win.get_app().m_user_config;
-                cfg.autosave_minutes = v == "off" ? 0 : std::stoul(v);
+                cfg.autosave_minutes = v == "off" ? 0 : std::stoul(v.raw());
                 m_win.lookup_action("autosave_interval")->change_state(Glib::Variant<Glib::ustring>::create(v));
                 restart_autosave_timer();
             },

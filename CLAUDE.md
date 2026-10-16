@@ -129,6 +129,22 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   endpoint for tests. HTTP: `src/util/http.*` (WinHTTP).
 - Resize handles (`src/editor/editor_handles.cpp`) use the object panel's
   dimension list (`src/editor/object_dimensions.hpp`).
+- Autosave (`src/editor/editor_autosave.cpp`, `Core::write_backup`): every
+  `UserConfig::autosave_minutes` (menu: Back up unsaved work, 0 = off) each
+  document with unsaved changes is copied to `<documents dir>/Autosave/<uuid>.d3ddoc`
+  (+ `.json` with name/original path); removed when the document is saved or
+  closed, offered back at the next start if still there (copied to the
+  documents folder as "Recovered ..."). The documents folder
+  (`UserConfig::documents_dir`, default Documents/Tavnit 3D, created at start)
+  is also where open/save dialogs start.
+- More shapes: hexagon, triangle prism, star, heart, half sphere are recipes
+  (`src/editor/editor_recipe.cpp`, like Bowl/Vase). No pyramid yet (needs a
+  tapered extrude or loft). No screws/threads.
+- Holes (`Body::m_hole`, object panel "Hole" switch + "Cut"): drawn as glass,
+  left out of STL/glTF export; `Editor::cut_with_hole` subtracts it from every
+  shown non-hole object whose bounds it touches (`add_combination`).
+- Picture object (`Editor::add_picture_object` in editor_decal.cpp): a 1 mm
+  white box with the picture as a sticker on its big face; resizable like a box.
 - Find (`src/editor/action_search.*`, items in `editor_search.cpp`): Ctrl+K
   both as the FIND action and a window-level capture shortcut. When a
   feature lands, add it there with where it lives.
