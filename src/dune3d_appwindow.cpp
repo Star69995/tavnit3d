@@ -144,6 +144,7 @@ Dune3DAppWindow::Dune3DAppWindow(BaseObjectType *cobject, const Glib::RefPtr<Gtk
     refBuilder->get_widget<Gtk::Box>("canvas_box")->insert_child_at_start(*m_canvas);
     get_canvas().set_vexpand(true);
     get_canvas().set_hexpand(true);
+    get_canvas().set_can_target(false); // until a document is open, see set_welcome_box_visible
     m_key_hint_label = refBuilder->get_widget<Gtk::Label>("key_hint_label");
     m_workplane_checkbutton = refBuilder->get_widget<Gtk::CheckButton>("workplane_checkbutton");
     m_workplane_label = refBuilder->get_widget<Gtk::Label>("workplane_label");
@@ -346,6 +347,8 @@ bool Dune3DAppWindow::has_file(const std::filesystem::path &path)
 void Dune3DAppWindow::set_welcome_box_visible(bool v)
 {
     m_welcome_box->set_visible(v);
+    // nothing to select, rotate or zoom without a document
+    get_canvas().set_can_target(!v);
     if (v) {
         m_welcome_recent_search_entry->set_text("");
         update_recent_listbox(*m_welcome_recent_listbox, m_app);
