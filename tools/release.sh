@@ -36,7 +36,7 @@ if ! git branch -r --contains "$head" | grep -q "origin/"; then
 fi
 
 # through a MSYS2 UCRT64 login shell like tools\build.cmd: the toolchain needs its environment
-MSYSTEM=UCRT64 CHERE_INVOKING=1 /c/msys64/usr/bin/bash.exe -lc "tools/build.sh test dist installer"
+MSYSTEM=UCRT64 /c/msys64/usr/bin/bash.exe -lc "cd '$(pwd -W 2>/dev/null || pwd)' && tools/build.sh test dist installer"
 setup="dist/Tavnit3D-$ver-setup.exe"
 portable="dist/Tavnit3D-$ver-portable.zip"
 latest_zip=$(ls -t dist/dune3d-*.zip | head -1)
