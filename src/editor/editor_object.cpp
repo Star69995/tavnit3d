@@ -19,6 +19,7 @@
 #include "document/combine.hpp"
 #include "document/duplicate.hpp"
 #include "document/round_edges.hpp"
+#include "document/hollow.hpp"
 #include "document/entity/entity_text.hpp"
 #include "util/text_render.hpp"
 #include "document/group/group_fillet.hpp"
@@ -358,7 +359,8 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         status->set_xalign(0);
         status->set_wrap(true);
         if (fillet && !fillet->get_solid_model())
-            status->set_text("That radius is too big for this object");
+            status->set_text(find_hollow(doc, body_uu) ? "Too round for the walls - at most about half their thickness"
+                                                       : "That radius is too big for this object");
         sp->signal_value_changed().connect([this, sp, doc_uu, body_uu] {
             auto &d = m_core.get_idocument_info(doc_uu).get_document();
             const auto r = sp->get_value();
@@ -398,6 +400,63 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         grid_attach_label_and_widget(*grid, "Round edges", *sp, top).add_css_class("tnum");
         if (status->get_text().size())
             grid->attach(*status, 1, top++, 1, 1);
+    }
+
+    // hollowing out, like a cup or a box without its lid
+    if (std::ranges::any_of(get_body_solids(doc, UUID()), [&body_uu](const auto &bs) { return bs.body == body_uu; })) {
+        auto hollow = find_hollow(doc, body_uu);
+        auto box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 5);
+        auto sp = Gtk::make_managed<SpinButtonDim>();
+        sp->set_range(0, 1000);
+        sp->set_increments(.5, 1);
+        sp->set_hexpand(true);
+        sp->set_value(hollow ? hollow->m_thickness : 0);
+        sp->set_tooltip_text("Wall thickness; 0 for a solid object");
+        box->append(*sp);
+        auto items = Gtk::StringList::create({"Open top", "Open bottom", "Closed"});
+        auto dd = Gtk::make_managed<Gtk::DropDown>(items);
+        dd->set_selected(static_cast<guint>(hollow ? hollow->m_open : GroupShell::Open::TOP));
+        dd->set_tooltip_text("Which side stays open");
+        box->append(*dd);
+        auto apply = [this, sp, dd, doc_uu, body_uu] {
+            auto &d = m_core.get_idocument_info(doc_uu).get_document();
+            const auto t = sp->get_value();
+            const auto open = static_cast<GroupShell::Open>(dd->get_selected());
+            const auto existing = find_hollow(d, body_uu);
+            if ((existing ? existing->m_thickness : 0) == t && (!existing || existing->m_open == open))
+                return;
+            auto shell = set_hollow(d, body_uu, t, open);
+            m_core.set_needs_save();
+            m_core.rebuild("hollow");
+            canvas_update_keep_selection();
+            m_workspace_browser->update_documents(get_current_document_views());
+            // show it: the view only goes up to the current group
+            const auto current = m_core.get_current_idocument_info().get_uuid() == doc_uu
+                                         ? m_core.get_current_group()
+                                         : get_current_document_views()[doc_uu].m_current_group;
+            if (shell && d.get_groups().contains(current) && shell->get_index() > d.get_group(current).get_index()) {
+                Glib::signal_idle().connect_once([this, doc_uu, body_uu] {
+                    auto &dd = m_core.get_idocument_info(doc_uu).get_document();
+                    const auto last = dd.get_groups_sorted().back()->m_uuid;
+                    m_core.set_current_document(doc_uu);
+                    get_current_document_view().m_current_group = last;
+                    set_current_group(last);
+                    if (!m_workspace_browser->select_body(doc_uu, body_uu))
+                        show_object_editor(doc_uu, body_uu);
+                    canvas_update_keep_selection();
+                });
+            }
+        };
+        sp->signal_value_changed().connect(apply);
+        dd->property_selected().signal_changed().connect(apply);
+        grid_attach_label_and_widget(*grid, "Hollow", *box, top).add_css_class("tnum");
+        if (hollow && !hollow->get_solid_model()) {
+            auto status = Gtk::make_managed<Gtk::Label>("Can't hollow it out like this - try a thinner wall");
+            status->add_css_class("dim-label");
+            status->set_xalign(0);
+            status->set_wrap(true);
+            grid->attach(*status, 1, top++, 1, 1);
+        }
     }
 
     // stickers: a picture on the surface

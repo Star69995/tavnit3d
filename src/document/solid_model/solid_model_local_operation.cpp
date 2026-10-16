@@ -3,6 +3,7 @@
 #include "document/document.hpp"
 #include "document/group/group_fillet.hpp"
 #include "document/group/group_chamfer.hpp"
+#include "document/round_edges.hpp"
 
 #include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepFilletAPI_MakeChamfer.hxx>
@@ -23,6 +24,11 @@ template <> struct MakeOperation<GroupFillet> {
 template <typename TGroup> std::shared_ptr<const SolidModel> create_local_operation(const Document &doc, TGroup &group)
 {
     group.m_local_operation_messages.clear();
+    if (group.m_all_edges) {
+        if (auto last = dynamic_cast<const SolidModelOcc *>(SolidModel::get_last_solid_model(doc, group));
+            last && !last->m_shape_acc.IsNull())
+            group.m_edges = get_roundable_edges(last->m_shape_acc);
+    }
     if (group.m_edges.size() == 0) {
         group.m_local_operation_messages.emplace_back(GroupStatusMessage::Status::ERR, "no edges");
         return nullptr;

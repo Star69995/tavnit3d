@@ -56,6 +56,7 @@ enum class GroupType {
     SOLID_MODEL_OPERATION,
     CLONE,
     PIPE,
+    SHELL,
 };
 
 class Group {

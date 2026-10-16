@@ -18,6 +18,8 @@ public:
 
 
     std::set<unsigned int> m_edges;
+    // all edges that can be rounded, whatever the shape before it is (m_edges are just what they were)
+    bool m_all_edges = false;
     double m_radius = 0.1;
 
     Operation m_operation = Operation::DIFFERENCE;

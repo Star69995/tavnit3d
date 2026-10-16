@@ -9,7 +9,8 @@ GroupLocalOperation::GroupLocalOperation(const UUID &uu) : Group(uu)
 }
 
 GroupLocalOperation::GroupLocalOperation(const UUID &uu, const json &j)
-    : Group(uu, j), m_edges(j.at("edges").get<std::set<unsigned int>>()), m_radius(j.at("radius").get<double>())
+    : Group(uu, j), m_edges(j.at("edges").get<std::set<unsigned int>>()), m_all_edges(j.value("all_edges", false)),
+      m_radius(j.at("radius").get<double>())
 {
 }
 
@@ -19,6 +20,8 @@ json GroupLocalOperation::serialize() const
 
     j["edges"] = m_edges;
     j["radius"] = m_radius;
+    if (m_all_edges)
+        j["all_edges"] = true;
 
     return j;
 }

@@ -25,10 +25,9 @@ std::vector<const Group *> body_groups_of(const Document &doc, const UUID &body)
     return {};
 }
 
-// Edge indices as numbered by SolidModelOcc (TopExp_Explorer order, repeats
-// skipped) for every edge that can be rounded: not degenerate, not a seam
-// where a curved face meets itself.
-std::set<unsigned int> roundable_edges(const TopoDS_Shape &shape)
+} // namespace
+
+std::set<unsigned int> get_roundable_edges(const TopoDS_Shape &shape)
 {
     TopTools_IndexedDataMapOfShapeListOfShape edge_faces;
     TopExp::MapShapesAndAncestors(shape, TopAbs_EDGE, TopAbs_FACE, edge_faces);
@@ -51,7 +50,6 @@ std::set<unsigned int> roundable_edges(const TopoDS_Shape &shape)
     }
     return r;
 }
-} // namespace
 
 GroupFillet *find_round_edges(Document &doc, const UUID &body)
 {
@@ -89,13 +87,14 @@ GroupFillet *set_round_edges(Document &doc, const UUID &body, double radius)
     auto sm = dynamic_cast<const SolidModelOcc *>(SolidModel::get_last_solid_model(doc, last, SolidModel::IncludeGroup::YES));
     if (!sm || sm->m_shape_acc.IsNull())
         return nullptr;
-    auto edges = roundable_edges(sm->m_shape_acc);
+    auto edges = get_roundable_edges(sm->m_shape_acc);
     if (edges.empty())
         return nullptr; // e.g. a sphere
     auto &fillet = doc.insert_group<GroupFillet>(UUID::random(), last.m_uuid);
     fillet.m_name = round_edges_name;
     fillet.m_radius = radius;
     fillet.m_edges = std::move(edges);
+    fillet.m_all_edges = true; // found again whenever the shape changes, e.g. when hollowed
     doc.set_group_generate_pending(fillet.m_uuid);
     return &fillet;
 }

@@ -15,3 +15,4 @@
 #include "group_solid_model_operation.hpp"
 #include "group_clone.hpp"
 #include "group_pipe.hpp"
+#include "group_shell.hpp"

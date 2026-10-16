@@ -2,6 +2,8 @@
 #include "dune3d_appwindow.hpp"
 #include "canvas/canvas.hpp"
 #include "util/fs_util.hpp"
+#include "document/document.hpp"
+#include "document/group/igroup_solid_model.hpp"
 #include "workspace_browser.hpp"
 #include "action/action_catalog.hpp"
 #include "core/tool_id.hpp"
@@ -38,6 +40,7 @@ namespace dune3d {
  *   sticker PATH             add a sticker with this picture to the object in the panel (then click on it)
  *   save PATH                save the current document under this name
  *   render-window            open the render window (then "button Render", "shotwin Render picture PATH")
+ *   groups                   print the current document's groups, their solids and messages
  *   import PATH              import objects from a model file
  *   export-gltf PATH         export the shown objects as glTF, from the current view
  *   update-check             check for updates as from the menu (feed: DUNE3D_UPDATE_FEED)
@@ -183,6 +186,16 @@ void Editor::run_automation(const std::filesystem::path &script)
                 show_render_window();
                 delay = 800;
             }
+            else if (cmd == "groups") {
+                auto &doc = m_core.get_current_document();
+                for (auto gr : doc.get_groups_sorted()) {
+                    std::cerr << "automation: group " << gr->m_name << " (" << gr->get_type_name() << ")"
+                              << (gr->m_uuid == m_core.get_current_group() ? " current" : "")
+                              << (IGroupSolidModel::try_get_solid_model(*gr) ? " solid" : "") << std::endl;
+                    for (const auto &m : gr->get_messages())
+                        std::cerr << "automation:   " << m.message << std::endl;
+                }
+            }
             else if (cmd == "import") {
                 import_object_file(path_from_string(rest));
                 delay = 1500;
@@ -223,7 +236,9 @@ void Editor::run_automation(const std::filesystem::path &script)
                 Gtk::Label *la = nullptr;
                 for (auto w : Gtk::Window::list_toplevels()) {
                     if (!la && w->get_visible())
-                        la = find_widget<Gtk::Label>(*w, [&label](Gtk::Label &l) { return l.get_text() == label; });
+                        la = find_widget<Gtk::Label>(*w, [&label](Gtk::Label &l) {
+                            return l.get_text() == label && dynamic_cast<Gtk::Grid *>(l.get_parent());
+                        });
                 }
                 auto grid = la ? dynamic_cast<Gtk::Grid *>(la->get_parent()) : nullptr;
                 if (!grid)
