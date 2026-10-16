@@ -33,6 +33,17 @@
         ]
     },
     {
+        "action": "FIND",
+        "keys": [
+            [
+                {
+                    "key": "k",
+                    "mod": 4
+                }
+            ]
+        ]
+    },
+    {
         "action": "DUPLICATE_OBJECT",
         "keys": [
             [

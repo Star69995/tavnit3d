@@ -163,11 +163,11 @@ std::vector<SearchItem> Editor::get_search_items()
     return items;
 }
 
-void Editor::show_search()
+void Editor::show_search(const std::string &text)
 {
     if (!m_search_window)
         m_search_window = std::make_unique<ActionSearchWindow>(m_win, [this] { return get_search_items(); });
-    m_search_window->open();
+    m_search_window->open(text);
 }
 
 } // namespace dune3d

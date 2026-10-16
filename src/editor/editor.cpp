@@ -1026,10 +1026,12 @@ void Editor::init_header_bar()
         find->signal_clicked().connect([this] { show_search(); });
         m_win.get_header_bar().pack_end(*find);
         {
+            // wherever the focus is, before anything else gets the key
             auto shortcuts = Gtk::ShortcutController::create();
-            shortcuts->set_scope(Gtk::ShortcutScope::GLOBAL);
+            shortcuts->set_propagation_phase(Gtk::PropagationPhase::CAPTURE);
             shortcuts->add_shortcut(Gtk::Shortcut::create(
-                    Gtk::ShortcutTrigger::parse_string("<Control>k"), Gtk::CallbackAction::create([this](Gtk::Widget &, const Glib::VariantBase &) {
+                    Gtk::ShortcutTrigger::parse_string("<Control>k"),
+                    Gtk::CallbackAction::create([this](Gtk::Widget &, const Glib::VariantBase &) {
                         show_search();
                         return true;
                     })));
@@ -1501,7 +1503,7 @@ void Editor::render_document(const IDocumentInfo &doc)
     if (doc.get_uuid() == m_core.get_current_idocument_info().get_uuid()) {
         get_canvas().set_lights(get_canvas_lights(doc.get_document()));
         for (const auto &h : get_object_handles())
-            renderer.m_handles.emplace_back(h.face, h.pos);
+            renderer.m_handles.push_back({h.face, h.pos, static_cast<int>(h.kind)});
     }
 
     if (doc.get_uuid() == m_core.get_current_idocument_info().get_uuid())
@@ -1628,6 +1630,7 @@ void Editor::handle_cursor_move()
             update_handle_drag();
             return;
         }
+        update_handle_hint();
         if (m_drag_tool == ToolID::NONE)
             return;
         if (m_selection_for_drag.size() == 0)

@@ -1,8 +1,13 @@
 #include "editor.hpp"
 #include "object_dimensions.hpp"
+#include "dune3d_appwindow.hpp"
+#include "workspace_browser.hpp"
 #include "canvas/canvas.hpp"
 #include "document/document.hpp"
 #include "document/group/group.hpp"
+#include "document/group/group_fillet.hpp"
+#include "document/hollow.hpp"
+#include "document/round_edges.hpp"
 #include "document/body_solids.hpp"
 #include "document/entity/entity_workplane.hpp"
 #include "document/constraint/constraint.hpp"
@@ -14,10 +19,12 @@
 namespace dune3d {
 
 /*
- * Handles on the picked object, for resizing it by dragging: one on top for
- * the height, one on the right for the width (or diameter, radius) and one at
- * the back for the depth. They change the same dimensions as the object panel;
- * the face under the handle follows the pointer.
+ * Handles on the picked object, for changing it by dragging: on top for the
+ * height, on the sides facing the camera for the width (or diameter, radius)
+ * and depth, inside the top for a tube's hole, and two at the top edge: one
+ * for the wall thickness (hollowing it out) and one for rounding the edges.
+ * They change the same things as the object panel; the face under a size
+ * handle follows the pointer.
  */
 
 std::vector<Editor::ObjectHandle> Editor::get_object_handles()
@@ -70,7 +77,7 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
     const double size = std::max({hi.x - lo.x, hi.y - lo.y, hi.z - lo.z});
     const double out = std::max(size * .15, 2.); // how far the handle sits out from the face
     auto world = [&](const glm::dvec3 &l) { return origin + ax * l.x + ay * l.y + az * l.z; };
-    auto add = [&](const ObjectDimension *d, glm::dvec3 face, const glm::dvec3 &dir, double per_mm) {
+    auto add_dim = [&](const ObjectDimension *d, glm::dvec3 face, const glm::dvec3 &dir, double per_mm) {
         if (!d)
             return;
         ObjectHandle h;
@@ -90,27 +97,66 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
     const auto towards_eye = glm::dvec3(glm::rotate(get_canvas().get_cam_quat(), glm::vec3(0, 0, 1)));
     const bool right = glm::dot(ax, towards_eye) >= 0;
     const bool back = glm::dot(ay, towards_eye) >= 0;
+    const auto dx = right ? ax : -ax;
     const glm::dvec3 side_x{right ? hi.x : lo.x, c.y, c.z};
     const glm::dvec3 side_y{c.x, back ? hi.y : lo.y, c.z};
+    const double sx = right ? 1 : -1; // towards the shown side, in the object's own x
 
     // up: the height; a ring (no height) grows by its tube's diameter
     if (auto d = find("Height"))
-        add(d, {c.x, c.y, hi.z}, az, 1);
+        add_dim(d, {c.x, c.y, hi.z}, az, 1);
     else if (find("Radius") && find("Diameter"))
-        add(find("Diameter"), {c.x, c.y, hi.z}, az, 1);
+        add_dim(find("Diameter"), {c.x, c.y, hi.z}, az, 1);
     // sideways: width, or how wide round things are; they're centred, so the far side moves too
-    const auto dx = right ? ax : -ax;
     if (auto d = find("Width"))
-        add(d, side_x, dx, 2);
+        add_dim(d, side_x, dx, 2);
     else if (auto d = find("Outer diameter"))
-        add(d, side_x, dx, 2);
+        add_dim(d, side_x, dx, 2);
     else if (auto d = find("Radius"))
-        add(d, side_x, dx, 1);
+        add_dim(d, side_x, dx, 1);
     else if (auto d = find("Diameter"))
-        add(d, side_x, dx, 2);
+        add_dim(d, side_x, dx, 2);
     // front to back: the depth
     if (auto d = find("Depth"))
-        add(d, side_y, back ? ay : -ay, 2);
+        add_dim(d, side_y, back ? ay : -ay, 2);
+    // a tube's hole: on its rim at the top, pulled outwards makes it wider
+    if (auto d = find("Inner diameter")) {
+        ObjectHandle h;
+        h.face = world({c.x + sx * d->value / 2, c.y, hi.z});
+        h.dir = dx;
+        h.pos = h.face + az * out * .5;
+        h.constraint = d->constraint;
+        h.group = d->group;
+        h.scale = d->scale;
+        h.per_mm = 2;
+        h.label = d->label;
+        handles.push_back(h);
+    }
+
+    // walls and rounding, at the edge where the top meets the shown side
+    const auto edge = world({right ? hi.x : lo.x, c.y, hi.z});
+    {
+        // dragged inwards, the walls get thicker
+        ObjectHandle h;
+        h.kind = ObjectHandle::Kind::WALL;
+        auto shell = find_hollow(doc, m_object_editor_body);
+        const double t = shell ? shell->m_thickness : 0;
+        h.face = edge - dx * t;
+        h.dir = -dx;
+        h.pos = h.face + az * out * .9 - dx * out * .9;
+        h.label = "Wall thickness";
+        handles.push_back(h);
+    }
+    {
+        // dragged in towards the middle of the object, the edges get rounder
+        ObjectHandle h;
+        h.kind = ObjectHandle::Kind::ROUNDING;
+        h.face = edge;
+        h.dir = glm::normalize(-dx - az);
+        h.pos = edge + glm::normalize(dx + az) * out * 1.1;
+        h.label = "Round edges";
+        handles.push_back(h);
+    }
     return handles;
 }
 
@@ -128,26 +174,52 @@ static double param_along(const Editor::ObjectHandle &h, const std::pair<glm::dv
     return (b * e - c * dd) / denom;
 }
 
+std::optional<Editor::ObjectHandle> Editor::get_handle_under_cursor()
+{
+    const auto cursor = glm::dvec2(get_canvas().get_cursor_pos_win());
+    std::optional<ObjectHandle> best;
+    double best_d = 14; // px
+    for (const auto &h : get_object_handles()) {
+        const auto d = glm::length(get_canvas().project_to_window(h.pos) - cursor);
+        if (d < best_d) {
+            best_d = d;
+            best = h;
+        }
+    }
+    return best;
+}
+
 bool Editor::begin_handle_drag()
 {
     m_handle_drag.reset();
-    const auto cursor = glm::dvec2(get_canvas().get_cursor_pos_win());
-    for (const auto &h : get_object_handles()) {
-        if (glm::length(get_canvas().project_to_window(h.pos) - cursor) > 14)
-            continue;
-        auto &doc = m_core.get_current_document();
-        auto datum = dynamic_cast<IConstraintDatum *>(doc.m_constraints.at(h.constraint).get());
+    auto h = get_handle_under_cursor();
+    if (!h)
+        return false;
+    auto &doc = m_core.get_current_document();
+    HandleDrag drag;
+    drag.handle = *h;
+    switch (h->kind) {
+    case ObjectHandle::Kind::DIMENSION: {
+        auto datum = dynamic_cast<IConstraintDatum *>(doc.m_constraints.at(h->constraint).get());
         if (!datum)
             return false;
-        HandleDrag drag;
-        drag.handle = h;
-        drag.start_value = datum->get_datum() * h.scale;
-        drag.start_param = param_along(h, get_canvas().get_cursor_ray());
-        m_handle_drag = drag;
-        get_canvas().inhibit_drag_selection();
-        return true;
+        drag.start_value = datum->get_datum() * h->scale;
+    } break;
+    case ObjectHandle::Kind::WALL: {
+        auto shell = find_hollow(doc, m_object_editor_body);
+        drag.start_value = shell ? shell->m_thickness : 0;
+        drag.open = shell ? shell->m_open : GroupShell::Open::TOP;
+    } break;
+    case ObjectHandle::Kind::ROUNDING: {
+        auto fillet = find_round_edges(doc, m_object_editor_body);
+        drag.start_value = fillet ? fillet->m_radius : 0;
+    } break;
     }
-    return false;
+    drag.start_param = param_along(*h, get_canvas().get_cursor_ray());
+    m_handle_drag = drag;
+    get_canvas().inhibit_drag_selection();
+    m_win.set_key_hint_label_text(h->label);
+    return true;
 }
 
 void Editor::update_handle_drag()
@@ -156,23 +228,48 @@ void Editor::update_handle_drag()
         return;
     auto &drag = *m_handle_drag;
     auto &doc = m_core.get_current_document();
-    if (!doc.m_constraints.contains(drag.handle.constraint)) {
-        m_handle_drag.reset();
-        return;
-    }
-    auto datum = dynamic_cast<IConstraintDatum *>(doc.m_constraints.at(drag.handle.constraint).get());
     const double moved = param_along(drag.handle, get_canvas().get_cursor_ray()) - drag.start_param;
     double value = drag.start_value + moved * drag.handle.per_mm;
-    // whole millimetres when the grid's that fine or coarser, half millimetres for small things
-    const double step = drag.start_value < 10 ? .5 : 1;
-    value = std::max(step, std::round(value / step) * step);
-    const auto [lo, hi] = datum->get_datum_range();
-    value = std::clamp(value, lo * drag.handle.scale, hi * drag.handle.scale);
-    if (value / drag.handle.scale == datum->get_datum())
-        return;
-    datum->set_datum(value / drag.handle.scale);
+
+    if (drag.handle.kind == ObjectHandle::Kind::DIMENSION) {
+        if (!doc.m_constraints.contains(drag.handle.constraint)) {
+            m_handle_drag.reset();
+            return;
+        }
+        auto datum = dynamic_cast<IConstraintDatum *>(doc.m_constraints.at(drag.handle.constraint).get());
+        // whole millimetres, half millimetres for small things
+        const double step = drag.start_value < 10 ? .5 : 1;
+        value = std::max(step, std::round(value / step) * step);
+        const auto [lo, hi] = datum->get_datum_range();
+        value = std::clamp(value, lo * drag.handle.scale, hi * drag.handle.scale);
+        if (value / drag.handle.scale == datum->get_datum())
+            return;
+        datum->set_datum(value / drag.handle.scale);
+        doc.set_group_solve_pending(drag.handle.group);
+    }
+    else {
+        // tenths of a millimetre; back to nothing at the start
+        value = std::max(0., std::round(value * 10) / 10);
+        if (drag.handle.kind == ObjectHandle::Kind::ROUNDING) {
+            // two roundings meet on a wall's rim: each can take a bit less than half of it
+            if (auto shell = find_hollow(doc, m_object_editor_body))
+                value = std::min(value, std::floor(shell->m_thickness * 4.5) / 10);
+        }
+        if (value == drag.last_value)
+            return;
+        if (drag.handle.kind == ObjectHandle::Kind::WALL)
+            set_hollow(doc, m_object_editor_body, value, drag.open);
+        else
+            set_round_edges(doc, m_object_editor_body, value);
+        // new steps show only once the view goes up to them
+        get_current_document_view().m_current_group = doc.get_groups_sorted().back()->m_uuid;
+        m_core.set_current_group(doc.get_groups_sorted().back()->m_uuid);
+    }
+    drag.last_value = value;
     drag.moved = true;
-    doc.set_group_solve_pending(drag.handle.group);
+    char buf[64];
+    snprintf(buf, sizeof(buf), "%s: %.1f mm", drag.handle.label.c_str(), value);
+    m_win.set_key_hint_label_text(buf);
     doc.update_pending();
     canvas_update_keep_selection();
 }
@@ -183,11 +280,29 @@ void Editor::end_handle_drag()
         return;
     const auto drag = *m_handle_drag;
     m_handle_drag.reset();
+    reset_key_hint_label();
     if (!drag.moved)
         return;
     m_core.set_needs_save();
-    m_core.rebuild("resize " + drag.handle.label); // the object panel refreshes on rebuild
+    m_core.rebuild("change " + drag.handle.label); // the object panel refreshes on rebuild
+    m_workspace_browser->update_documents(get_current_document_views());
     canvas_update_keep_selection();
+}
+
+// what's under the pointer, shown at the bottom
+void Editor::update_handle_hint()
+{
+    if (m_handle_drag)
+        return;
+    const auto h = get_handle_under_cursor();
+    const std::string label = h ? ("Drag to change: " + h->label) : std::string();
+    if (label == m_handle_hint)
+        return;
+    m_handle_hint = label;
+    if (label.size())
+        m_win.set_key_hint_label_text(label);
+    else
+        reset_key_hint_label();
 }
 
 } // namespace dune3d

@@ -29,7 +29,9 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 
 ## Visual checks
 
-- Preferred: `tools/ui.sh script.txt` - in-app UI automation
+- Preferred: `tools/ui.sh script.txt` - in-app UI automation (also commands for
+  stickers, import, export-gltf, save, recipe, describe, find, handles,
+  groups, render-window - see the top of editor_automation.cpp)
   (`src/editor/editor_automation.cpp`, enabled by `DUNE3D_AUTOMATION`):
   actions by catalog name, pointer on the 3D view, buttons/fields by label,
   `shot PATH` renders the window to PNG. Never touches the real mouse or
@@ -92,6 +94,44 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   in the status bar next to the workplane label.
 - `meson.build`: core sources form the `dune3d_common` static library shared
   by the app and the tests; tests stub `Preferences::get()`.
+- Materials: `src/document/material.*` is the one table (PBR values, labels,
+  `material_from_pbr` for imports); glass is drawn in a second, blended pass
+  (`FaceRenderer::render(bool glass)`). Shading for faces and stickers lives in
+  `src/canvas/shaders/lighting.glsl` (included as `##lighting`).
+- Stickers (`src/document/decal.*`, `Body::m_decals`): a picture projected along
+  a normal onto the body's triangles (`make_decal_mesh`), anchored to the
+  body's bounds centre so it follows moves; pictures saved like picture
+  entities (`.d3dpic` folder). Drawn by `src/canvas/decal_renderer.*`; placed
+  by clicking (`src/editor/editor_decal.cpp`, `pick_surface_point`).
+- Lights (`src/document/light.*`, `Document::m_lights`): brightness is as seen
+  at the target; `src/editor/editor_lights.cpp` (palette, panel, picking the
+  marker by screen distance); the canvas gets them via `Canvas::set_lights`.
+- glTF export (`src/document/export_gltf.*`): own GLB writer, metres/y-up,
+  one primitive per face colour, stickers as textured primitives,
+  KHR_lights_punctual, the view as camera.
+- Import (`src/document/import_objects.*` + `src/import_step/step_importer.cpp`):
+  STEP/IGES/glTF/OBJ through OCCT's XCAF readers, grouped into one object per
+  appearance (`ImportPart`), referenced by an `EntitySTEP` with `m_part`;
+  per-face colours survive via `SolidModelOcc::m_face_colors`. Meshes are
+  surface-less faces: the triangulator keeps them as they are (`add_mesh`).
+- Render (`src/util/blender_render.*`, `src/editor/render_window.*`): runs
+  Blender's Cycles on the glTF in the background (script embedded), the app
+  puts the transparent result on the chosen background. `DUNE3D_BLENDER`
+  points at a blender.exe for tests.
+- Hollow (`GroupShell`, `src/document/hollow.*`, `solid_model_shell.cpp`): a
+  thick-solid group before the "Rounded edges" fillet, which now finds its
+  edges again on every rebuild (`GroupLocalOperation::m_all_edges`).
+- Recipes (`src/document/recipe.*`): JSON descriptions of objects built from
+  `add_primitive` (sizes, `Placement`), `add_revolved_profile`,
+  `add_extruded_outline`, hollow, rounding, combining. Bowl/Vase are recipes;
+  `src/document/recipe_ai.*` asks Claude (`claude-opus-5-5`, structured
+  outputs, `fallbacks: "default"`) for one; `DUNE3D_CLAUDE_URL` overrides the
+  endpoint for tests. HTTP: `src/util/http.*` (WinHTTP).
+- Resize handles (`src/editor/editor_handles.cpp`) use the object panel's
+  dimension list (`src/editor/object_dimensions.hpp`).
+- Find (`src/editor/action_search.*`, items in `editor_search.cpp`): Ctrl+K
+  both as the FIND action and a window-level capture shortcut. When a
+  feature lands, add it there with where it lives.
 
 ## Gotchas
 

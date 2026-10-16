@@ -20,7 +20,7 @@ struct SearchItem {
 class ActionSearchWindow : public Gtk::Window {
 public:
     ActionSearchWindow(Gtk::Window &parent, std::function<std::vector<SearchItem>()> get_items);
-    void open(); // fresh search, focused
+    void open(const std::string &text = {}); // fresh search (with what's typed so far), focused
 
 private:
     std::function<std::vector<SearchItem>()> m_get_items;

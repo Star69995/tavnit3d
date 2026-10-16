@@ -235,6 +235,7 @@ void Editor::init_actions()
     connect_action(ActionID::ADD_LAMP, [this](auto &a) { add_light(Light::Type::POINT); });
     connect_action(ActionID::ADD_BOWL, [this](auto &a) { add_bowl(); });
     connect_action(ActionID::MAKE_FROM_DESCRIPTION, [this](auto &a) { show_describe_window(); });
+    connect_action(ActionID::FIND, [this](auto &a) { show_search(); });
     connect_action(ActionID::ADD_VASE, [this](auto &a) { add_vase(); });
     connect_action(ActionID::ADD_SPOTLIGHT, [this](auto &a) { add_light(Light::Type::SPOT); });
     connect_action(ActionID::ADD_SUN, [this](auto &a) { add_light(Light::Type::SUN); });
@@ -549,6 +550,7 @@ void Editor::update_action_sensitivity(const std::set<SelectableRef> &sel)
     m_action_sensitivity[ActionID::TOGGLE_SOLID_MODEL] = m_core.has_documents();
     m_action_sensitivity[ActionID::TOGGLE_SHOW_ONLY_SOLID_MODEL] = m_core.has_documents();
     m_action_sensitivity[ActionID::NEW_DOCUMENT] = true;
+    m_action_sensitivity[ActionID::FIND] = true;
     for (auto act : {ActionID::ADD_BOX, ActionID::ADD_CYLINDER, ActionID::ADD_SPHERE, ActionID::ADD_CONE, ActionID::ADD_TUBE,
                      ActionID::ADD_TORUS, ActionID::ADD_WEDGE, ActionID::ADD_TEXT, ActionID::COMBINE_OBJECTS,
                      ActionID::ADD_LAMP, ActionID::ADD_SPOTLIGHT, ActionID::ADD_SUN, ActionID::ADD_BOWL,
@@ -809,6 +811,7 @@ bool Editor::handle_action_key(Glib::RefPtr<Gtk::EventControllerKey> controller,
     if (ev->is_modifier())
         return false;
     state &= ~ev->get_consumed_modifiers();
+    const auto original_keyval = keyval; // before mapping other keyboard layouts to Latin letters
     remap_keys(keyval, state);
     state &= (Gdk::ModifierType::SHIFT_MASK | Gdk::ModifierType::CONTROL_MASK | Gdk::ModifierType::ALT_MASK);
     if (keyval == GDK_KEY_Escape) {
@@ -842,135 +845,252 @@ bool Editor::handle_action_key(Glib::RefPtr<Gtk::EventControllerKey> controller,
         }
     }
     else {
-        m_keys_current.push_back({keyval, state});
-        auto in_tool_actions = m_core.get_tool_actions();
-        std::map<InToolActionID, std::pair<KeyMatchResult, KeySequence>> in_tool_actions_matched;
-        std::map<ActionConnection *, std::pair<KeyMatchResult, KeySequence>> connections_matched;
-        auto selection = get_canvas().get_selection();
-        update_action_sensitivity();
-        for (auto &[id, conn] : m_action_connections) {
-            bool can_begin = false;
-            if (std::holds_alternative<ToolID>(id) && !m_core.tool_is_active()) {
-                can_begin = m_core.tool_can_begin(std::get<ToolID>(id), selection).get_can_begin();
-            }
-            else if (std::holds_alternative<ActionID>(id)) {
-                can_begin = get_action_sensitive(std::get<ActionID>(id));
-            }
-            if (can_begin) {
-                for (const auto &it2 : conn.key_sequences) {
-                    if (const auto m = keys_match(it2); m != KeyMatchResult::NONE) {
-                        connections_matched.emplace(std::piecewise_construct, std::forward_as_tuple(&conn),
-                                                    std::forward_as_tuple(m, it2));
-                    }
-                }
-            }
-        }
-        if (in_tool_actions.size()) {
-            for (const auto &[action, seqs] : m_in_tool_key_sequeces_preferences.keys) {
-                if (in_tool_actions.count(action)) {
-                    for (const auto &seq : seqs) {
-                        if (const auto m = keys_match(seq); m != KeyMatchResult::NONE)
-                            in_tool_actions_matched.emplace(std::piecewise_construct, std::forward_as_tuple(action),
-                                                            std::forward_as_tuple(m, seq));
-                    }
-                }
-            }
-        }
-
-        if (connections_matched.size() == 1 && in_tool_actions_matched.size() == 1) {
-            m_win.set_key_hint_label_text("Ambiguous");
-            m_keys_current.clear();
-        }
-        else if (connections_matched.size() == 1) {
-            m_win.set_key_hint_label_text(key_sequence_to_string(m_keys_current));
-            m_keys_current.clear();
-            // main_window->key_hint_set_visible(false);
-            auto conn = connections_matched.begin()->first;
-            if (!trigger_action(conn->id, ActionSource::KEY)) {
-                reset_key_hint_label();
-                return false;
-            }
-            return true;
-        }
-        else if (in_tool_actions_matched.size() == 1) {
-            m_win.set_key_hint_label_text(key_sequence_to_string(m_keys_current));
-            m_keys_current.clear();
-
-            ToolArgs args;
-            args.type = ToolEventType::ACTION;
-            args.action = in_tool_actions_matched.begin()->first;
-            ToolResponse r = m_core.tool_update(args);
-            tool_process(r);
-
-            return true;
-        }
-        else if (connections_matched.size() > 1 || in_tool_actions_matched.size() > 1) { // still ambiguous
-            std::list<std::pair<std::string, KeySequence>> conflicts;
-            bool have_conflict = false;
-            for (const auto &[conn, it] : connections_matched) {
-                const auto &[res, seq] = it;
-                if (res == KeyMatchResult::COMPLETE) {
-                    have_conflict = true;
-                }
-                conflicts.emplace_back(action_catalog.at(conn->id).name.full, seq);
-            }
-            (void)have_conflict;
-            /* for (const auto &[act, it] : in_tool_actions_matched) {
-                 const auto &[res, seq] = it;
-                 if (res == KeyMatchResult::COMPLETE) {
-                     have_conflict = true;
-                 }
-                 conflicts.emplace_back(in_tool_action_catalog.at(act).name + " (in-tool action)", seq);
-             }
-             if (have_conflict) {
-                 m_win.set_key_hint_label_text("Key sequences conflict");
-                 keys_current.clear();
-                 KeyConflictDialog dia(main_window, conflicts);
-                 if (dia.run() == KeyConflictDialog::RESPONSE_PREFS) {
-                     show_preferences("keys");
-                 }
-                 return false;
-             }
-
-             for (auto ch : main_window->key_hint_box->get_children()) {
-                 delete ch;
-             }
-
-             for (const auto &[conn, it] : connections_matched) {
-                 const auto &[res, seq] = it;
-                 std::string seq_label;
-                 for (size_t i = 0; i < seq.size(); i++) {
-                     seq_label += Glib::Markup::escape_text(key_sequence_item_to_string(seq.at(i))) + " ";
-                     if (i + 1 == keys_current.size()) {
-                         seq_label += "<b>";
-                     }
-                 }
-                 rtrim(seq_label);
-                 seq_label += "</b>";
-
-                 auto la = Gtk::manage(new KeyLabel(main_window->key_hint_size_group, seq_label, conn->id));
-                 main_window->key_hint_box->append(*la);
-                 la->show();
-             }
-             main_window->key_hint_set_visible(true);
- */
-            m_win.set_key_hint_label_text(key_sequence_to_string(m_keys_current) + "?");
-            return true;
-        }
-        else if (connections_matched.size() == 0 || in_tool_actions_matched.size() == 0) {
-            m_win.set_key_hint_label_text("Unknown key sequence");
-            m_keys_current.clear();
-            // main_window->key_hint_set_visible(false);
-            return false;
-        }
-        else {
-            Logger::log_warning("Key sequence??", Logger::Domain::EDITOR,
-                                std::to_string(connections_matched.size()) + " "
-                                        + std::to_string(in_tool_actions_matched.size()));
-            return false;
-        }
+        return handle_typed_key(keyval, state, original_keyval);
     }
     return false;
+}
+
+/*
+ * Typing in the 3D view: letters that come quickly one after another (within
+ * the typing threshold, see UserConfig) are typing, not shortcuts, and go to
+ * Find. A key that's a shortcut by itself waits that long before it's done;
+ * keys that start a longer shortcut (d, c ...) work as before, unless what
+ * follows quickly doesn't continue any shortcut.
+ */
+namespace {
+std::string typed_char(unsigned int keyval, Gdk::ModifierType state)
+{
+    if ((state & (Gdk::ModifierType::CONTROL_MASK | Gdk::ModifierType::ALT_MASK)) != Gdk::ModifierType{})
+        return {};
+    const auto uc = gdk_keyval_to_unicode(keyval);
+    if (!uc || !g_unichar_isalnum(uc))
+        return {};
+    return Glib::ustring(1, uc).raw();
+}
+} // namespace
+
+// what any shortcut makes of these keys: one that's complete, and/or longer ones starting with them
+std::pair<bool, bool> Editor::classify_keys(const KeySequence &keys) const
+{
+    bool complete = false, longer = false;
+    for (const auto &[id, conn] : m_action_connections) {
+        for (const auto &seq : conn.key_sequences) {
+            const auto m = key_sequence_match(keys, seq);
+            if (m == KeyMatchResult::COMPLETE)
+                complete = true;
+            else if (m == KeyMatchResult::PREFIX)
+                longer = true;
+        }
+    }
+    return {complete, longer};
+}
+
+void Editor::open_find_with(std::string text) // a copy: it's often m_typed, cleared here
+{
+    m_pending_key.reset();
+    m_pending_key_connection.disconnect();
+    m_keys_current.clear();
+    reset_key_hint_label();
+    m_typed.clear();
+    show_search(text);
+}
+
+void Editor::flush_pending_key()
+{
+    m_pending_key_connection.disconnect();
+    if (!m_pending_key)
+        return;
+    const auto [keyval, state] = *m_pending_key;
+    m_pending_key.reset();
+    m_typed.clear();
+    process_action_key(keyval, state);
+}
+
+bool Editor::handle_typed_key(unsigned int keyval, Gdk::ModifierType state, unsigned int original_keyval)
+{
+    const auto ch = typed_char(original_keyval, state);
+    if (m_core.tool_is_active() || ch.empty()) {
+        flush_pending_key(); // a waiting shortcut comes first
+        m_typed.clear();
+        return process_action_key(keyval, state);
+    }
+    const auto threshold_us = static_cast<gint64>(m_win.get_app().m_user_config.typing_threshold_ms) * 1000;
+    const auto now = g_get_monotonic_time();
+    const bool quick = m_typed.size() && now - m_typed_at < threshold_us;
+    m_typed_at = now;
+
+    if (quick) {
+        m_typed += ch;
+        if (m_pending_key) {
+            // a shortcut key, followed right away by another: that's typing
+            open_find_with(m_typed);
+            return true;
+        }
+        if (m_keys_current.size()) {
+            auto keys = m_keys_current;
+            keys.emplace_back(keyval, state);
+            const auto [complete, longer] = classify_keys(keys);
+            if (complete || longer)
+                return process_action_key(keyval, state);
+        }
+        open_find_with(m_typed);
+        return true;
+    }
+
+    // a longer shortcut typed slowly
+    if (m_keys_current.size()) {
+        m_typed = ch;
+        return process_action_key(keyval, state);
+    }
+    // the first key of whatever comes
+    flush_pending_key();
+    m_typed = ch;
+    const auto [complete, longer] = classify_keys({{keyval, state}});
+    if (complete && !longer) {
+        // a shortcut by itself; wait whether more keys follow
+        m_pending_key = {keyval, state};
+        m_pending_key_connection = Glib::signal_timeout().connect(
+                [this] {
+                    flush_pending_key();
+                    return false;
+                },
+                m_win.get_app().m_user_config.typing_threshold_ms);
+        return true;
+    }
+    if (longer)
+        return process_action_key(keyval, state);
+    return true; // nothing by itself; maybe the start of a word
+}
+
+bool Editor::process_action_key(unsigned int keyval, Gdk::ModifierType state)
+{
+    m_keys_current.push_back({keyval, state});
+    auto in_tool_actions = m_core.get_tool_actions();
+    std::map<InToolActionID, std::pair<KeyMatchResult, KeySequence>> in_tool_actions_matched;
+    std::map<ActionConnection *, std::pair<KeyMatchResult, KeySequence>> connections_matched;
+    auto selection = get_canvas().get_selection();
+    update_action_sensitivity();
+    for (auto &[id, conn] : m_action_connections) {
+        bool can_begin = false;
+        if (std::holds_alternative<ToolID>(id) && !m_core.tool_is_active()) {
+            can_begin = m_core.tool_can_begin(std::get<ToolID>(id), selection).get_can_begin();
+        }
+        else if (std::holds_alternative<ActionID>(id)) {
+            can_begin = get_action_sensitive(std::get<ActionID>(id));
+        }
+        if (can_begin) {
+            for (const auto &it2 : conn.key_sequences) {
+                if (const auto m = keys_match(it2); m != KeyMatchResult::NONE) {
+                    connections_matched.emplace(std::piecewise_construct, std::forward_as_tuple(&conn),
+                                                std::forward_as_tuple(m, it2));
+                }
+            }
+        }
+    }
+    if (in_tool_actions.size()) {
+        for (const auto &[action, seqs] : m_in_tool_key_sequeces_preferences.keys) {
+            if (in_tool_actions.count(action)) {
+                for (const auto &seq : seqs) {
+                    if (const auto m = keys_match(seq); m != KeyMatchResult::NONE)
+                        in_tool_actions_matched.emplace(std::piecewise_construct, std::forward_as_tuple(action),
+                                                        std::forward_as_tuple(m, seq));
+                }
+            }
+        }
+    }
+
+    if (connections_matched.size() == 1 && in_tool_actions_matched.size() == 1) {
+        m_win.set_key_hint_label_text("Ambiguous");
+        m_keys_current.clear();
+    }
+    else if (connections_matched.size() == 1) {
+        m_win.set_key_hint_label_text(key_sequence_to_string(m_keys_current));
+        m_keys_current.clear();
+        // main_window->key_hint_set_visible(false);
+        auto conn = connections_matched.begin()->first;
+        if (!trigger_action(conn->id, ActionSource::KEY)) {
+            reset_key_hint_label();
+            return false;
+        }
+        return true;
+    }
+    else if (in_tool_actions_matched.size() == 1) {
+        m_win.set_key_hint_label_text(key_sequence_to_string(m_keys_current));
+        m_keys_current.clear();
+
+        ToolArgs args;
+        args.type = ToolEventType::ACTION;
+        args.action = in_tool_actions_matched.begin()->first;
+        ToolResponse r = m_core.tool_update(args);
+        tool_process(r);
+
+        return true;
+    }
+    else if (connections_matched.size() > 1 || in_tool_actions_matched.size() > 1) { // still ambiguous
+        std::list<std::pair<std::string, KeySequence>> conflicts;
+        bool have_conflict = false;
+        for (const auto &[conn, it] : connections_matched) {
+            const auto &[res, seq] = it;
+            if (res == KeyMatchResult::COMPLETE) {
+                have_conflict = true;
+            }
+            conflicts.emplace_back(action_catalog.at(conn->id).name.full, seq);
+        }
+        (void)have_conflict;
+        /* for (const auto &[act, it] : in_tool_actions_matched) {
+             const auto &[res, seq] = it;
+             if (res == KeyMatchResult::COMPLETE) {
+                 have_conflict = true;
+             }
+             conflicts.emplace_back(in_tool_action_catalog.at(act).name + " (in-tool action)", seq);
+         }
+         if (have_conflict) {
+             m_win.set_key_hint_label_text("Key sequences conflict");
+             keys_current.clear();
+             KeyConflictDialog dia(main_window, conflicts);
+             if (dia.run() == KeyConflictDialog::RESPONSE_PREFS) {
+                 show_preferences("keys");
+             }
+             return false;
+         }
+
+         for (auto ch : main_window->key_hint_box->get_children()) {
+             delete ch;
+         }
+
+         for (const auto &[conn, it] : connections_matched) {
+             const auto &[res, seq] = it;
+             std::string seq_label;
+             for (size_t i = 0; i < seq.size(); i++) {
+                 seq_label += Glib::Markup::escape_text(key_sequence_item_to_string(seq.at(i))) + " ";
+                 if (i + 1 == keys_current.size()) {
+                     seq_label += "<b>";
+                 }
+             }
+             rtrim(seq_label);
+             seq_label += "</b>";
+
+             auto la = Gtk::manage(new KeyLabel(main_window->key_hint_size_group, seq_label, conn->id));
+             main_window->key_hint_box->append(*la);
+             la->show();
+         }
+         main_window->key_hint_set_visible(true);
+ */
+        m_win.set_key_hint_label_text(key_sequence_to_string(m_keys_current) + "?");
+        return true;
+    }
+    else if (connections_matched.size() == 0 || in_tool_actions_matched.size() == 0) {
+        m_win.set_key_hint_label_text("Unknown key sequence");
+        m_keys_current.clear();
+        // main_window->key_hint_set_visible(false);
+        return false;
+    }
+    else {
+        Logger::log_warning("Key sequence??", Logger::Domain::EDITOR,
+                            std::to_string(connections_matched.size()) + " "
+                                    + std::to_string(in_tool_actions_matched.size()));
+        return false;
+    }
 }
 
 void Editor::on_explode_cluster(const ActionConnection &conn)

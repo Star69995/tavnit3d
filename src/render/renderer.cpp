@@ -165,9 +165,11 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
     }
 
 
-    for (const auto &[face, pos] : m_handles) {
-        m_ca.draw_line(face, pos);
-        m_ca.draw_point(pos, IconID::POINT_DIAMOND);
+    for (const auto &h : m_handles) {
+        m_ca.draw_line(h.face, h.pos);
+        m_ca.draw_point(h.pos, h.kind == 0   ? IconID::POINT_DIAMOND
+                               : h.kind == 1 ? IconID::POINT_TRIANGLE_DOWN
+                                             : IconID::POINT_CIRCLE);
     }
 
     // lights: a marker, and which way it shines

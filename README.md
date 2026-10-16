@@ -2,8 +2,8 @@
 
 A friendlier, Tinkercad/Shapr3D-style take on [Dune 3D](https://dune3d.org/)
 for Windows: ready-made shapes on a floor grid, click an object to edit its
-size, position, colour and material, then export STL for 3D printing - with
-the full parametric CAD underneath.
+size, position, colour and material, then export STL for 3D printing or
+render a photo-like picture - with the full parametric CAD underneath.
 
 **Download:** <https://star69995.github.io/tavnit3d/en/> (English) or
 <https://star69995.github.io/tavnit3d/> (Hebrew). Windows 10/11, 64-bit
@@ -15,11 +15,23 @@ one click.
 ## What it adds to Dune 3D
 
 - Labelled tool palette and a light "studio" theme
-- Ready-made Box, Cylinder, Sphere, Cone, Tube, Torus, Wedge and 3D Text,
-  placed next to each other on a floor grid
+- Ready-made Box, Cylinder, Sphere, Cone, Tube, Torus, Wedge, 3D Text, Bowl
+  and Vase, placed next to each other on a floor grid
+- Make objects from a description ("a mug with a handle") with Claude (needs
+  a Claude API key); they come out as ordinary, editable shapes
 - Click a solid to select it; an object panel shows its dimensions, X/Y
-  position, colour, material (satin/matte/glossy/metal) and visibility
-- Drag to move, duplicate (Ctrl+D), round all edges, join/subtract/intersect
+  position, colour, material (satin/matte/glossy/metal/glass) and visibility;
+  handles on the object resize it by dragging
+- Drag to move, duplicate (Ctrl+D), round all edges, hollow out (cups, bowls,
+  boxes), join/subtract/intersect
+- Stickers: pictures on an object's surface, also on curved sides
+- Lights (lamp, spotlight, sun) that light the 3D view
+- Render photo-like pictures with Blender (free, installed separately) in the
+  background: size, quality, background, floor shadows
+- Import STEP, IGES, glTF/GLB and OBJ with their colours and materials; export
+  glTF with colours, materials, stickers, lights and the view (for Blender,
+  PowerPoint, the web) besides STL and STEP
+- Find (Ctrl+K): search for any command and see where it is in the window
 - Sketch on a face, push/pull extrude with a typed distance (negative cuts)
 - Snap to a grid with a selectable size, studio lighting, one-click STL/STEP
   export
@@ -49,8 +61,8 @@ history is public in this repository.
 ## Building (Windows)
 
 Needs MSYS2 (UCRT64) with the packages from `.github/workflows/win32.yml`.
-`toolsuild.cmd` builds, `toolsuild.cmd test` also runs the tests,
-`toolsuild.cmd dist installer` makes the portable folder and the setup.exe.
+`tools\build.cmd` builds, `tools\build.cmd test` also runs the tests,
+`tools\build.cmd dist installer` makes the portable folder and the setup.exe.
 Releases are published with `tools/release.sh` - see `CLAUDE.md` for details.
 
 Branches: `studio` is Tavnit 3D (default), `main` mirrors upstream Dune 3D.

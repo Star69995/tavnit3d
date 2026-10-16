@@ -80,6 +80,7 @@ enum class ActionID {
     ADD_BOWL,
     ADD_VASE,
     MAKE_FROM_DESCRIPTION,
+    FIND,
     ADD_SPOTLIGHT,
     ADD_SUN,
     COMBINE_OBJECTS,

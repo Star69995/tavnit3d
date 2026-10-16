@@ -64,13 +64,17 @@ ActionSearchWindow::ActionSearchWindow(Gtk::Window &parent, std::function<std::v
     add_controller(keys);
 }
 
-void ActionSearchWindow::open()
+void ActionSearchWindow::open(const std::string &text)
 {
     m_items = m_get_items();
+    // focused while empty: getting the focus selects the text, and the next key typed would
+    // replace what was typed so far; then the cursor goes after it, to keep typing
     m_entry->set_text("");
-    update();
     present();
     m_entry->grab_focus();
+    m_entry->set_text(text);
+    m_entry->set_position(-1);
+    update();
 }
 
 void ActionSearchWindow::update()

@@ -4,6 +4,7 @@
 #include <gtkmm.h>
 #include "document/primitives.hpp"
 #include "document/light.hpp"
+#include "document/group/group_shell.hpp"
 #include "document/group/igroup_solid_model.hpp"
 #include "action/action.hpp"
 #include "preferences/preferences.hpp"
@@ -133,6 +134,8 @@ private:
 public:
     // resize handles on the picked object (editor_handles.cpp)
     struct ObjectHandle {
+        enum class Kind { DIMENSION, WALL, ROUNDING };
+        Kind kind = Kind::DIMENSION;
         glm::dvec3 face; // where it's attached
         glm::dvec3 pos;  // where it's drawn and grabbed
         glm::dvec3 dir;  // which way is bigger
@@ -147,9 +150,14 @@ private:
     struct HandleDrag {
         ObjectHandle handle;
         double start_value = 0, start_param = 0;
+        double last_value = -1;
+        GroupShell::Open open = GroupShell::Open::TOP;
         bool moved = false;
     };
     std::optional<HandleDrag> m_handle_drag;
+    std::optional<ObjectHandle> get_handle_under_cursor();
+    void update_handle_hint();
+    std::string m_handle_hint;
     bool begin_handle_drag();
     void update_handle_drag();
     void end_handle_drag();
@@ -170,7 +178,7 @@ private:
     void show_describe_window(const std::string &text = {});
     // Find (Ctrl+K), editor_search.cpp
     std::vector<struct SearchItem> get_search_items();
-    void show_search();
+    void show_search(const std::string &text = {});
     void focus_object_panel_field(const std::string &label);
     std::unique_ptr<class ActionSearchWindow> m_search_window;
     std::unique_ptr<class DescribeWindow> m_describe_window;
@@ -313,6 +321,15 @@ private:
 
     KeySequence m_keys_current;
     KeyMatchResult keys_match(const KeySequence &keys) const;
+    bool handle_typed_key(unsigned int keyval, Gdk::ModifierType state, unsigned int original_keyval);
+    bool process_action_key(unsigned int keyval, Gdk::ModifierType state);
+    std::pair<bool, bool> classify_keys(const KeySequence &keys) const;
+    void open_find_with(std::string text);
+    void flush_pending_key();
+    std::string m_typed; // letters typed quickly one after another
+    gint64 m_typed_at = 0;
+    std::optional<std::pair<unsigned int, Gdk::ModifierType>> m_pending_key; // a shortcut waiting to see if typing follows
+    sigc::connection m_pending_key_connection;
     bool handle_action_key(Glib::RefPtr<Gtk::EventControllerKey> controller, unsigned int keyval,
                            Gdk::ModifierType state);
     void handle_tool_action(const ActionConnection &conn);

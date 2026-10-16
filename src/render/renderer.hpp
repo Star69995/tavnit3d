@@ -144,7 +144,11 @@ private:
 public:
     UUID m_highlight_body;
     // resize handles on the picked object: where they're attached, where they are
-    std::vector<std::pair<glm::dvec3, glm::dvec3>> m_handles; // drawn tinted, e.g. the object being edited
+    struct Handle {
+        glm::dvec3 face, pos;
+        int kind; // 0: a size, 1: wall thickness, 2: rounding
+    };
+    std::vector<Handle> m_handles; // drawn tinted, e.g. the object being edited
     bool m_hide_constraints = false;
 
 private:
