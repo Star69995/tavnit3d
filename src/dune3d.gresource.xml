@@ -71,6 +71,7 @@
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-tube-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-torus-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-wedge-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-picture-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-hexagon-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-triangle-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-star-symbolic.svg</file>

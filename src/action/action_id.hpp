@@ -75,6 +75,7 @@ enum class ActionID {
     ADD_TUBE,
     ADD_TORUS,
     ADD_WEDGE,
+    ADD_PICTURE_OBJECT,
     ADD_HEXAGON,
     ADD_TRIANGLE,
     ADD_STAR,

@@ -126,6 +126,7 @@ private:
     void delete_body(const UUID &doc_uu, const UUID &body_uu);
     void select_object_under_cursor();
     void duplicate_object(const UUID &doc_uu, const UUID &body_uu);
+    void cut_with_hole(const UUID &doc_uu, const UUID &hole);
     void combine_bodies(const UUID &doc_uu, const UUID &body_a, const UUID &body_b, IGroupSolidModel::Operation op);
     Gtk::DropDown *m_object_combine_dropdown = nullptr;
     struct ObjectDrag {
@@ -204,6 +205,8 @@ private:
     struct GltfExportOptions get_gltf_export_options();
     void export_gltf_now(const std::filesystem::path &path);
     std::optional<PlacingDecal> m_placing_decal; // waiting for the click on the object
+    void choose_picture_file(const std::string &title, std::function<void(const std::filesystem::path &)> cb);
+    void add_picture_object();
     void choose_decal_picture(const UUID &doc_uu, const UUID &body_uu);
     void begin_place_decal(const UUID &doc_uu, const UUID &body_uu, const std::filesystem::path &picture);
     bool place_decal_under_cursor();

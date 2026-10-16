@@ -237,6 +237,7 @@ void Editor::init_actions()
     connect_action(ActionID::ADD_HEART, [this](auto &a) { add_heart(); });
     connect_action(ActionID::ADD_HALF_SPHERE, [this](auto &a) { add_half_sphere(); });
     connect_action(ActionID::ADD_TEXT, [this](auto &a) { add_text_object(); });
+    connect_action(ActionID::ADD_PICTURE_OBJECT, [this](auto &a) { add_picture_object(); });
     connect_action(ActionID::ADD_LAMP, [this](auto &a) { add_light(Light::Type::POINT); });
     connect_action(ActionID::ADD_BOWL, [this](auto &a) { add_bowl(); });
     connect_action(ActionID::MAKE_FROM_DESCRIPTION, [this](auto &a) { show_describe_window(); });
@@ -558,7 +559,8 @@ void Editor::update_action_sensitivity(const std::set<SelectableRef> &sel)
     m_action_sensitivity[ActionID::FIND] = true;
     for (auto act : {ActionID::ADD_BOX, ActionID::ADD_CYLINDER, ActionID::ADD_SPHERE, ActionID::ADD_CONE, ActionID::ADD_TUBE,
                      ActionID::ADD_TORUS, ActionID::ADD_WEDGE, ActionID::ADD_HEXAGON, ActionID::ADD_TRIANGLE,
-                     ActionID::ADD_STAR, ActionID::ADD_HEART, ActionID::ADD_HALF_SPHERE, ActionID::ADD_TEXT, ActionID::COMBINE_OBJECTS,
+                     ActionID::ADD_STAR, ActionID::ADD_HEART, ActionID::ADD_HALF_SPHERE, ActionID::ADD_TEXT,
+                     ActionID::ADD_PICTURE_OBJECT, ActionID::COMBINE_OBJECTS,
                      ActionID::ADD_LAMP, ActionID::ADD_SPOTLIGHT, ActionID::ADD_SUN, ActionID::ADD_BOWL,
                      ActionID::ADD_VASE, ActionID::MAKE_FROM_DESCRIPTION,
                      ActionID::DUPLICATE_OBJECT})

@@ -153,7 +153,9 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
             const auto vref =
                     m_ca.add_face_group(last_solid_model->m_faces, {0, 0, 0},
                                         glm::quat_identity<float, glm::defaultp>(), color,
-                                        static_cast<unsigned int>(body_groups.body.m_material)
+                                        static_cast<unsigned int>(body_groups.body.m_hole
+                                                                          ? Body::Material::GLASS
+                                                                          : body_groups.body.m_material)
                                                 | (body_groups.get_group().m_uuid == m_highlight_body
                                                            ? ICanvas::face_material_highlight
                                                            : 0));
