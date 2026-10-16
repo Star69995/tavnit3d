@@ -95,3 +95,19 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   `Entity::deserialize_type`.
 - Changing a document directly (not through a tool): mark groups pending
   *before* deleting anything they reference, then `m_core.rebuild(...)`.
+
+## Releasing (installer + in-app updates)
+
+1. Bump `app_version` in `src/util/branding.hpp` (installer reads it).
+2. `toolsuild.cmd test dist installer` -> `dist/Tavnit3D-<ver>-setup.exe`
+   (Inno Setup 6: `winget install JRSoftware.InnoSetup`).
+3. Publish a GitHub release tagged `v<ver>` on the repo named by
+   `update_repo` in branding.hpp, with the setup.exe attached (asset name
+   must end in `-setup.exe`). Drafts/prereleases are ignored.
+4. Running copies check `releases/latest` at start (toggle in the main
+   menu), show a strip above the 3D view, download the installer, run it
+   with `/SILENT /RELAUNCH=1` and quit; the installer waits on the app's
+   mutex and restarts the new version. Code: `src/util/update_check.*`,
+   `src/editor/editor_update.cpp`. `DUNE3D_UPDATE_FEED=<url>` overrides the
+   feed for testing (a local `python -m http.server` with a release.json
+   works; the end-to-end flow was tested that way).

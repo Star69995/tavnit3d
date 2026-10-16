@@ -238,6 +238,9 @@ Dune3DAppWindow::Dune3DAppWindow(BaseObjectType *cobject, const Glib::RefPtr<Gtk
     set_icon_name("dune3d");
 
     m_editor.init();
+    const auto automated = Glib::getenv("DUNE3D_AUTOMATION").size() > 0;
+    if (!automated && m_app.m_user_config.check_for_updates)
+        Glib::signal_timeout().connect_once([this] { m_editor.check_for_updates(false); }, 3000);
     if (auto script = Glib::getenv("DUNE3D_AUTOMATION"); script.size()) {
         set_default_size(1400, 900);
 #ifdef G_OS_WIN32
@@ -585,6 +588,18 @@ void Dune3DAppWindow::set_window_title_from_path(const std::filesystem::path &pa
         set_window_title(filename);
         set_subtitle(path_to_string(path.parent_path()));
     }
+}
+
+void Dune3DAppWindow::set_banner(Gtk::Widget *widget)
+{
+    auto parent = dynamic_cast<Gtk::Box *>(m_version_info_bar->get_parent());
+    if (!parent)
+        return;
+    if (m_banner)
+        parent->remove(*m_banner);
+    m_banner = widget;
+    if (m_banner)
+        parent->insert_child_after(*m_banner, *m_version_info_bar);
 }
 
 void Dune3DAppWindow::set_window_title(const std::string &extra)

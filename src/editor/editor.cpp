@@ -980,8 +980,22 @@ void Editor::init_header_bar()
     }
 
     {
+        m_win.add_action("check_updates", [this] { check_for_updates(true); });
+        auto auto_check = m_win.add_action_bool("auto_check_updates", m_win.get_app().m_user_config.check_for_updates);
+        auto_check->signal_change_state().connect([this, auto_check](const Glib::VariantBase &v) {
+            const auto b = Glib::VariantBase::cast_dynamic<Glib::Variant<bool>>(v).get();
+            m_win.get_app().m_user_config.check_for_updates = b;
+            auto_check->set_state(Glib::Variant<bool>::create(b));
+        });
+    }
+
+    {
         auto top = Gio::Menu::create();
 
+        auto updates = Gio::Menu::create();
+        updates->append("Check for updates", "win.check_updates");
+        updates->append("Check automatically at start", "win.auto_check_updates");
+        top->append_section(updates);
         top->append_item(Gio::MenuItem::create("Preferences", "app.preferences"));
         top->append_item(Gio::MenuItem::create("Logger", "app.logger"));
         top->append_item(Gio::MenuItem::create("About", "app.about"));

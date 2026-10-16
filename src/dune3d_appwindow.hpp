@@ -140,6 +140,8 @@ public:
 
     void add_action_button(Gtk::Widget &widget);
     void add_action_bar_section(const std::string &title);
+    // shows a strip at the top of the 3D view (e.g. about updates); nullptr hides it
+    void set_banner(Gtk::Widget *widget);
     Gtk::Box &get_view_bar()
     {
         return *m_view_bar;
@@ -244,6 +246,7 @@ private:
     Gtk::Box *m_action_bar_box = nullptr;
     Gtk::Grid *m_action_bar_grid = nullptr;
     Gtk::Box *m_view_bar = nullptr;
+    Gtk::Widget *m_banner = nullptr;
     unsigned int m_action_bar_grid_n = 0;
     Gtk::Revealer *m_action_bar_revealer = nullptr;
 

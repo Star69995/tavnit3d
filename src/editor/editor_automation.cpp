@@ -32,6 +32,7 @@ namespace dune3d {
  *   winaction NAME [PARAM]   activate a window action, e.g. "winaction grid_step 5"
  *   size W H                 resize the window
  *   shot PATH                save the window contents as PNG
+ *   update-check             check for updates as from the menu (feed: DUNE3D_UPDATE_FEED)
  *   windows                  print the visible windows and their texts (dialogs aren't in shots)
  *   quit                     close the app
  */
@@ -265,6 +266,10 @@ void Editor::run_automation(const std::filesystem::path &script)
                     gsk_render_node_unref(node);
                 }
                 g_object_unref(paintable);
+            }
+            else if (cmd == "update-check") {
+                check_for_updates(true);
+                delay = 2500;
             }
             else if (cmd == "windows") {
                 // print every toplevel and the texts in it, e.g. to see what a dialog says

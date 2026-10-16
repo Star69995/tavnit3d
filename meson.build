@@ -53,6 +53,7 @@ src_common = files(
   'src/document/body_solids.cpp',
   'src/document/combine.cpp',
   'src/document/duplicate.cpp',
+  'src/util/update_check.cpp',
   'src/document/entity/entity.cpp',
   'src/document/entity/entity_and_point.cpp',
   'src/document/entity/entity_line3d.cpp',
@@ -178,6 +179,7 @@ src_gui = files(
   'src/editor/editor_primitives.cpp',
   'src/editor/editor_object.cpp',
   'src/editor/editor_object_drag.cpp',
+  'src/editor/editor_update.cpp',
   'src/editor/editor_automation.cpp',
   'src/editor/editor_export.cpp',
   'src/editor/editor_workspace_view.cpp',
@@ -426,7 +428,7 @@ if not is_windows
 	uuid = dependency('uuid')
 	build_dependencies += uuid
 else
-	build_dependencies += [cxx.find_library('rpcrt4')]
+	build_dependencies += [cxx.find_library('rpcrt4'), cxx.find_library('winhttp')]
 	src_common += 'src/util/uuid_win32.cpp'
 	cpp_args += '-DWIN32_UUID'
 endif
@@ -513,6 +515,16 @@ test_primitives = executable('test_primitives',
     build_by_default: true,
 )
 test('primitives', test_primitives, timeout: 120)
+
+test_update = executable('test_update',
+    'tests/test_update.cpp',
+    dependencies: [build_dependencies],
+    link_whole: [dune3d_common],
+    link_with: [solvespace_nopic, clipper_nopic, dxflib_nopic],
+    cpp_args: cpp_args,
+    include_directories: include_directories,
+)
+test('update', test_update, timeout: 60)
 # drives the real app through tests/ui/*.txt; needs a display
 foreach ui_test : ['smoke']
     test('ui-' + ui_test, prog_python,

@@ -99,6 +99,15 @@ private:
     // frame all solids (or the XY plane if there are none); with only_if_needed,
     // just when some of them are out of view
     void zoom_to_fit(bool only_if_needed = false);
+
+public:
+    // looks for a newer release; interactive shows "up to date" and errors too
+    void check_for_updates(bool interactive);
+
+private:
+    void show_update_banner(const struct UpdateInfo &info);
+    void show_update_message(const std::string &text, bool error);
+    void start_update(const struct UpdateInfo &info);
     void show_object_editor(const UUID &doc_uu, const UUID &body_uu);
     void delete_body(const UUID &doc_uu, const UUID &body_uu);
     void select_object_under_cursor();
