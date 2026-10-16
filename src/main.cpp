@@ -1,5 +1,9 @@
 #include "dune3d_application.hpp"
 #include "util/exception_util.hpp"
+#include "util/branding.hpp"
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 #ifdef HAVE_WAYLAND_PROXY
 #include "wayland-proxy.h"
@@ -19,6 +23,11 @@ int main(int argc, char *argv[])
             wayland_proxy->RunThread();
         }
     }
+#endif
+
+#ifdef _WIN32
+    // lets the installer wait until running copies are closed before updating files
+    CreateMutexA(nullptr, FALSE, dune3d::app_mutex);
 #endif
 
     auto application = dune3d::Dune3DApplication::create();
