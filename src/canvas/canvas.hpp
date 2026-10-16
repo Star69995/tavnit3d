@@ -146,6 +146,8 @@ public:
     // frame a sphere around center with the given radius, keeping the rotation
     void zoom_to_fit(const glm::vec3 &center, float radius);
     bool is_in_view(const glm::vec3 &p) const;
+    // ray under the cursor going into the scene: origin and unit direction
+    std::pair<glm::dvec3, glm::dvec3> get_cursor_ray() const;
 
     glm::quat get_tilt_snapped_quat(const glm::quat &q) const;
 

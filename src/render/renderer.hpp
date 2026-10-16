@@ -140,6 +140,11 @@ private:
     void set_chunk_from_group(const Group &group);
 
     float m_curvature_comb_scale = 0;
+
+public:
+    UUID m_highlight_body; // drawn tinted, e.g. the object being edited
+
+private:
 };
 
 } // namespace dune3d

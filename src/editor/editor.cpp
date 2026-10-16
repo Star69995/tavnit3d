@@ -1358,6 +1358,8 @@ void Editor::render_document(const IDocumentInfo &doc)
     renderer.m_solid_model_edge_select_mode = m_solid_model_edge_select_mode;
     renderer.m_connect_curvature_comb = m_preferences.canvas.connect_curvature_combs;
     renderer.m_first_group = m_update_groups_after;
+    if (m_object_editor)
+        renderer.m_highlight_body = m_object_editor_body;
 
     if (doc.get_uuid() == m_core.get_current_idocument_info().get_uuid())
         renderer.add_constraint_icons(m_constraint_tip_pos, m_constraint_tip_vec, m_constraint_tip_icons);
@@ -1427,6 +1429,11 @@ glm::vec3 Editor::get_cam_normal() const
 glm::quat Editor::get_cam_quat() const
 {
     return get_canvas().get_cam_quat();
+}
+
+std::pair<glm::dvec3, glm::dvec3> Editor::get_cursor_ray() const
+{
+    return get_canvas().get_cursor_ray();
 }
 
 glm::dvec3 Editor::get_cursor_pos_for_plane(glm::dvec3 origin, glm::dvec3 normal) const
@@ -1502,8 +1509,10 @@ void Editor::handle_click(unsigned int button, unsigned int n)
     }
     else if (button == 1) {
         auto hover_sel = get_canvas().get_hover_selection();
-        if (!hover_sel)
+        if (!hover_sel) {
+            select_object_under_cursor();
             return;
+        }
 
         auto sel = get_canvas().get_selection();
         if (!sel.contains(hover_sel.value()))

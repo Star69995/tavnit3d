@@ -43,7 +43,9 @@ public:
 
     // virtual void add_faces(const face::Faces &faces) = 0;
     enum class FaceColor { AS_IS, SOLID_MODEL, OTHER_BODY_SOLID_MODEL };
-    // material: 0 satin, 1 matte, 2 glossy, 3 metal (see face-fragment.glsl)
+    // material: 0 satin, 1 matte, 2 glossy, 3 metal (see face-fragment.glsl), optionally
+    // or'ed with face_material_highlight
+    static constexpr unsigned int face_material_highlight = 0x100;
     virtual VertexRef add_face_group(const face::Faces &faces, glm::vec3 origin, glm::quat normal,
                                      FaceColor face_color, unsigned int material = 0) = 0;
     virtual VertexRef draw_icon(IconTexture::IconTextureID id, glm::vec3 origin, glm::vec2 shift,

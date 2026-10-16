@@ -25,12 +25,8 @@ ToolResponse ToolSketchOnFace::update(const ToolArgs &args)
 
     switch (args.action) {
     case InToolActionID::LMB: {
-        // the cursor ray, from its crossings with two planes facing the camera;
-        // the camera normal points towards the viewer, so step away from it
-        const glm::dvec3 cam_n = m_intf.get_cam_normal();
-        const auto a = m_intf.get_cursor_pos();
-        const auto b = m_intf.get_cursor_pos_for_plane(a - cam_n, cam_n);
-        auto face = pick_planar_face(get_doc(), m_core.get_current_group(), a, glm::normalize(b - a));
+        const auto [origin, dir] = m_intf.get_cursor_ray();
+        auto face = pick_planar_face(get_doc(), m_core.get_current_group(), origin, dir);
         if (!face) {
             m_intf.tool_bar_flash("No flat face there");
             return ToolResponse();

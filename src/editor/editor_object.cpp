@@ -13,6 +13,8 @@
 #include "widgets/spin_button_dim.hpp"
 #include "util/gtk_util.hpp"
 #include "util/util.hpp"
+#include "document/face_sketch.hpp"
+#include "canvas/canvas.hpp"
 #include <ranges>
 
 namespace dune3d {
@@ -252,6 +254,33 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
     }
 
     m_group_editor_box->append(*grid);
+    canvas_update_keep_selection(); // highlight it
+}
+
+void Editor::select_object_under_cursor()
+{
+    if (!m_core.has_documents())
+        return;
+    const auto [origin, dir] = get_canvas().get_cursor_ray();
+    auto &doc = m_core.get_current_document();
+    if (auto body = pick_body(doc, m_core.get_current_group(), origin, dir)) {
+        // selecting the row shows the object panel, like clicking it in the browser
+        if (!m_workspace_browser->select_body(m_core.get_current_idocument_info().get_uuid(), *body))
+            show_object_editor(m_core.get_current_idocument_info().get_uuid(), *body);
+    }
+    else if (m_object_editor) {
+        // clicked into empty space: let go of the object
+        close_object_editor();
+    }
+}
+
+void Editor::close_object_editor()
+{
+    if (!m_object_editor)
+        return;
+    update_group_editor();
+    m_workspace_browser->select_group(m_core.get_current_group());
+    canvas_update_keep_selection();
 }
 
 void Editor::delete_body(const UUID &doc_uu, const UUID &body_uu)

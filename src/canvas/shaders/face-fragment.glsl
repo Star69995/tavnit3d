@@ -41,6 +41,9 @@ void main() {
   vec3 color = color_to_fragment;
   if(FLAG_IS_SET(flags, VERTEX_FLAG_HOVER | VERTEX_FLAG_SELECTED))
       color = mix(color, get_color(flags), .5);
+  int mat = material & 0xff;
+  if((material & 0x100) != 0) // highlighted object
+      color = mix(color, vec3(.18, .42, .94), .35);
   if(studio_lighting == 0) {
     // original headlight
     float shade = pow(min(1, abs(dot(cam_normal, normal_to_fragment))+.1), 1/2.2);
@@ -59,9 +62,9 @@ void main() {
     vec3 fill = normalize(v - .3*up + .8*right);
 
     float spec_strength = .15, shininess = 24, diffuse_strength = 1.;
-    if(material == 1) { spec_strength = 0.; }
-    else if(material == 2) { spec_strength = .45; shininess = 140; }
-    else if(material == 3) { spec_strength = .9; shininess = 70; diffuse_strength = .45; }
+    if(mat == 1) { spec_strength = 0.; }
+    else if(mat == 2) { spec_strength = .45; shininess = 140; }
+    else if(mat == 3) { spec_strength = .9; shininess = 70; diffuse_strength = .45; }
 
     float diffuse = .62*max(dot(n, key), 0) + .22*max(dot(n, fill), 0);
     // soft sky/ground ambient
@@ -69,8 +72,8 @@ void main() {
     vec3 ambient = mix(vec3(.30, .30, .32), vec3(.42, .43, .46), hemi);
     vec3 lit = color * (ambient + diffuse_strength*diffuse);
     float spec = pow(max(dot(n, normalize(key + v)), 0), shininess) * spec_strength;
-    vec3 spec_color = material == 3 ? mix(color, vec3(1), .25) : vec3(1);
-    if(material == 3) {
+    vec3 spec_color = mat == 3 ? mix(color, vec3(1), .25) : vec3(1);
+    if(mat == 3) {
       // metals mostly reflect their surroundings: fake a bright sky / darker floor
       vec3 r = reflect(-v, n);
       float env = smoothstep(-.4, .6, dot(r, world_up));

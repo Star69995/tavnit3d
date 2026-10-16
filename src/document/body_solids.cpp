@@ -7,7 +7,7 @@
 
 namespace dune3d {
 
-std::vector<const SolidModelOcc *> get_body_solids(const Document &doc, const UUID &upto)
+std::vector<BodySolid> get_body_solids(const Document &doc, const UUID &upto)
 {
     std::map<UUID, const SolidModelOcc *> body_solids;
     for (auto gr : doc.get_groups_sorted()) {
@@ -17,9 +17,9 @@ std::vector<const SolidModelOcc *> get_body_solids(const Document &doc, const UU
         if (gr->m_uuid == upto)
             break;
     }
-    std::vector<const SolidModelOcc *> r;
+    std::vector<BodySolid> r;
     for (const auto &[body, sm] : body_solids)
-        r.push_back(sm);
+        r.push_back({body, sm});
     return r;
 }
 

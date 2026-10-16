@@ -32,8 +32,8 @@ void Editor::zoom_to_fit(bool only_if_needed)
         return;
     auto &doc = m_core.get_current_document();
     Bnd_Box box;
-    for (auto sm : get_body_solids(doc, m_core.get_current_group()))
-        BRepBndLib::AddOptimal(sm->m_shape_acc, box, false, false);
+    for (const auto &bs : get_body_solids(doc, m_core.get_current_group()))
+        BRepBndLib::AddOptimal(bs.solid->m_shape_acc, box, false, false);
     glm::vec3 lo{-100, -100, 0}, hi{100, 100, 0}; // the XY plane
     if (!box.IsVoid()) {
         double x0, y0, z0, x1, y1, z1;

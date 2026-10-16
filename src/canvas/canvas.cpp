@@ -610,6 +610,16 @@ void Canvas::zoom_to_fit(const glm::vec3 &center, float radius)
     m_signal_view_changed.emit();
 }
 
+std::pair<glm::dvec3, glm::dvec3> Canvas::get_cursor_ray() const
+{
+    // crossings with two planes facing the camera; the camera normal points towards
+    // the viewer, so step away from it
+    const glm::dvec3 n = m_cam_normal;
+    const auto a = get_cursor_pos();
+    const auto b = get_cursor_pos_for_plane(a - n, n);
+    return {a, glm::normalize(b - a)};
+}
+
 bool Canvas::is_in_view(const glm::vec3 &p) const
 {
     auto c = m_projmat * m_viewmat * glm::vec4(p, 1);

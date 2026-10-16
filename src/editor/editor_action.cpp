@@ -637,6 +637,13 @@ Gtk::Button *Editor::create_action_button(ActionToolID action)
 
 bool Editor::trigger_action(ActionToolID action, ActionSource source)
 {
+    // Delete with an object picked and nothing else selected deletes the object
+    if (action == ActionToolID(ToolID::DELETE) && m_object_editor && !m_core.tool_is_active()
+        && get_canvas().get_selection().empty()) {
+        const auto doc = m_object_editor_doc, body = m_object_editor_body;
+        Glib::signal_idle().connect_once([this, doc, body] { delete_body(doc, body); });
+        return true;
+    }
     if (m_core.tool_is_active() && !(action_catalog.at(action).flags & ActionCatalogItem::FLAGS_IN_TOOL)) {
         return false;
     }

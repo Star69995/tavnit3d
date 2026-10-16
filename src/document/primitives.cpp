@@ -299,8 +299,8 @@ Group &add_primitive(Document &doc, const UUID &after, Primitive primitive, cons
 glm::dvec2 find_free_spot(const Document &doc, const UUID &upto, double footprint)
 {
     Bnd_Box box;
-    for (auto sm : get_body_solids(doc, upto))
-        BRepBndLib::AddOptimal(sm->m_shape_acc, box, false, false);
+    for (const auto &bs : get_body_solids(doc, upto))
+        BRepBndLib::AddOptimal(bs.solid->m_shape_acc, box, false, false);
     if (box.IsVoid())
         return {0, 0};
     double x0, y0, z0, x1, y1, z1;

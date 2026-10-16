@@ -1074,6 +1074,25 @@ void WorkspaceBrowser::select_group(const UUID &doc_uu, const UUID &uu)
     }
 }
 
+bool WorkspaceBrowser::select_body(const UUID &doc_uu, const UUID &body_uu)
+{
+    const auto n = m_selection_model->get_n_items();
+    for (guint i = 0; i < n; i++) {
+        auto row = std::dynamic_pointer_cast<Gtk::TreeListRow>(m_selection_model->get_object(i));
+        if (!row)
+            continue;
+        if (auto it = std::dynamic_pointer_cast<BodyItem>(row->get_item())) {
+            if (it->m_doc == doc_uu && it->m_uuid == body_uu) {
+                if (m_selection_model->get_selected() == i)
+                    return false; // already selected, wouldn't notify
+                m_selection_model->select_item(i, true);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 bool WorkspaceBrowser::select_row_by_name(const std::string &name, unsigned int nth)
 {
     const auto n = m_selection_model->get_n_items();

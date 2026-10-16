@@ -34,6 +34,7 @@ public:
 
     // selects the n-th visible row (body or group) with that name, as a click would
     bool select_row_by_name(const std::string &name, unsigned int nth = 0);
+    bool select_body(const UUID &doc_uu, const UUID &body_uu);
 
     type_signal_group_selected signal_body_selected()
     {

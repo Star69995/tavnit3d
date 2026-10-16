@@ -47,6 +47,7 @@ public:
     glm::vec3 get_cam_normal() const override;
     glm::quat get_cam_quat() const override;
     glm::dvec3 get_cursor_pos_for_plane(glm::dvec3 origin, glm::dvec3 normal) const override;
+    std::pair<glm::dvec3, glm::dvec3> get_cursor_ray() const override;
     void tool_update_data(std::unique_ptr<ToolData> data) override;
     void enable_hover_selection(bool enable) override;
     std::optional<SelectableRef> get_hover_selection() const override;
@@ -97,6 +98,8 @@ private:
     void zoom_to_fit(bool only_if_needed = false);
     void show_object_editor(const UUID &doc_uu, const UUID &body_uu);
     void delete_body(const UUID &doc_uu, const UUID &body_uu);
+    void select_object_under_cursor();
+    void close_object_editor();
     Gtk::Widget *m_object_editor = nullptr;
     UUID m_object_editor_doc;
     UUID m_object_editor_body;
