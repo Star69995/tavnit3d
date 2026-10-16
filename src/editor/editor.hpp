@@ -199,6 +199,7 @@ private:
     void add_star();
     void add_heart();
     void add_half_sphere();
+    void add_screw();
     void add_vase();
     void on_import_object();
     void import_object_file(const std::filesystem::path &path);

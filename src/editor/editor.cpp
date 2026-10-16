@@ -144,6 +144,7 @@ void Editor::init()
     create_action_bar_button(ActionID::ADD_STAR, "Star");
     create_action_bar_button(ActionID::ADD_HEART, "Heart");
     create_action_bar_button(ActionID::ADD_HALF_SPHERE, "Dome");
+    create_action_bar_button(ActionID::ADD_SCREW, "Screw");
     create_action_bar_button(ActionID::ADD_TEXT, "3D Text");
     create_action_bar_button(ActionID::ADD_PICTURE_OBJECT, "Picture");
     create_action_bar_button(ActionID::ADD_BOWL, "Bowl");
@@ -397,6 +398,7 @@ Gtk::Button &Editor::create_action_bar_button(ActionToolID action, const std::st
             {ActionID::ADD_STAR, "action-add-star-symbolic"},
             {ActionID::ADD_HEART, "action-add-heart-symbolic"},
             {ActionID::ADD_HALF_SPHERE, "action-add-half-sphere-symbolic"},
+            {ActionID::ADD_SCREW, "action-add-screw-symbolic"},
             {ActionID::ADD_TEXT, "action-draw-text-symbolic"},
             {ActionID::ADD_PICTURE_OBJECT, "action-add-picture-symbolic"},
     };

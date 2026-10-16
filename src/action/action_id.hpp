@@ -81,6 +81,7 @@ enum class ActionID {
     ADD_STAR,
     ADD_HEART,
     ADD_HALF_SPHERE,
+    ADD_SCREW,
     ADD_TEXT,
     ADD_LAMP,
     ADD_BOWL,
