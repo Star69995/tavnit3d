@@ -40,6 +40,9 @@ LIBS=(
 	libTKDEIGES.dll\
 	libTKDESTEP.dll\
 	libTKDESTL.dll\
+	libTKDEGLTF.dll\
+	libTKDEOBJ.dll\
+	libTKRWMesh.dll\
 	libTKDE.dll\
 	libgcc_s_seh-1.dll\
 	libfreetype-6.dll\
