@@ -15,6 +15,8 @@ EntitySTEP::EntitySTEP(const UUID &uu, const json &j, const std::filesystem::pat
       m_path(j.at("path").get<std::filesystem::path>()),
       m_include_in_solid_model(j.value("include_in_solid_model", false))
 {
+    if (j.contains("part"))
+        m_part = j.at("part").get<unsigned int>();
     update_imported(containing_dir);
     for (const auto &[k, v] : j.at("anchors").items()) {
         m_anchors.emplace(std::stoi(k), v.get<glm::dvec3>());
@@ -42,6 +44,8 @@ json EntitySTEP::serialize() const
     j["normal"] = m_normal;
     j["path"] = m_path;
     j["include_in_solid_model"] = m_include_in_solid_model;
+    if (m_part)
+        j["part"] = *m_part;
     // j["anchors"] = m_anchors;
     {
         json o = json::object();

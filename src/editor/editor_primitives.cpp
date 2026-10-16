@@ -109,7 +109,7 @@ void Editor::zoom_to_fit(bool only_if_needed)
     Bnd_Box box;
     for (const auto &bs :
          get_body_solids(doc, m_core.get_current_group(), [this](const UUID &b) { return body_is_shown(b); }))
-        BRepBndLib::AddOptimal(bs.solid->m_shape_acc, box, false, false);
+        BRepBndLib::Add(bs.solid->m_shape_acc, box, true); // by the triangles: meshes have no surfaces
     glm::vec3 lo{-100, -100, 0}, hi{100, 100, 0}; // the XY plane
     if (!box.IsVoid()) {
         double x0, y0, z0, x1, y1, z1;

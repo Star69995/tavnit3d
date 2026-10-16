@@ -21,6 +21,10 @@ std::shared_ptr<const SolidModel> SolidModel::create(const Document &doc, GroupS
     auto mod = std::make_shared<SolidModelOcc>();
 
     TopoDS_Shape fused;
+    // meshes and loose faces can't be fused, they're just collected
+    TopoDS_Compound loose;
+    BRep_Builder builder;
+    bool any_loose = false;
     for (const auto &[uu, en] : doc.m_entities) {
         if (en->m_group != group.m_uuid)
             continue;
@@ -39,21 +43,48 @@ std::shared_ptr<const SolidModel> SolidModel::create(const Document &doc, GroupS
                     trsf.Multiply(trsf2);
                 }
 
-                for (const auto &shape : shapes->shapes) {
-                    BRepBuilderAPI_Transform tr{shape, trsf, true};
-                    TopExp_Explorer topex(tr.Shape(), TopAbs_SOLID);
-                    while (topex.More()) {
-                        if (fused.IsNull())
-                            fused = topex.Current();
-                        else
-                            fused = BRepAlgoAPI_Fuse(fused, topex.Current());
-                        topex.Next();
+                const std::vector<TopoDS_Shape> *src = &shapes->shapes;
+                if (step->m_part) {
+                    if (*step->m_part >= shapes->parts.size())
+                        continue;
+                    src = &shapes->parts.at(*step->m_part).shapes;
+                }
+                if (step->m_part) {
+                    for (const auto &[face, c] : shapes->parts.at(*step->m_part).face_colors)
+                        mod->m_face_colors.emplace(face.TShape().get(), Color(c.at(0), c.at(1), c.at(2)));
+                }
+                for (const auto &shape : *src) {
+                    if (TopExp_Explorer(shape, TopAbs_SOLID).More()) {
+                        // imported objects are moved rather than copied, so their faces stay
+                        // the same and keep their colours
+                        const auto moved = step->m_part ? shape.Moved(TopLoc_Location(trsf))
+                                                        : BRepBuilderAPI_Transform(shape, trsf, true).Shape();
+                        TopExp_Explorer topex(moved, TopAbs_SOLID);
+                        while (topex.More()) {
+                            if (fused.IsNull())
+                                fused = topex.Current();
+                            else
+                                fused = BRepAlgoAPI_Fuse(fused, topex.Current());
+                            topex.Next();
+                        }
+                    }
+                    else {
+                        // moving keeps a mesh's triangles, copying wouldn't
+                        if (!any_loose)
+                            builder.MakeCompound(loose);
+                        any_loose = true;
+                        builder.Add(loose, shape.Moved(TopLoc_Location(trsf)));
                     }
                 }
             }
         }
     }
 
+    if (any_loose) {
+        if (!fused.IsNull())
+            builder.Add(loose, fused);
+        fused = loose;
+    }
     if (fused.IsNull())
         return nullptr;
 

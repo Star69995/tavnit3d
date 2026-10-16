@@ -51,7 +51,8 @@ namespace dune3d {
 
 class Triangulator {
 public:
-    Triangulator(const TopoDS_Shape &shape, const Color &color, face::Faces &faces);
+    Triangulator(const TopoDS_Shape &shape, const Color &color, face::Faces &faces,
+                 const std::map<const TopoDS_TShape *, Color> &face_colors);
 
 
 private:
@@ -60,12 +61,22 @@ private:
     bool processSolid(const TopoDS_Shape &shape, const glm::dmat4 &mat_in = glm::dmat4(1));
     bool processShell(const TopoDS_Shape &shape, const glm::dmat4 &mat = glm::dmat4(1));
     bool processFace(const TopoDS_Face &face, const glm::dmat4 &mat = glm::dmat4(1));
+    void add_mesh(const Poly_Triangulation &tri, const glm::dmat4 &mat, bool reversed, const face::Color &color);
 
     face::Faces &m_faces;
     face::Color m_color;
+    const std::map<const TopoDS_TShape *, Color> &m_face_colors;
+    face::Color get_color(const TopoDS_Face &face) const
+    {
+        if (auto it = m_face_colors.find(face.TShape().get()); it != m_face_colors.end())
+            return face::Color(it->second.r, it->second.g, it->second.b);
+        return m_color;
+    }
 };
 
-Triangulator::Triangulator(const TopoDS_Shape &shape, const Color &color, face::Faces &faces) : m_faces(faces)
+Triangulator::Triangulator(const TopoDS_Shape &shape, const Color &color, face::Faces &faces,
+                           const std::map<const TopoDS_TShape *, Color> &face_colors)
+    : m_faces(faces), m_face_colors(face_colors)
 {
     m_color.r = color.r;
     m_color.b = color.b;
@@ -80,22 +91,15 @@ Triangulator::Triangulator(const TopoDS_Shape &shape, const Color &color, face::
 #define USER_PREC (0.14)
 #define USER_ANGLE (0.52359878)
 
+// the whole transformation, including any scaling (imported meshes have that)
 static glm::dmat4 update_matrix(const gp_Trsf &tr, const glm::dmat4 &mat_in)
 {
-    gp_XYZ coord = tr.TranslationPart();
-
-    auto mat = mat_in * glm::translate(glm::dvec3(coord.X(), coord.Y(), coord.Z()));
-
-    gp_XYZ axis;
-    double angle;
-
-    if (tr.GetRotation(axis, angle)) {
-        glm::dvec3 gaxis(axis.X(), axis.Y(), axis.Z());
-        double angle_f = angle;
-        mat = glm::rotate(mat, angle_f, gaxis);
+    glm::dmat4 m(1);
+    for (int row = 1; row <= 3; row++) {
+        for (int col = 1; col <= 4; col++)
+            m[col - 1][row - 1] = tr.Value(row, col);
     }
-
-    return mat;
+    return mat_in * m;
 }
 
 
@@ -112,6 +116,9 @@ bool Triangulator::processFace(const TopoDS_Face &face, const glm::dmat4 &mat_in
 
     if (triangulation.IsNull() || triangulation->Deflection() > USER_PREC + Precision::Confusion())
         isTessellate = true;
+    // an imported mesh is all there is: there's no surface to make a finer one from
+    if (!triangulation.IsNull() && BRep_Tool::Surface(face).IsNull())
+        isTessellate = false;
 
     if (isTessellate) {
         BRepMesh_IncrementalMesh IM(face, USER_PREC, false, USER_ANGLE);
@@ -120,6 +127,11 @@ bool Triangulator::processFace(const TopoDS_Face &face, const glm::dmat4 &mat_in
 
     if (triangulation.IsNull() == true)
         return false;
+
+    if (BRep_Tool::Surface(face).IsNull()) {
+        add_mesh(*triangulation, mat, face.Orientation() == TopAbs_REVERSED, get_color(face));
+        return true;
+    }
 
     Poly::ComputeNormals(triangulation);
 
@@ -132,7 +144,7 @@ bool Triangulator::processFace(const TopoDS_Face &face, const glm::dmat4 &mat_in
 
     m_faces.emplace_back();
     auto &face_out = m_faces.back();
-    face_out.color = m_color;
+    face_out.color = get_color(face);
     face_out.vertices.reserve(triangulation->NbNodes());
 
     std::map<face::Vertex, std::vector<size_t>> pts_map;
@@ -199,6 +211,83 @@ bool Triangulator::processFace(const TopoDS_Face &face, const glm::dmat4 &mat_in
     }
 
     return true;
+}
+
+// An imported mesh (no surface underneath): its own normals if it has them,
+// else smooth ones that keep edges sharper than about 40 degrees.
+void Triangulator::add_mesh(const Poly_Triangulation &tri, const glm::dmat4 &mat, bool reversed,
+                            const face::Color &color)
+{
+    auto &face_out = m_faces.emplace_back();
+    face_out.color = color;
+    const int n_nodes = tri.NbNodes();
+    std::vector<glm::dvec3> pos(n_nodes);
+    for (int i = 1; i <= n_nodes; i++) {
+        const auto p = tri.Node(i);
+        pos.at(i - 1) = glm::dvec3(mat * glm::dvec4(p.X(), p.Y(), p.Z(), 1));
+    }
+    std::vector<std::array<int, 3>> tris;
+    tris.reserve(tri.NbTriangles());
+    for (int i = 1; i <= tri.NbTriangles(); i++) {
+        int a, b, c;
+        tri.Triangle(i).Get(a, b, c);
+        if (reversed)
+            std::swap(b, c);
+        tris.push_back({a - 1, b - 1, c - 1});
+    }
+
+    if (tri.HasNormals()) {
+        for (int i = 1; i <= n_nodes; i++) {
+            const auto &p = pos.at(i - 1);
+            face_out.vertices.emplace_back(p.x, p.y, p.z);
+            const auto nn = tri.Normal(i);
+            auto n = glm::dvec3(mat * glm::dvec4(nn.X(), nn.Y(), nn.Z(), 0));
+            if (glm::length(n) > 0)
+                n = glm::normalize(n);
+            if (reversed)
+                n = -n;
+            face_out.normals.emplace_back(n.x, n.y, n.z);
+        }
+        for (const auto &[a, b, c] : tris)
+            face_out.triangle_indices.emplace_back(a, b, c);
+        return;
+    }
+
+    std::vector<glm::dvec3> tri_n; // area weighted
+    std::vector<std::vector<size_t>> node_tris(n_nodes);
+    for (size_t t = 0; t < tris.size(); t++) {
+        const auto &[a, b, c] = tris.at(t);
+        tri_n.push_back(glm::cross(pos.at(b) - pos.at(a), pos.at(c) - pos.at(a)));
+        for (const auto i : tris.at(t))
+            node_tris.at(i).push_back(t);
+    }
+    const double cos_crease = std::cos(glm::radians(40.));
+    std::map<std::pair<int, std::array<int, 3>>, size_t> out_index;
+    for (size_t t = 0; t < tris.size(); t++) {
+        const auto len = glm::length(tri_n.at(t));
+        const auto own = len > 0 ? tri_n.at(t) / len : glm::dvec3(0, 0, 1);
+        std::array<size_t, 3> idx;
+        for (int k = 0; k < 3; k++) {
+            const int node = tris.at(t).at(k);
+            glm::dvec3 n{0, 0, 0};
+            for (const auto s : node_tris.at(node)) {
+                const auto ls = glm::length(tri_n.at(s));
+                if (ls > 0 && glm::dot(tri_n.at(s) / ls, own) >= cos_crease)
+                    n += tri_n.at(s);
+            }
+            n = glm::length(n) > 0 ? glm::normalize(n) : own;
+            const std::array<int, 3> q = {(int)std::lround(n.x * 1000), (int)std::lround(n.y * 1000),
+                                          (int)std::lround(n.z * 1000)};
+            auto [it, inserted] = out_index.emplace(std::make_pair(node, q), face_out.vertices.size());
+            if (inserted) {
+                const auto &p = pos.at(node);
+                face_out.vertices.emplace_back(p.x, p.y, p.z);
+                face_out.normals.emplace_back(n.x, n.y, n.z);
+            }
+            idx.at(k) = it->second;
+        }
+        face_out.triangle_indices.emplace_back(idx.at(0), idx.at(1), idx.at(2));
+    }
 }
 
 bool Triangulator::processShell(const TopoDS_Shape &shape, const glm::dmat4 &mat)
@@ -312,7 +401,7 @@ bool Triangulator::processNode(const TopoDS_Shape &shape)
 void SolidModelOcc::triangulate()
 {
     m_faces.clear();
-    Triangulator tri{m_shape_acc, m_color, m_faces};
+    Triangulator tri{m_shape_acc, m_color, m_faces, m_face_colors};
 }
 
 inline double defaultAngularDeflection(double linearTolerance)

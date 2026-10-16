@@ -1,3 +1,5 @@
+#include <gdkmm/texture.h> // before OCCT, whose windows.h defines IGNORE
+#include <glibmm/bytes.h>
 #include "step_importer.hpp"
 #include <Quantity_Color.hxx>
 #include <TDocStd_Document.hxx>
@@ -54,6 +56,19 @@
 
 #include "util/fs_util.hpp"
 #include "shapes.hpp"
+#include <RWGltf_CafReader.hxx>
+#include <RWObj_CafReader.hxx>
+#include <XCAFDoc_VisMaterial.hxx>
+#include <TDataStd_Name.hxx>
+#include <BRepBndLib.hxx>
+#include <BRep_Builder.hxx>
+#include <BRepGProp.hxx>
+#include <GProp_GProps.hxx>
+#include <Image_Texture.hxx>
+#include <fstream>
+#include <Bnd_Box.hxx>
+#include <Message_ProgressRange.hxx>
+#include <algorithm>
 
 namespace dune3d::STEPImporter {
 
@@ -80,7 +95,7 @@ bool STEPImporter::readSTEP(const char *fname)
 
     // set other translation options
     reader.SetColorMode(true);  // use model colors
-    reader.SetNameMode(false);  // don't use label names
+    reader.SetNameMode(true);   // names for the imported objects
     reader.SetLayerMode(false); // ignore LAYER data
 
     if (!reader.Transfer(m_doc)) {
@@ -96,12 +111,100 @@ bool STEPImporter::readSTEP(const char *fname)
 }
 
 
+bool STEPImporter::readIGES(const char *fname)
+{
+    IGESCAFControl_Reader reader;
+    if (reader.ReadFile(fname) != IFSelect_RetDone)
+        return false;
+    reader.SetColorMode(true);
+    reader.SetNameMode(true);
+    reader.SetLayerMode(false);
+    if (!reader.Transfer(m_doc)) {
+        m_doc->Close();
+        return false;
+    }
+    return true;
+}
+
+// glTF (metres, y up) or OBJ (no units; taken as millimetres unless it's tiny,
+// then metres - y up like most programs write it)
+bool STEPImporter::readMesh(const std::filesystem::path &filename, bool gltf)
+{
+    auto read = [this, &filename, gltf](double file_unit) {
+        std::unique_ptr<RWMesh_CafReader> reader;
+        if (gltf) {
+            auto r = std::make_unique<RWGltf_CafReader>();
+            r->SetParallel(true);
+            reader = std::move(r);
+        }
+        else {
+            reader = std::make_unique<RWObj_CafReader>();
+        }
+        reader->SetSystemLengthUnit(0.001);
+        reader->SetFileLengthUnit(file_unit);
+        reader->SetSystemCoordinateSystem(RWMesh_CoordinateSystem_Zup);
+        reader->SetFileCoordinateSystem(RWMesh_CoordinateSystem_glTF);
+        reader->SetDocument(m_doc);
+        return reader->Perform(TCollection_AsciiString(path_to_string(filename).c_str()), Message_ProgressRange());
+    };
+    // glTF triangles may be left in the file to load later; get them now
+    auto load_deferred = [this] {
+        NCollection_Sequence<TDF_Label> labels;
+        XCAFDoc_DocumentTool::ShapeTool(m_doc->Main())->GetFreeShapes(labels);
+        BRep_Builder builder;
+        for (const auto &label : labels) {
+            for (TopExp_Explorer ex(XCAFDoc_ShapeTool::GetShape(label), TopAbs_FACE); ex.More(); ex.Next()) {
+                const auto &face = TopoDS::Face(ex.Current());
+                TopLoc_Location loc;
+                auto tri = BRep_Tool::Triangulation(face, loc);
+                if (!tri.IsNull() && tri->HasDeferredData()) {
+                    auto loaded = tri->DetachedLoadDeferredData();
+                    if (!loaded.IsNull())
+                        builder.UpdateFace(face, loaded);
+                }
+            }
+        }
+    };
+    if (gltf) {
+        if (!read(1))
+            return false;
+        load_deferred();
+        return true;
+    }
+    if (!read(0.001))
+        return false;
+    Bnd_Box box;
+    NCollection_Sequence<TDF_Label> labels;
+    XCAFDoc_DocumentTool::ShapeTool(m_doc->Main())->GetFreeShapes(labels);
+    for (const auto &label : labels)
+        BRepBndLib::Add(XCAFDoc_ShapeTool::GetShape(label), box, false);
+    if (box.IsVoid())
+        return true;
+    double x0, y0, z0, x1, y1, z1;
+    box.Get(x0, y0, z0, x1, y1, z1);
+    if (std::max({x1 - x0, y1 - y0, z1 - z0}) >= 10)
+        return true;
+    // smaller than a centimetre in millimetres: much more likely metres
+    m_doc->Close();
+    m_app->NewDocument("MDTV-XCAF", m_doc);
+    return read(1);
+}
+
 STEPImporter::STEPImporter(const std::filesystem::path &filename)
 {
     m_app = XCAFApp_Application::GetApplication();
 
     m_app->NewDocument("MDTV-XCAF", m_doc);
-    if (!readSTEP(path_to_string(filename).c_str())) {
+    auto ext = path_to_string(filename.extension());
+    std::ranges::transform(ext, ext.begin(), [](unsigned char c) { return std::tolower(c); });
+    bool ok;
+    if (ext == ".igs" || ext == ".iges")
+        ok = readIGES(path_to_string(filename).c_str());
+    else if (ext == ".gltf" || ext == ".glb" || ext == ".obj")
+        ok = readMesh(filename, ext != ".obj");
+    else
+        ok = readSTEP(path_to_string(filename).c_str());
+    if (!ok) {
         std::cout << "error loading " << filename << std::endl;
         loaded = false;
         return;
@@ -111,6 +214,7 @@ STEPImporter::STEPImporter(const std::filesystem::path &filename)
 
     m_assy = XCAFDoc_DocumentTool::ShapeTool(m_doc->Main());
     m_color = XCAFDoc_DocumentTool::ColorTool(m_doc->Main());
+    m_vis = XCAFDoc_DocumentTool::VisMaterialTool(m_doc->Main());
 }
 
 void STEPImporter::processWire(const TopoDS_Wire &wire, const glm::dmat4 &mat)
@@ -511,6 +615,275 @@ std::vector<TopoDS_Shape> STEPImporter::get_shapes()
     return r;
 }
 
+static std::array<float, 3> to_srgb(const Quantity_Color &c)
+{
+    double r, g, b;
+    c.Values(r, g, b, Quantity_TOC_sRGB);
+    return {static_cast<float>(r), static_cast<float>(g), static_cast<float>(b)};
+}
+
+// What colour a texture is overall, for a material that takes its colour from one
+// (we have no textures, just one colour per object).
+static std::optional<std::array<float, 3>> get_average_color(const Handle(Image_Texture) & tex)
+{
+    if (tex.IsNull())
+        return {};
+    std::string bytes;
+    try {
+        if (!tex->DataBuffer().IsNull()) {
+            bytes.assign(reinterpret_cast<const char *>(tex->DataBuffer()->Data()), tex->DataBuffer()->Size());
+        }
+        else if (!tex->FilePath().IsEmpty()) {
+            std::ifstream ifs(path_from_string(tex->FilePath().ToCString()), std::ios::binary);
+            if (!ifs)
+                return {};
+            if (tex->FileOffset() > 0)
+                ifs.seekg(tex->FileOffset());
+            if (tex->FileLength() > 0) {
+                bytes.resize(tex->FileLength());
+                ifs.read(bytes.data(), bytes.size());
+            }
+            else {
+                bytes.assign(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+            }
+        }
+        if (bytes.empty())
+            return {};
+        auto texture = Gdk::Texture::create_from_bytes(Glib::Bytes::create(bytes.data(), bytes.size()));
+        const int w = texture->get_width(), h = texture->get_height();
+        std::vector<guchar> px(static_cast<size_t>(w) * h * 4);
+        texture->download(px.data(), w * 4);
+        double sum[3] = {0, 0, 0};
+        size_t n = 0;
+        const int step = std::max(1, std::max(w, h) / 128);
+        for (int y = 0; y < h; y += step) {
+            for (int x = 0; x < w; x += step) {
+                const auto p = px.data() + (static_cast<size_t>(y) * w + x) * 4; // BGRA
+                if (p[3] < 128)
+                    continue;
+                sum[0] += p[2];
+                sum[1] += p[1];
+                sum[2] += p[0];
+                n++;
+            }
+        }
+        if (!n)
+            return {};
+        return std::array<float, 3>{static_cast<float>(sum[0] / n / 255), static_cast<float>(sum[1] / n / 255),
+                                    static_cast<float>(sum[2] / n / 255)};
+    }
+    catch (...) {
+        return {};
+    }
+}
+
+static std::optional<STEPImporter::Appearance> appearance_from_material(const Handle(XCAFDoc_VisMaterial) & mat)
+{
+    if (mat.IsNull() || mat->IsEmpty())
+        return {};
+    STEPImporter::Appearance a;
+    a.has_material = true;
+    if (!mat->RawName().IsNull())
+        a.name = mat->RawName()->ToCString();
+    if (mat->HasPbrMaterial()) {
+        const auto &pbr = mat->PbrMaterial();
+        a.color = to_srgb(pbr.BaseColor.GetRGB());
+        if (auto tc = get_average_color(pbr.BaseColorTexture)) {
+            for (int i = 0; i < 3; i++)
+                a.color->at(i) *= tc->at(i);
+        }
+        a.alpha = pbr.BaseColor.Alpha();
+        a.metallic = pbr.Metallic;
+        a.roughness = pbr.Roughness;
+    }
+    else {
+        const auto &com = mat->CommonMaterial();
+        a.color = to_srgb(com.DiffuseColor);
+        if (auto tc = get_average_color(com.DiffuseTexture)) {
+            for (int i = 0; i < 3; i++)
+                a.color->at(i) *= tc->at(i);
+        }
+        a.alpha = 1 - com.Transparency;
+        a.roughness = 1 - std::clamp(com.Shininess, 0.f, 1.f);
+    }
+    return a;
+}
+
+std::optional<STEPImporter::Appearance> STEPImporter::get_appearance(const TDF_Label &label)
+{
+    if (label.IsNull())
+        return {};
+    if (!m_vis.IsNull()) {
+        if (auto a = appearance_from_material(m_vis->GetShapeMaterial(label)))
+            return a;
+    }
+    Quantity_Color col;
+    if (m_color->GetColor(label, XCAFDoc_ColorSurf, col) || m_color->GetColor(label, XCAFDoc_ColorGen, col)) {
+        Appearance a;
+        a.color = to_srgb(col);
+        return a;
+    }
+    return {};
+}
+
+std::optional<STEPImporter::Appearance> STEPImporter::get_appearance(const TopoDS_Shape &shape)
+{
+    if (auto it = m_shape_appearance.find(shape.TShape().get()); it != m_shape_appearance.end())
+        return it->second;
+    if (!m_vis.IsNull()) {
+        if (auto a = appearance_from_material(m_vis->GetShapeMaterial(shape)))
+            return a;
+    }
+    Quantity_Color col;
+    if (m_color->GetColor(shape, XCAFDoc_ColorSurf, col) || m_color->GetColor(shape, XCAFDoc_ColorGen, col)) {
+        Appearance a;
+        a.color = to_srgb(col);
+        return a;
+    }
+    return {};
+}
+
+static std::string get_label_name(const TDF_Label &label)
+{
+    Handle(TDataStd_Name) name;
+    if (!label.IsNull() && label.FindAttribute(TDataStd_Name::GetID(), name)) {
+        TCollection_AsciiString s(name->Get(), '?');
+        return s.ToCString();
+    }
+    return {};
+}
+
+void STEPImporter::collect_parts(const TDF_Label &label, const TopLoc_Location &loc,
+                                 std::optional<Appearance> inherited, std::vector<ImportPart> &parts)
+{
+    if (auto a = get_appearance(label))
+        inherited = a;
+    const auto label_name = get_label_name(label);
+    if (inherited && inherited->name.empty())
+        inherited->name = label_name;
+
+    if (XCAFDoc_ShapeTool::IsAssembly(label)) {
+        TDF_LabelSequence components;
+        XCAFDoc_ShapeTool::GetComponents(label, components);
+        for (const auto &comp : components) {
+            TDF_Label ref;
+            if (!XCAFDoc_ShapeTool::GetReferredShape(comp, ref))
+                continue;
+            auto app = inherited;
+            if (auto a = get_appearance(comp))
+                app = a; // the instance's own colour wins
+            collect_parts(ref, loc * XCAFDoc_ShapeTool::GetLocation(comp), app, parts);
+        }
+        return;
+    }
+
+    const auto shape = XCAFDoc_ShapeTool::GetShape(label);
+    if (shape.IsNull())
+        return;
+
+    auto add = [&parts, &label_name](const std::optional<Appearance> &app, const TopoDS_Shape &sh) -> ImportPart & {
+        Appearance a = app.value_or(Appearance{});
+        auto it = std::ranges::find_if(parts, [&a](const ImportPart &p) {
+            Appearance pa;
+            pa.color = p.color;
+            pa.has_material = p.has_material;
+            pa.metallic = p.metallic;
+            pa.roughness = p.roughness;
+            pa.alpha = p.alpha;
+            return pa.key() == a.key();
+        });
+        if (it == parts.end()) {
+            auto &p = parts.emplace_back();
+            p.name = label_name.size() ? label_name : a.name; // material names tend to be "Material.001"
+            p.color = a.color;
+            p.has_material = a.has_material;
+            p.metallic = a.metallic;
+            p.roughness = a.roughness;
+            p.alpha = a.alpha;
+            it = parts.end() - 1;
+        }
+        it->shapes.push_back(sh);
+        return *it;
+    };
+
+    // solids stay whole, in the colour most of their faces have
+    bool any_solid = false;
+    for (TopExp_Explorer ex(shape, TopAbs_SOLID); ex.More(); ex.Next()) {
+        any_solid = true;
+        auto app = get_appearance(ex.Current());
+        if (!app) {
+            // by its faces: the colour covering most of it, the others are kept per face
+            std::map<std::tuple<std::array<int, 3>, bool, int, int, int>, std::pair<double, std::optional<Appearance>>>
+                    areas;
+            for (TopExp_Explorer fx(ex.Current(), TopAbs_FACE); fx.More(); fx.Next()) {
+                GProp_GProps props;
+                BRepGProp::SurfaceProperties(fx.Current(), props);
+                const auto fa = get_appearance(fx.Current());
+                auto &c = areas[fa.value_or(inherited.value_or(Appearance{})).key()];
+                c.first += props.Mass();
+                c.second = fa ? fa : inherited;
+            }
+            double best = -1;
+            for (const auto &[k, v] : areas) {
+                if (v.first > best) {
+                    best = v.first;
+                    app = v.second;
+                }
+            }
+            if (!app)
+                app = inherited;
+            auto &part = add(app, ex.Current().Moved(loc));
+            const auto main_key = app.value_or(Appearance{}).key();
+            for (TopExp_Explorer fx(ex.Current(), TopAbs_FACE); fx.More(); fx.Next()) {
+                const auto fa = get_appearance(fx.Current());
+                if (fa && fa->color && fa->key() != main_key)
+                    part.face_colors.emplace_back(fx.Current(), *fa->color);
+            }
+            continue;
+        }
+        add(app, ex.Current().Moved(loc));
+    }
+    if (any_solid)
+        return;
+    // meshes and loose faces, face by face
+    for (TopExp_Explorer fx(shape, TopAbs_FACE); fx.More(); fx.Next()) {
+        auto app = get_appearance(fx.Current());
+        if (!app)
+            app = inherited;
+        add(app, fx.Current().Moved(loc));
+    }
+}
+
+std::vector<ImportPart> STEPImporter::get_parts()
+{
+    std::vector<ImportPart> parts;
+    NCollection_Sequence<TDF_Label> frshapes;
+    m_assy->GetFreeShapes(frshapes);
+    // what's coloured or has a material, by shape regardless of where it's placed
+    m_shape_appearance.clear();
+    TDF_LabelSequence labels;
+    m_assy->GetShapes(labels);
+    for (const auto &label : labels) {
+        TDF_LabelSequence subs;
+        XCAFDoc_ShapeTool::GetSubShapes(label, subs);
+        subs.Prepend(label);
+        for (const auto &l : subs) {
+            if (auto app = get_appearance(l)) {
+                const auto sh = XCAFDoc_ShapeTool::GetShape(l);
+                if (!sh.IsNull())
+                    m_shape_appearance.emplace(sh.TShape().get(), *app);
+            }
+        }
+    }
+    for (const auto &label : frshapes)
+        collect_parts(label, TopLoc_Location(), {}, parts);
+    for (size_t i = 0; i < parts.size(); i++) {
+        if (parts.at(i).name.empty())
+            parts.at(i).name = "Part " + std::to_string(i + 1);
+    }
+    return parts;
+}
+
 Result import(const std::filesystem::path &filename)
 {
     STEPImporter importer(filename);
@@ -526,6 +899,7 @@ std::shared_ptr<const Shapes> import_shapes(const std::filesystem::path &filenam
         return {};
     auto shapes = std ::make_shared<Shapes>();
     shapes->shapes = importer.get_shapes();
+    shapes->parts = importer.get_parts();
     return shapes;
 }
 

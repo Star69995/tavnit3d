@@ -32,7 +32,7 @@ if target_machine.system() == 'darwin'
     opencascade_link_args += ['-Wl,-L' + brew_prefix]
   endif
   if opencascade.version().version_compare('>=7.8')
-    opencascade_link_args += ['-lTKDESTEP', '-lTKernel', '-lTKXCAF', '-lTKXSBase', '-lTKBRep', '-lTKCDF', '-lTKLCAF', '-lTKMath', '-lTKMesh', '-lTKTopAlgo', '-lTKPrim', '-lTKBO', '-lTKShHealing', '-lTKG3d', '-lTKGeomBase', '-lTKHLR', '-lTKDESTL', '-lTKFillet', '-lTKOffset']
+    opencascade_link_args += ['-lTKDESTEP', '-lTKDEIGES', '-lTKDEGLTF', '-lTKDEOBJ', '-lTKRWMesh', '-lTKService', '-lTKDE', '-lTKernel', '-lTKXCAF', '-lTKXSBase', '-lTKBRep', '-lTKCDF', '-lTKLCAF', '-lTKMath', '-lTKMesh', '-lTKTopAlgo', '-lTKPrim', '-lTKBO', '-lTKShHealing', '-lTKG3d', '-lTKGeomBase', '-lTKHLR', '-lTKDESTL', '-lTKFillet', '-lTKOffset']
   else
     opencascade_link_args += ['-lTKSTEP', '-lTKernel', '-lTKXCAF', '-lTKXSBase', '-lTKBRep', '-lTKCDF', '-lTKXDESTEP', '-lTKLCAF', '-lTKMath', '-lTKMesh', '-lTKTopAlgo', '-lTKPrim', '-lTKBO', '-lTKShHealing', '-lTKG3d', '-lTKGeomBase', '-lTKHLR', '-lTKSTL', '-lTKFillet', '-lTKOffset']
   endif
@@ -58,6 +58,7 @@ src_common = files(
   'src/document/decal.cpp',
   'src/document/light.cpp',
   'src/document/export_gltf.cpp',
+  'src/document/import_objects.cpp',
   'src/util/update_check.cpp',
   'src/document/entity/entity.cpp',
   'src/document/entity/entity_and_point.cpp',
@@ -184,6 +185,7 @@ src_gui = files(
   'src/editor/editor_primitives.cpp',
   'src/editor/editor_object.cpp',
   'src/editor/editor_decal.cpp',
+  'src/editor/editor_import.cpp',
   'src/editor/editor_object_drag.cpp',
   'src/editor/editor_update.cpp',
   'src/editor/editor_grid_settings.cpp',

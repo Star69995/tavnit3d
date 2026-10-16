@@ -589,7 +589,7 @@ void Editor::duplicate_object(const UUID &doc_uu, const UUID &body_uu)
     {
         Bnd_Box box;
         for (const auto &bs : get_body_solids(doc, UUID(), [&body_uu](const UUID &b) { return b == body_uu; }))
-            BRepBndLib::AddOptimal(bs.solid->m_shape_acc, box, false, false);
+            BRepBndLib::Add(bs.solid->m_shape_acc, box, true); // by the triangles: meshes have no surfaces
         if (!box.IsVoid()) {
             double x0, y0, z0, x1, y1, z1;
             box.Get(x0, y0, z0, x1, y1, z1);

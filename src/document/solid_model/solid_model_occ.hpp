@@ -10,6 +10,8 @@ public:
     TopoDS_Shape m_shape;
     TopoDS_Shape m_shape_acc;
     Color m_color;
+    // faces with a colour of their own (by TShape), as imported
+    std::map<const TopoDS_TShape *, Color> m_face_colors;
 
 
     void export_stl(const std::filesystem::path &path) const override;

@@ -995,6 +995,11 @@ void Editor::init_header_bar()
         bu->set_label("Export");
         bu->set_menu_model(menu);
         m_win.get_header_bar().pack_end(*bu);
+
+        auto import = Gtk::make_managed<Gtk::Button>("Import");
+        import->set_tooltip_text("Add objects from a STEP, IGES, glTF or OBJ file, with their colours and materials");
+        import->signal_clicked().connect([this] { on_import_object(); });
+        m_win.get_header_bar().pack_end(*import);
     }
 
     {

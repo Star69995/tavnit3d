@@ -5,6 +5,7 @@
 #include "ientity_movable3d.hpp"
 #include "ientity_delete_point.hpp"
 #include <filesystem>
+#include <optional>
 #include "import_step/imported_step.hpp"
 
 namespace dune3d {
@@ -47,6 +48,8 @@ public:
 
     std::shared_ptr<const ImportedSTEP> m_imported;
     bool m_include_in_solid_model = false;
+    // only this part of the file (see ImportPart), for objects imported with "Import object"
+    std::optional<unsigned int> m_part;
 
     void update_imported(const std::filesystem::path &containing_dir);
 
