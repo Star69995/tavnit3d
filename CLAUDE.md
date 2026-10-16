@@ -73,6 +73,9 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   `pick_body` in face_sketch.cpp, hidden bodies excluded via
   `Editor::body_is_shown`); dragging moves objects that have X/Y position
   dimensions (`src/editor/editor_object_drag.cpp`).
+- Duplicate (object panel / Ctrl+D, `src/document/duplicate.*`): copies a
+  body's groups/entities/constraints with new UUIDs; constraints on
+  generated entities are re-pointed by matching geometry after generating.
 - Combine (object panel, `src/document/combine.*`): solid model operation
   group in a new body after everything; the sources get hidden, not removed.
 - Tool palette: `Editor::create_action_bar_button` / `add_action_bar_section`.
@@ -82,3 +85,13 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   in the status bar next to the workplane label.
 - `meson.build`: core sources form the `dune3d_common` static library shared
   by the app and the tests; tests stub `Preferences::get()`.
+
+## Gotchas
+
+- nlohmann enum conversions defined with NLOHMANN_JSON_SERIALIZE_ENUM in one
+  .cpp must not be instantiated elsewhere (`j.get<EnumType>()` in another
+  file silently instantiates a numeric version and the linker may pick it
+  for everyone - this broke loading documents once). Use helpers like
+  `Entity::deserialize_type`.
+- Changing a document directly (not through a tool): mark groups pending
+  *before* deleting anything they reference, then `m_core.rebuild(...)`.

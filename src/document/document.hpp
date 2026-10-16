@@ -152,6 +152,7 @@ public:
         return *p;
     }
 
+    void insert_group(std::unique_ptr<Group> group, const UUID &after);
     template <typename T> T &insert_group(const UUID &uu, const UUID &after)
     {
         auto en = std::make_unique<T>(uu);
@@ -225,7 +226,6 @@ private:
 
     void update_group_if_less(UUID &uu, const UUID &new_group);
 
-    void insert_group(std::unique_ptr<Group> group, const UUID &after);
     bool apply_version_upgrades();
 };
 } // namespace dune3d

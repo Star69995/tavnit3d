@@ -285,7 +285,8 @@ void Editor::run_automation(const std::filesystem::path &script)
                 }
             }
             else if (cmd == "quit") {
-                m_win.close();
+                // no "save changes?" prompt for automated runs
+                m_win.get_application()->quit();
                 return;
             }
             else {

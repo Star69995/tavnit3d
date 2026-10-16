@@ -52,6 +52,7 @@ src_common = files(
   'src/document/face_sketch.cpp',
   'src/document/body_solids.cpp',
   'src/document/combine.cpp',
+  'src/document/duplicate.cpp',
   'src/document/entity/entity.cpp',
   'src/document/entity/entity_and_point.cpp',
   'src/document/entity/entity_line3d.cpp',
@@ -512,6 +513,12 @@ test_primitives = executable('test_primitives',
     build_by_default: true,
 )
 test('primitives', test_primitives, timeout: 120)
+# drives the real app through tests/ui/*.txt; needs a display
+foreach ui_test : ['smoke']
+    test('ui-' + ui_test, prog_python,
+        args: [files('tests/run_ui_test.py'), dune3d, files('tests/ui' / ui_test + '.txt')],
+        timeout: 240)
+endforeach
 
 dune3d_py = shared_module('dune3d_py',
     [src_common, src_python],

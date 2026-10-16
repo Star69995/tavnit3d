@@ -155,6 +155,11 @@ NLOHMANN_JSON_SERIALIZE_ENUM(Entity::Type, {
                                                    {Entity::Type::PICTURE, "picture"},
                                            })
 
+Entity::Type Entity::deserialize_type(const json &j)
+{
+    return j.get<Type>();
+}
+
 json Entity::serialize_type(Type type)
 {
     return type;

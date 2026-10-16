@@ -230,6 +230,12 @@ void Editor::init_actions()
     connect_action(ActionID::ADD_TUBE, [this](auto &a) { add_primitive(Primitive::TUBE); });
     connect_action(ActionID::ADD_TORUS, [this](auto &a) { add_primitive(Primitive::TORUS); });
     connect_action(ActionID::ADD_WEDGE, [this](auto &a) { add_primitive(Primitive::WEDGE); });
+    connect_action(ActionID::DUPLICATE_OBJECT, [this](auto &a) {
+        if (m_object_editor)
+            duplicate_object(m_object_editor_doc, m_object_editor_body);
+        else
+            m_workspace_browser->show_toast("Click an object first, then duplicate it");
+    });
     connect_action(ActionID::COMBINE_OBJECTS, [this](auto &a) {
         if (m_object_combine_dropdown)
             m_object_combine_dropdown->grab_focus();
@@ -528,7 +534,7 @@ void Editor::update_action_sensitivity(const std::set<SelectableRef> &sel)
     m_action_sensitivity[ActionID::TOGGLE_SHOW_ONLY_SOLID_MODEL] = m_core.has_documents();
     m_action_sensitivity[ActionID::NEW_DOCUMENT] = true;
     for (auto act : {ActionID::ADD_BOX, ActionID::ADD_CYLINDER, ActionID::ADD_SPHERE, ActionID::ADD_CONE, ActionID::ADD_TUBE,
-                     ActionID::ADD_TORUS, ActionID::ADD_WEDGE, ActionID::COMBINE_OBJECTS})
+                     ActionID::ADD_TORUS, ActionID::ADD_WEDGE, ActionID::COMBINE_OBJECTS, ActionID::DUPLICATE_OBJECT})
         m_action_sensitivity[act] = m_core.has_documents();
     m_action_sensitivity[ActionID::TOGGLE_WORKPLANE] = m_core.has_documents();
     m_action_sensitivity[ActionID::SELECT_UNDERCONSTRAINED] = m_core.has_documents();

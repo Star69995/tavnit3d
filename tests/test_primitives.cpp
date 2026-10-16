@@ -2,10 +2,12 @@
 // sketch is fully constrained, it solves cleanly and the resulting solid
 // has the expected volume.
 #include "document/document.hpp"
+#include "nlohmann/json.hpp"
 #include "document/primitives.hpp"
 #include "document/face_sketch.hpp"
 #include "document/body_solids.hpp"
 #include "document/combine.hpp"
+#include "document/duplicate.hpp"
 #include <filesystem>
 #include <fstream>
 #include "document/entity/entity_workplane.hpp"
@@ -17,6 +19,7 @@
 #include <BRepBndLib.hxx>
 #include <Bnd_Box.hxx>
 #include "document/constraint/constraint_point_distance_hv.hpp"
+#include "document/constraint/constraint_diameter_radius.hpp"
 #include "document/entity/entity.hpp"
 #include <GProp_GProps.hxx>
 #include <cmath>
@@ -261,6 +264,66 @@ static void test_more_shapes()
     }
 }
 
+static void test_duplicate()
+{
+    std::cout << "duplicate" << std::endl;
+    for (auto prim : {Primitive::BOX, Primitive::CYLINDER, Primitive::SPHERE, Primitive::TORUS, Primitive::WEDGE}) {
+        Document doc;
+        auto &orig = add_primitive(doc, doc.get_groups_sorted().back()->m_uuid, prim);
+        doc.update_pending();
+        const auto orig_body = orig.find_body(doc).group.m_uuid;
+        const auto orig_name = doc.get_group(orig_body).m_body->m_name;
+        doc.get_group(orig_body).m_body->m_material = Body::Material::METAL; // body settings travel along
+        const auto orig_vol = body_volume(doc, orig);
+        auto &copy_first = duplicate_body(doc, orig_body, {40, 0});
+        doc.update_pending();
+        const auto copy_last = doc.get_groups_sorted().back();
+        const auto label = orig_name + ": ";
+        check(copy_first.m_body && copy_first.m_body->m_name == orig_name + " copy", label + "copy is a new body");
+        for (auto gr : doc.get_groups_sorted()) {
+            check(gr->m_solve_result == SolveResult::OKAY, label + "'" + gr->m_name + "' solves");
+            if (gr->get_type() == Group::Type::SKETCH && gr->m_body && gr->get_index() > 1)
+                check(gr->m_dof == 0, label + "'" + gr->m_name + "' fully constrained (dof=" + std::to_string(gr->m_dof) + ")");
+        }
+        const auto vol = body_volume(doc, *copy_last);
+        check(std::abs(vol - orig_vol) / orig_vol < 1e-3, label + "same volume " + std::to_string(vol));
+        double x0, y0, z0, x1, y1, z1;
+        solid_bbox(doc, *copy_last).Get(x0, y0, z0, x1, y1, z1);
+        check(std::abs((x0 + x1) / 2 - 40) < 1e-3, label + "moved by the offset (x=" + std::to_string((x0 + x1) / 2) + ")");
+
+        // the copy's dimensions are its own
+        for (auto &[uu, co] : doc.m_constraints) {
+            if (co->m_group == copy_first.m_uuid) {
+                if (auto d = dynamic_cast<ConstraintDiameterRadius *>(co.get()))
+                    d->m_distance *= 1.5;
+            }
+        }
+        doc.set_group_solve_pending(copy_first.m_uuid);
+        doc.update_pending();
+        check(std::abs(body_volume(doc, orig) - orig_vol) / orig_vol < 1e-3, label + "original unchanged by edits to the copy");
+    }
+}
+
+static void test_save_load()
+{
+    std::cout << "save and load" << std::endl;
+    Document doc;
+    auto &box = add_primitive(doc, doc.get_groups_sorted().back()->m_uuid, Primitive::BOX);
+    auto &torus = add_primitive(doc, box.m_uuid, Primitive::TORUS, {40, 0});
+    doc.update_pending();
+    doc.get_group(torus.find_body(doc).group.m_uuid).m_body->m_material = Body::Material::GLOSSY;
+    const auto j = doc.serialize();
+    Document loaded{j, std::filesystem::temp_directory_path()};
+    check(loaded.m_entities.size() == doc.m_entities.size(),
+          "entities survive (" + std::to_string(loaded.m_entities.size()) + "/" + std::to_string(doc.m_entities.size()) + ")");
+    check(loaded.m_constraints.size() == doc.m_constraints.size(), "constraints survive");
+    check(loaded.get_groups().size() == doc.get_groups().size(), "groups survive");
+    auto &ltorus = loaded.get_group(torus.m_uuid);
+    check(std::abs(body_volume(loaded, ltorus) - body_volume(doc, torus)) < 1e-3, "same solid after loading");
+    check(loaded.get_group(ltorus.find_body(loaded).group.m_uuid).m_body->m_material == Body::Material::GLOSSY,
+          "material survives");
+}
+
 static void test_combine()
 {
     std::cout << "combine" << std::endl;
@@ -302,6 +365,8 @@ int main()
     test_export_stl();
     test_combine();
     test_more_shapes();
+    test_duplicate();
+    test_save_load();
     std::cout << (failures ? "FAILED" : "PASSED") << " (" << failures << " failures)" << std::endl;
     return failures ? 1 : 0;
 }

@@ -58,6 +58,9 @@ public:
 
     virtual ~Entity();
     static json serialize_type(Type type);
+    // counterpart of serialize_type; use these rather than json conversions of Type
+    // outside entity.cpp, where the string mapping isn't visible
+    static Type deserialize_type(const json &j);
     virtual json serialize() const;
 
     static std::unique_ptr<Entity> new_from_json(const UUID &uu, const json &j,

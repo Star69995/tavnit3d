@@ -1,0 +1,25 @@
+# Basic workflow without errors: shapes, object panel, duplicate, combine, export menu entries.
+# Paths: @SAMPLE@ is replaced by the runner.
+action NEW_DOCUMENT
+wait 800
+button Box
+button Cylinder
+button Sphere
+button Cone
+button Tube
+button Torus
+button Wedge
+tree Box
+field Width 30
+field Material Metal
+button Duplicate
+wait 800
+tree Cylinder
+field X 10
+button Subtract
+wait 800
+action VIEW_FIT
+action UNDO
+action REDO
+windows
+quit

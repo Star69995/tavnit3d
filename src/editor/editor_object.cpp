@@ -17,6 +17,11 @@
 #include "document/face_sketch.hpp"
 #include "document/body_solids.hpp"
 #include "document/combine.hpp"
+#include "document/duplicate.hpp"
+#include "document/primitives.hpp"
+#include "document/solid_model/solid_model_occ.hpp"
+#include <BRepBndLib.hxx>
+#include <Bnd_Box.hxx>
 #include "canvas/canvas.hpp"
 #include <ranges>
 
@@ -311,7 +316,7 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
     {
         auto box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 5);
         box->set_margin_top(10);
-        auto features = Gtk::make_managed<Gtk::Button>("Edit features");
+        auto features = Gtk::make_managed<Gtk::Button>("Features");
         features->set_tooltip_text("Show the object's last feature");
         features->set_hexpand(true);
         const UUID last_group = groups.size() ? groups.back()->m_uuid : body_uu;
@@ -325,7 +330,14 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
             update_group_editor();
         });
         box->append(*features);
-        auto del = Gtk::make_managed<Gtk::Button>("Delete object");
+        auto dup = Gtk::make_managed<Gtk::Button>("Duplicate");
+        dup->set_tooltip_text("Make a copy next to it (Ctrl+D)");
+        dup->set_hexpand(true);
+        dup->signal_clicked().connect([this, doc_uu, body_uu] {
+            Glib::signal_idle().connect_once([this, doc_uu, body_uu] { duplicate_object(doc_uu, body_uu); });
+        });
+        box->append(*dup);
+        auto del = Gtk::make_managed<Gtk::Button>("Delete");
         del->add_css_class("destructive-action");
         del->set_hexpand(true);
         del->set_sensitive(body_group.can_delete());
@@ -339,6 +351,38 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
 
     m_group_editor_box->append(*grid);
     canvas_update_keep_selection(); // highlight it
+}
+
+void Editor::duplicate_object(const UUID &doc_uu, const UUID &body_uu)
+{
+    if (m_core.tool_is_active())
+        return;
+    auto &doc = m_core.get_idocument_info(doc_uu).get_document();
+    m_core.set_current_document(doc_uu);
+    // next to everything else, keeping its y
+    glm::dvec2 offset{0, 0};
+    {
+        Bnd_Box box;
+        for (const auto &bs : get_body_solids(doc, UUID(), [&body_uu](const UUID &b) { return b == body_uu; }))
+            BRepBndLib::AddOptimal(bs.solid->m_shape_acc, box, false, false);
+        if (!box.IsVoid()) {
+            double x0, y0, z0, x1, y1, z1;
+            box.Get(x0, y0, z0, x1, y1, z1);
+            const auto spot = find_free_spot(doc, doc.get_groups_sorted().back()->m_uuid, x1 - x0);
+            offset.x = std::round(spot.x - (x0 + x1) / 2);
+        }
+    }
+    auto &copy = duplicate_body(doc, body_uu, offset);
+    const auto last = doc.get_groups_sorted().back()->m_uuid;
+    get_current_document_view().m_current_group = last;
+    m_core.set_current_group(last);
+    m_core.set_needs_save();
+    m_core.rebuild("duplicate object");
+    m_workspace_browser->update_documents(get_current_document_views());
+    set_current_group(last);
+    if (!m_workspace_browser->select_body(doc_uu, copy.m_uuid))
+        show_object_editor(doc_uu, copy.m_uuid);
+    zoom_to_fit(true);
 }
 
 void Editor::combine_bodies(const UUID &doc_uu, const UUID &body_a, const UUID &body_b,

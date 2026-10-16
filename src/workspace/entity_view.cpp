@@ -18,7 +18,9 @@ std::unique_ptr<EntityView> EntityView::create_for_type(EntityType type)
 
 std::unique_ptr<EntityView> EntityView::new_from_json(const json &j)
 {
-    const auto type = j.at("type").get<EntityType>();
+    // not j.get<EntityType>(): without the string mapping (in entity.cpp) in sight that
+    // would instantiate a numeric conversion, and the linker may then pick it for everyone
+    const auto type = Entity::deserialize_type(j.at("type"));
     switch (type) {
     case EntityType::STEP:
         return std::make_unique<EntityViewSTEP>(j);
