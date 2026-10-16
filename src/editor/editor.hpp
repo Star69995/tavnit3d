@@ -236,6 +236,12 @@ private:
     void set_snap_to_grid(bool snap);
     Glib::RefPtr<Gio::SimpleAction> m_show_other_sketches_action;
     void set_show_other_sketches(bool show);
+    Gtk::Window *m_grid_settings_window = nullptr;
+
+public:
+    void show_grid_settings();
+
+private:
     void add_tool_action(ActionToolID id, const std::string &action);
     Gtk::Scale *m_curvature_comb_scale = nullptr;
 

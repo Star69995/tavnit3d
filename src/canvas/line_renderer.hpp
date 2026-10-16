@@ -15,6 +15,8 @@ private:
     GLuint m_screen_scale_loc;
     GLuint m_screen_loc;
     GLuint m_line_width_loc;
+    GLuint m_grid_color_loc;
+    GLuint m_grid_major_color_loc;
 
 
     static GLuint create_vao(GLuint program, GLuint &vbo_out);

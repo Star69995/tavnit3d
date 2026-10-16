@@ -26,12 +26,14 @@ namespace dune3d {
  *   drag X1 Y1 X2 Y2         left-button drag on the 3D view (moves an object grabbed at X1 Y1)
  *   rotate X1 Y1 X2 Y2       orbit the view as if dragging between the points
  *   button LABEL             click the visible, enabled button whose text is LABEL
- *   field LABEL VALUE        type VALUE into the input next to the panel label LABEL
+ *   field LABEL VALUE        type VALUE into the input next to the panel label LABEL (any window);
+ *                            LABEL=VALUE if the value has spaces
  *   tree NAME [N]            select the N-th (from 0) row called NAME in the workspace browser
  *   escape / commit          cancel / confirm the active tool
  *   winaction NAME [PARAM]   activate a window action, e.g. "winaction grid_step 5"
  *   size W H                 resize the window
  *   shot PATH                save the window contents as PNG
+ *   shotwin TITLE PATH       the same for another window, e.g. a dialog
  *   update-check             check for updates as from the menu (feed: DUNE3D_UPDATE_FEED)
  *   windows                  print the visible windows and their texts (dialogs aren't in shots)
  *   quit                     close the app
@@ -175,20 +177,29 @@ void Editor::run_automation(const std::filesystem::path &script)
                 delay = 400;
             }
             else if (cmd == "button") {
-                auto bu = find_widget<Gtk::Button>(m_win, [&rest](Gtk::Button &b) {
-                    return b.is_sensitive() && (b.get_label() == rest || widget_text(b) == rest);
-                });
+                Gtk::Button *bu = nullptr;
+                for (auto w : Gtk::Window::list_toplevels()) {
+                    if (!bu && w->get_visible())
+                        bu = find_widget<Gtk::Button>(*w, [&rest](Gtk::Button &b) {
+                            return b.is_sensitive() && (b.get_label() == rest || widget_text(b) == rest);
+                        });
+                }
                 if (!bu)
                     throw std::runtime_error("no button " + rest);
                 bu->activate();
                 delay = 600;
             }
             else if (cmd == "field") {
-                // the value is the last word; labels may have spaces ("Round edges 2")
-                const auto sp = rest.rfind(' ');
+                // "LABEL VALUE" with the value being the last word ("Round edges 2"),
+                // or "LABEL=VALUE" when the value has spaces too ("Cell size=5 mm")
+                const auto sp = rest.find('=') != std::string::npos ? rest.find('=') : rest.rfind(' ');
                 const auto label = rest.substr(0, sp);
                 const auto value = rest.substr(sp + 1);
-                auto la = find_widget<Gtk::Label>(m_win, [&label](Gtk::Label &l) { return l.get_text() == label; });
+                Gtk::Label *la = nullptr;
+                for (auto w : Gtk::Window::list_toplevels()) {
+                    if (!la && w->get_visible())
+                        la = find_widget<Gtk::Label>(*w, [&label](Gtk::Label &l) { return l.get_text() == label; });
+                }
                 auto grid = la ? dynamic_cast<Gtk::Grid *>(la->get_parent()) : nullptr;
                 if (!grid)
                     throw std::runtime_error("no field " + label);
@@ -203,6 +214,12 @@ void Editor::run_automation(const std::filesystem::path &script)
                 else if (auto en = dynamic_cast<Gtk::Entry *>(widget)) {
                     en->set_text(value);
                     g_signal_emit_by_name(en->gobj(), "activate"); // like pressing Enter
+                }
+                else if (auto range = dynamic_cast<Gtk::Range *>(widget)) {
+                    range->set_value(std::stod(value));
+                }
+                else if (auto sw = dynamic_cast<Gtk::Switch *>(widget)) {
+                    sw->set_active(value == "on" || value == "1" || value == "true");
                 }
                 else if (auto dd = dynamic_cast<Gtk::DropDown *>(widget)) {
                     auto model = dd->get_model();
@@ -252,17 +269,32 @@ void Editor::run_automation(const std::filesystem::path &script)
                 m_win.set_default_size(w, h);
                 delay = 800;
             }
-            else if (cmd == "shot") {
-                const int w = m_win.get_width(), h = m_win.get_height();
-                auto paintable = gtk_widget_paintable_new(GTK_WIDGET(m_win.gobj()));
+            else if (cmd == "shot" || cmd == "shotwin") {
+                // shot PATH: the main window; shotwin TITLE... PATH: another window by its title
+                Gtk::Window *win = &m_win;
+                std::string path = rest;
+                if (cmd == "shotwin") {
+                    const auto sp = rest.rfind(' ');
+                    const auto title = rest.substr(0, sp);
+                    path = rest.substr(sp + 1);
+                    win = nullptr;
+                    for (auto w : Gtk::Window::list_toplevels()) {
+                        if (w->get_visible() && w->get_title() == title)
+                            win = w;
+                    }
+                    if (!win)
+                        throw std::runtime_error("no window " + title);
+                }
+                const int w = win->get_width(), h = win->get_height();
+                auto paintable = gtk_widget_paintable_new(GTK_WIDGET(win->gobj()));
                 auto snapshot = gtk_snapshot_new();
                 gdk_paintable_snapshot(paintable, snapshot, w, h);
                 auto node = gtk_snapshot_free_to_node(snapshot);
                 if (node) {
-                    auto renderer = gtk_native_get_renderer(GTK_NATIVE(m_win.gobj()));
+                    auto renderer = gtk_native_get_renderer(GTK_NATIVE(win->gobj()));
                     graphene_rect_t bounds = GRAPHENE_RECT_INIT(0, 0, (float)w, (float)h);
                     auto texture = gsk_renderer_render_texture(renderer, node, &bounds);
-                    gdk_texture_save_to_png(texture, rest.c_str());
+                    gdk_texture_save_to_png(texture, path.c_str());
                     g_object_unref(texture);
                     gsk_render_node_unref(node);
                 }

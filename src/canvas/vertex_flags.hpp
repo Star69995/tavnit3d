@@ -14,6 +14,8 @@ enum class CanvasVertexFlags : uint32_t {
     HIGHLIGHT = (1 << 5),
     SCREEN = (1 << 6),
     LINE_THIN = (1 << 7),
+    GRID = (1 << 8),
+    GRID_MAJOR = (1 << 9),
     COLOR_MASK = SELECTED | HOVER | INACTIVE | CONSTRAINT | CONSTRUCTION | HIGHLIGHT,
 };
 }

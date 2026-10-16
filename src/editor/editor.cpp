@@ -296,6 +296,8 @@ void Editor::init_view_options()
             grid_menu->append(std::string(step) + " mm", std::string("win.grid_step('") + step + "')");
         m_view_options_menu->append_submenu("Grid size", grid_menu);
         m_view_options_menu->append("Snap to grid", "win.snap_to_grid");
+        m_win.add_action("grid_settings", [this] { show_grid_settings(); });
+        m_view_options_menu->append("Grid settings…", "win.grid_settings");
     }
     {
         auto it = Gio::MenuItem::create("scale", "scale");

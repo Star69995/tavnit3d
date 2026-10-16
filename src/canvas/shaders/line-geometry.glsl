@@ -4,6 +4,8 @@ layout(triangle_strip, max_vertices = 4) out;
 
 uniform mat3 screen;
 uniform float line_width;
+uniform vec4 grid_color;
+uniform vec4 grid_major_color;
 
 in vec4 p1_to_geom[1];
 in vec4 p2_to_geom[1];
@@ -13,11 +15,18 @@ flat out uint pick_to_frag;
 flat out vec3 color_to_frag;
 flat out float depth_shift_to_frag;
 flat out float select_alpha_to_frag;
+flat out float alpha_to_frag;
 
 ##ubo
 
 void main() {
 	color_to_frag = get_color(flags_to_geom[0]);
+	alpha_to_frag = 1.;
+	if(FLAG_IS_SET(flags_to_geom[0], VERTEX_FLAG_GRID) && !FLAG_IS_SET(flags_to_geom[0], VERTEX_FLAG_HOVER | VERTEX_FLAG_SELECTED)) {
+		vec4 c = FLAG_IS_SET(flags_to_geom[0], VERTEX_FLAG_GRID_MAJOR) ? grid_major_color : grid_color;
+		color_to_frag = c.rgb;
+		alpha_to_frag = c.a;
+	}
 	depth_shift_to_frag = get_depth_shift(flags_to_geom[0]);
 	select_alpha_to_frag = get_select_alpha(flags_to_geom[0]);
 	if(test_peel(pick_to_geom[0]))

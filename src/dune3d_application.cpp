@@ -123,7 +123,8 @@ void Dune3DApplication::on_startup()
 
 void Dune3DApplication::on_shutdown()
 {
-    m_user_config.save(get_user_config_filename());
+    if (!getenv("DUNE3D_AUTOMATION")) // automated runs leave recent files etc. alone
+        m_user_config.save(get_user_config_filename());
     Gtk::Application::on_shutdown();
 }
 

@@ -29,6 +29,8 @@ public:
     enum class LineStyle {
         DEFAULT = 0,
         THIN = (1 << 0),
+        GRID = (1 << 1),       // thin, in the grid colour and opacity
+        GRID_MAJOR = (1 << 2), // same, for major grid lines
     };
 
     virtual void set_chunk(unsigned int chunk) = 0;

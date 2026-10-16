@@ -11,6 +11,7 @@
 #include "workspace/iworkspace_view.hpp"
 #include "workspace/entity_view.hpp"
 #include "util/util.hpp"
+#include "preferences/preferences.hpp"
 #include "util/glm_util.hpp"
 #include "icon_texture_id.hpp"
 #include "core/idocument_provider.hpp"
@@ -454,13 +455,22 @@ void Renderer::visit(const EntityWorkplane &wrkpl)
         || (!active_wrkpl && wrkpl.m_uuid == m_doc->get_reference_group().get_workplane_xy_uuid())) {
         AutoSaveRestore asr{*this};
         m_ca.set_selection_invisible(true);
-        m_ca.set_line_style(ICanvas::LineStyle::THIN);
         m_ca.set_vertex_inactive(true);
         const float step = get_grid_step(m_workspace_view->get_grid_step(), sz.x * 2, sz.y * 2);
-        for (float x = std::ceil(-sz.x / step) * step; x <= sz.x + step * 1e-3f; x += step)
+        const int major = Preferences::get().canvas.appearance.grid_major_every;
+        auto style = [major](float v, float step) {
+            const auto n = std::lround(v / step);
+            return (major > 0 && n % major == 0) ? ICanvas::LineStyle::GRID_MAJOR : ICanvas::LineStyle::GRID;
+        };
+        for (float x = std::ceil(-sz.x / step) * step; x <= sz.x + step * 1e-3f; x += step) {
+            m_ca.set_line_style(style(x, step));
             m_ca.draw_line(wrkpl.transform(glm::vec2(x, -sz.y)), wrkpl.transform(glm::vec2(x, sz.y)));
-        for (float y = std::ceil(-sz.y / step) * step; y <= sz.y + step * 1e-3f; y += step)
+        }
+        for (float y = std::ceil(-sz.y / step) * step; y <= sz.y + step * 1e-3f; y += step) {
+            m_ca.set_line_style(style(y, step));
             m_ca.draw_line(wrkpl.transform(glm::vec2(-sz.x, y)), wrkpl.transform(glm::vec2(sz.x, y)));
+        }
+        m_ca.set_line_style(ICanvas::LineStyle::THIN);
 
         // say how big a cell is, in the corner next to the plane's name
         const auto s = std::min(sz.x, sz.y) / 5;

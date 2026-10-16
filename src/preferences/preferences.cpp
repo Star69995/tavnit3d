@@ -245,6 +245,10 @@ json CanvasPreferences::serialize() const
     json j = serialize_colors();
     j["msaa"] = appearance.msaa;
     j["line_width"] = appearance.line_width;
+    j["grid_color"] = appearance.grid_color;
+    j["grid_alpha"] = appearance.grid_alpha;
+    j["grid_major_alpha"] = appearance.grid_major_alpha;
+    j["grid_major_every"] = appearance.grid_major_every;
     j["selection_glow"] = appearance.selection_glow;
     j["enable_animations"] = enable_animations;
     j["connect_curvature_combs"] = connect_curvature_combs;
@@ -284,6 +288,14 @@ void CanvasPreferences::load_from_json(const json &j)
 {
     appearance.msaa = std::max(j.value("msaa", 0), 1);
     appearance.line_width = j.value("line_width", 2.5);
+    {
+        const Appearance defaults;
+        if (j.contains("grid_color"))
+            appearance.grid_color = j.at("grid_color").get<Color>();
+        appearance.grid_alpha = j.value("grid_alpha", defaults.grid_alpha);
+        appearance.grid_major_alpha = j.value("grid_major_alpha", defaults.grid_major_alpha);
+        appearance.grid_major_every = j.value("grid_major_every", defaults.grid_major_every);
+    }
     appearance.selection_glow = j.value("selection_glow", false);
     enable_animations = j.value("enable_animations", true);
     connect_curvature_combs = j.value("connect_curvature_combs", true);
@@ -315,6 +327,8 @@ json Preferences::serialize() const
 
 void Preferences::save()
 {
+    if (getenv("DUNE3D_AUTOMATION"))
+        return; // automated runs mustn't change the user's settings
     const auto prefs_filename = get_preferences_filename();
 
     json j = serialize();

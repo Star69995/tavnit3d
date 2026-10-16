@@ -103,7 +103,7 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 ## Releasing (installer + in-app updates)
 
 1. Bump `app_version` in `src/util/branding.hpp` (installer reads it).
-2. `toolsuild.cmd test dist installer` -> `dist/Tavnit3D-<ver>-setup.exe`
+2. `tools\build.cmd test dist installer` -> `dist/Tavnit3D-<ver>-setup.exe`
    (Inno Setup 6: `winget install JRSoftware.InnoSetup`).
 3. Publish a GitHub release tagged `v<ver>` on the repo named by
    `update_repo` in branding.hpp, with the setup.exe attached (asset name
@@ -115,3 +115,66 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
    `src/editor/editor_update.cpp`. `DUNE3D_UPDATE_FEED=<url>` overrides the
    feed for testing (a local `python -m http.server` with a release.json
    works; the end-to-end flow was tested that way).
+
+## General rules (copied from ~/.claude/CLAUDE.md)
+
+Inlined here so they also apply when working from another machine. Keep in
+sync with the global file when it changes.
+
+### Dev/test servers
+
+If a task would benefit from a running dev/test server (`npm run dev`,
+`wrangler dev`, etc.) — e.g. visual verification of a UI change — you may
+start one yourself on your own initiative, in the background. Always close
+it yourself when you're done with it (don't leave it running after your
+task finishes). Don't stop a server you didn't start yourself without
+asking first — it may be the user's own long-running terminal session. If
+you notice orphaned/duplicate server processes you didn't start, point them
+out and ask before killing them.
+
+Exception: if the user explicitly asks you to start/stop/restart a server,
+or a project's own CLAUDE.md explicitly says otherwise, follow that instead.
+
+### Code quality
+
+Favor reuse over duplication: before writing new code, check for an
+existing function/component/util that already does this and extend or
+call it instead of copying logic.
+
+### Docs upkeep
+
+After a structural change (new module, moved files, changed architecture
+or conventions), update the project's CLAUDE.md (or create one if it
+doesn't exist yet) and its README.md in the same pass, so neither drifts
+from the code.
+
+### New web UI projects
+
+When a project has (or starts getting) a browser-based UI and its
+CLAUDE.md doesn't yet contain the web UI rules, add them yourself
+(create the CLAUDE.md if it doesn't exist), without waiting to be asked.
+
+Always inline the actual rule text from `~/.claude/web-ui-rules.md`
+into the project's own CLAUDE.md - never a bare `@~/.claude/web-ui-rules.md`
+import. The user wants the rules visible/portable on any machine or to
+any collaborator, even without this home directory.
+
+### OG image upkeep
+
+After making a significant visual/design change to a project's UI (layout,
+color scheme, hero/main content, major section additions or removals),
+ask the user whether the Open Graph preview image (`og:image`) should be
+regenerated to match, rather than silently leaving a stale image in
+place. A small copy tweak or unrelated bug fix doesn't warrant asking.
+
+### Visual/browser testing tools
+
+If a task needs real visual verification (checking a rendered layout,
+responsive breakpoints, screenshots) and no browser/screenshot tool is
+currently available, you may install and register one yourself on your own
+initiative — e.g. adding `chrome-devtools-mcp` via
+`claude mcp add -s user chrome-devtools -- npx -y chrome-devtools-mcp@latest`.
+Prefer user scope (`-s user`) so it's available across all projects, unless
+the task calls for a project-specific tool. Note that a newly added MCP
+server's tools only become available starting the next session — say so
+rather than assuming it's usable immediately in the current one.

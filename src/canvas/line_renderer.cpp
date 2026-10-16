@@ -67,6 +67,8 @@ void LineRenderer::realize()
     GET_LOC(this, screen_scale);
     GET_LOC(this, screen);
     GET_LOC(this, line_width);
+    GET_LOC(this, grid_color);
+    GET_LOC(this, grid_major_color);
 }
 
 void LineRenderer::push()
@@ -124,6 +126,12 @@ void LineRenderer::render()
     load_uniforms();
 
     glUniform1f(m_line_width_loc, m_ca.m_appearance.line_width * m_ca.m_scale_factor);
+    {
+        const auto &a = m_ca.m_appearance;
+        const auto &c = a.grid_color;
+        glUniform4f(m_grid_color_loc, c.r, c.g, c.b, a.grid_alpha);
+        glUniform4f(m_grid_major_color_loc, c.r, c.g, c.b, a.grid_major_alpha);
+    }
 
     glDrawArrays(GL_POINTS, 0, m_ca.m_n_lines);
     glColorMaski(1, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);

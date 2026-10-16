@@ -1538,6 +1538,10 @@ void Canvas::apply_line_flags(VertexFlags &flags)
 {
     if (m_state.line_style == LineStyle::THIN)
         flags |= VertexFlags::LINE_THIN;
+    else if (m_state.line_style == LineStyle::GRID)
+        flags |= VertexFlags::LINE_THIN | VertexFlags::GRID;
+    else if (m_state.line_style == LineStyle::GRID_MAJOR)
+        flags |= VertexFlags::LINE_THIN | VertexFlags::GRID | VertexFlags::GRID_MAJOR;
 }
 
 static const float char_space = 1;
