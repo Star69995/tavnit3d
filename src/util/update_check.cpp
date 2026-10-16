@@ -125,6 +125,11 @@ void download_file(const std::string &url, const std::filesystem::path &dest,
 }
 
 #ifdef _WIN32
+std::string launch_failure_message()
+{
+    return "Couldn't start the installer.";
+}
+
 bool launch_installer(const std::filesystem::path &installer)
 {
     std::wstring cmd = L"\"" + installer.wstring() + L"\" /SILENT /SUPPRESSMSGBOXES /NORESTART /RELAUNCH=1";
@@ -140,6 +145,15 @@ bool launch_installer(const std::filesystem::path &installer)
     return true;
 }
 #else
+std::string launch_failure_message()
+{
+    const char *appimage = getenv("APPIMAGE");
+    if (!appimage || !*appimage)
+        return "Automatic updates work when you run the AppImage. Download the new version from the release page.";
+    return std::string("Couldn't replace ") + appimage
+           + ". Move the file to a folder you can write to, or download the new version from the release page.";
+}
+
 bool launch_installer(const std::filesystem::path &downloaded)
 {
     namespace fs = std::filesystem;

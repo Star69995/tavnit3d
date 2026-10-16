@@ -123,7 +123,7 @@ void Editor::start_update(const UpdateInfo &info)
             });
             on_main([this, dest] {
                 if (!launch_installer(dest)) {
-                    show_update_message("Couldn't start the installer.", true);
+                    show_update_message(launch_failure_message(), true);
                     return;
                 }
                 // the installer waits for us to exit, then starts the new version

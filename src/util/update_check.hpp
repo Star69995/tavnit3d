@@ -41,4 +41,7 @@ void download_file(const std::string &url, const std::filesystem::path &dest,
 // (e.g. not running from an AppImage). The caller quits right after a true.
 bool launch_installer(const std::filesystem::path &installer);
 
+// What to tell the user when launch_installer returned false.
+std::string launch_failure_message();
+
 } // namespace dune3d
