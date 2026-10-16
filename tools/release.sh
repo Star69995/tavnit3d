@@ -35,8 +35,9 @@ if ! git branch -r --contains "$head" | grep -q "origin/"; then
     echo "HEAD isn't pushed to origin - push it first"; exit 1
 fi
 
-# through a MSYS2 UCRT64 login shell like tools\build.cmd: the toolchain needs its environment
-MSYSTEM=UCRT64 /c/msys64/usr/bin/bash.exe -lc "cd '$(pwd -W 2>/dev/null || pwd)' && tools/build.sh test dist installer"
+# through tools\build.cmd (cmd is a native process): started straight from Git
+# Bash, MSYS2's bash loses the Windows environment (LOCALAPPDATA, USERPROFILE)
+cmd //c "tools\build.cmd test dist installer"
 setup="dist/Tavnit3D-$ver-setup.exe"
 portable="dist/Tavnit3D-$ver-portable.zip"
 latest_zip=$(ls -t dist/dune3d-*.zip | head -1)
