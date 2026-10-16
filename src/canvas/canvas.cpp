@@ -217,26 +217,8 @@ void Canvas::setup_controllers()
     {
         auto controller = Gtk::GestureClick::create();
         controller->set_button(1);
-        controller->signal_pressed().connect([this, controller](int n_press, double x, double y) {
-            if (m_selection_mode == SelectionMode::NORMAL || m_selection_mode == SelectionMode::HOVER) {
-                m_drag_selection_start = {x, y};
-                m_dragging = true;
-            }
-            m_last_selection_mode = m_selection_mode;
-            m_is_long_click = false;
-            m_long_click_start = {x, y};
-
-            if (m_hover_selection.has_value()) {
-                m_long_click_connection = Glib::signal_timeout().connect(
-                        [this] {
-                            m_selection_peeling = true;
-                            m_is_long_click = true;
-                            queue_draw();
-                            return false;
-                        },
-                        500);
-            }
-        });
+        controller->signal_pressed().connect(
+                [this](int n_press, double x, double y) { handle_left_press(x, y); });
         controller->signal_released().connect([this](int n_press, double x, double y) { handle_click_release(); });
         controller->signal_cancel().connect([this](auto seq) {
             m_long_click_connection.disconnect();
@@ -278,69 +260,7 @@ void Canvas::setup_controllers()
     }
 
     auto controller = Gtk::EventControllerMotion::create();
-    controller->signal_motion().connect([this](double x, double y) {
-        if (glm::length(m_long_click_start - glm::vec2(x, y)) > 16)
-            m_long_click_connection.disconnect();
-
-        grab_focus();
-        const bool moved = m_last_x != x || m_last_y != y;
-        if (!moved)
-            return;
-        m_last_x = x;
-        m_last_y = y;
-        m_cursor_pos.x = (x / m_width) * 2. - 1.;
-        m_cursor_pos.y = (y / m_height) * -2. + 1.;
-        if (m_dragging && !m_inhibit_drag_selection) {
-            if (m_selection_mode == SelectionMode::DRAG) {
-                update_drag_selection({x, y});
-                return;
-            }
-            const auto delta_drag = glm::abs(glm::mat2(1, 0, 0, -1) * (glm::vec2(x, y) - m_drag_selection_start));
-            if (delta_drag.x > 16 || delta_drag.y > 16) {
-                set_selection_mode(SelectionMode::DRAG);
-                m_box_selection.set_active(true);
-                auto mask = VertexFlags::HOVER;
-                clear_flags(mask);
-                update_drag_selection({x, y});
-                return;
-            }
-        }
-        const auto delta = glm::mat2(1, 0, 0, -1) * (glm::vec2(x, y) - m_pointer_pos_orig);
-        if (m_pan_mode == PanMode::ROTATE) {
-            if (m_rotation_scheme == RotationScheme::ARCBALL) {
-                const auto a = project_arcball(m_pointer_pos_orig);
-                const auto b = project_arcball({x, y});
-                auto q = quat_from_between_vectors(a, b);
-                set_cam_quat(m_cam_quat_orig * glm::inverse(q * q));
-            }
-            else {
-                glm::quat rz;
-                if (m_rotation_scheme != RotationScheme::LEGACY)
-                    rz = glm::angleAxis(glm::radians((delta.x / m_width) * -360),
-                                        glm::rotate(m_cam_quat_orig, glm::vec3(0, 1, 0)));
-                else
-                    rz = glm::angleAxis(glm::radians((delta.x / m_width) * -360), glm::vec3(0, 0, 1));
-
-                auto rx = glm::angleAxis(glm::radians((delta.y / m_height) * 90),
-                                         glm::rotate(m_cam_quat_orig, glm::vec3(1, 0, 0)));
-                set_cam_quat(rz * rx * m_cam_quat_orig);
-            }
-        }
-        else if (m_pan_mode == PanMode::TILT) {
-            auto ry = glm::angleAxis(glm::radians((delta.x / m_width) * 90),
-                                     glm::rotate(m_cam_quat_orig, glm::vec3(0, 0, 1)));
-            set_cam_quat(ry * m_cam_quat_orig);
-        }
-        else if (m_pan_mode == PanMode::MOVE) {
-            m_center = m_center_orig + get_center_shift(delta);
-            m_signal_view_changed.emit();
-            queue_draw();
-        }
-        else {
-            update_hover_selection();
-            m_signal_cursor_moved.emit();
-        }
-    });
+    controller->signal_motion().connect(sigc::mem_fun(*this, &Canvas::handle_motion));
     add_controller(controller);
 }
 
@@ -368,6 +288,110 @@ bool Canvas::cancel_drag_selection()
     set_selection_mode(SelectionMode::NORMAL);
     m_signal_selection_changed.emit();
     return true;
+}
+
+void Canvas::handle_left_press(double x, double y)
+{
+    if (m_selection_mode == SelectionMode::NORMAL || m_selection_mode == SelectionMode::HOVER) {
+        m_drag_selection_start = {x, y};
+        m_dragging = true;
+    }
+    m_last_selection_mode = m_selection_mode;
+    m_is_long_click = false;
+    m_long_click_start = {x, y};
+
+    if (m_hover_selection.has_value()) {
+        m_long_click_connection = Glib::signal_timeout().connect(
+                [this] {
+                    m_selection_peeling = true;
+                    m_is_long_click = true;
+                    queue_draw();
+                    return false;
+                },
+                500);
+    }
+}
+
+void Canvas::handle_motion(double x, double y)
+{
+    if (glm::length(m_long_click_start - glm::vec2(x, y)) > 16)
+        m_long_click_connection.disconnect();
+
+    grab_focus();
+    const bool moved = m_last_x != x || m_last_y != y;
+    if (!moved)
+        return;
+    m_last_x = x;
+    m_last_y = y;
+    m_cursor_pos.x = (x / m_width) * 2. - 1.;
+    m_cursor_pos.y = (y / m_height) * -2. + 1.;
+    if (m_dragging && !m_inhibit_drag_selection) {
+        if (m_selection_mode == SelectionMode::DRAG) {
+            update_drag_selection({x, y});
+            return;
+        }
+        const auto delta_drag = glm::abs(glm::mat2(1, 0, 0, -1) * (glm::vec2(x, y) - m_drag_selection_start));
+        if (delta_drag.x > 16 || delta_drag.y > 16) {
+            set_selection_mode(SelectionMode::DRAG);
+            m_box_selection.set_active(true);
+            auto mask = VertexFlags::HOVER;
+            clear_flags(mask);
+            update_drag_selection({x, y});
+            return;
+        }
+    }
+    const auto delta = glm::mat2(1, 0, 0, -1) * (glm::vec2(x, y) - m_pointer_pos_orig);
+    if (m_pan_mode == PanMode::ROTATE) {
+        if (m_rotation_scheme == RotationScheme::ARCBALL) {
+            const auto a = project_arcball(m_pointer_pos_orig);
+            const auto b = project_arcball({x, y});
+            auto q = quat_from_between_vectors(a, b);
+            set_cam_quat(m_cam_quat_orig * glm::inverse(q * q));
+        }
+        else {
+            glm::quat rz;
+            if (m_rotation_scheme != RotationScheme::LEGACY)
+                rz = glm::angleAxis(glm::radians((delta.x / m_width) * -360),
+                                    glm::rotate(m_cam_quat_orig, glm::vec3(0, 1, 0)));
+            else
+                rz = glm::angleAxis(glm::radians((delta.x / m_width) * -360), glm::vec3(0, 0, 1));
+
+            auto rx = glm::angleAxis(glm::radians((delta.y / m_height) * 90),
+                                     glm::rotate(m_cam_quat_orig, glm::vec3(1, 0, 0)));
+            set_cam_quat(rz * rx * m_cam_quat_orig);
+        }
+    }
+    else if (m_pan_mode == PanMode::TILT) {
+        auto ry = glm::angleAxis(glm::radians((delta.x / m_width) * 90),
+                                 glm::rotate(m_cam_quat_orig, glm::vec3(0, 0, 1)));
+        set_cam_quat(ry * m_cam_quat_orig);
+    }
+    else if (m_pan_mode == PanMode::MOVE) {
+        m_center = m_center_orig + get_center_shift(delta);
+        m_signal_view_changed.emit();
+        queue_draw();
+    }
+    else {
+        update_hover_selection();
+        m_signal_cursor_moved.emit();
+    }
+}
+
+void Canvas::inject_click(double x, double y)
+{
+    handle_motion(x, y);
+    handle_left_press(x, y);
+    handle_click_release();
+}
+
+void Canvas::inject_rotate(glm::vec2 from, glm::vec2 to)
+{
+    handle_motion(from.x, from.y);
+    m_pointer_pos_orig = from;
+    m_pan_mode = PanMode::ROTATE;
+    m_cam_quat_orig = m_cam_quat;
+    handle_motion(to.x, to.y);
+    end_pan();
 }
 
 void Canvas::handle_click_release()

@@ -198,6 +198,14 @@ public:
 
     void end_pan();
 
+    // feed pointer input directly, for UI automation (canvas-local pixels)
+    void inject_motion(double x, double y)
+    {
+        handle_motion(x, y);
+    }
+    void inject_click(double x, double y);
+    void inject_rotate(glm::vec2 from, glm::vec2 to);
+
     void set_highlight(const std::set<SelectableRef> &sr);
 
     void inhibit_drag_selection()
@@ -373,6 +381,8 @@ private:
     PanMode m_pan_mode = PanMode::NONE;
 
     void handle_click_release();
+    void handle_left_press(double x, double y);
+    void handle_motion(double x, double y);
 
     glm::vec2 m_pointer_pos_orig;
     glm::quat m_cam_quat_orig;

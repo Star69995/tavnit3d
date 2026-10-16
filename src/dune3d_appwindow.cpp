@@ -1,5 +1,9 @@
 #include "dune3d_application.hpp"
 #include "dune3d_appwindow.hpp"
+#ifdef G_OS_WIN32
+#include <gdk/win32/gdkwin32.h>
+#include <windows.h>
+#endif
 #include "canvas/canvas.hpp"
 #include "widgets/axes_cube.hpp"
 #include "widgets/recent_item_box.hpp"
@@ -226,6 +230,19 @@ Dune3DAppWindow::Dune3DAppWindow(BaseObjectType *cobject, const Glib::RefPtr<Gtk
     set_icon_name("dune3d");
 
     m_editor.init();
+    if (auto script = Glib::getenv("DUNE3D_AUTOMATION"); script.size()) {
+        set_default_size(1400, 900);
+#ifdef G_OS_WIN32
+        // keep automated runs out of the user's way: park the window off-screen, unfocused
+        signal_realize().connect(
+                [this] {
+                    auto hwnd = reinterpret_cast<HWND>(gdk_win32_surface_get_handle(get_surface()->gobj()));
+                    SetWindowPos(hwnd, HWND_BOTTOM, -5000, 0, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
+                },
+                true);
+#endif
+        m_editor.run_automation(std::string(script));
+    }
 }
 
 void Dune3DAppWindow::set_key_hint_label_text(const std::string &s)

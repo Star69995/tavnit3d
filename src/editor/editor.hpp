@@ -92,6 +92,11 @@ private:
     void on_add_group(Group::Type group_type, WorkspaceBrowserAddGroupMode add_group_mode);
     void finish_add_group(Group *new_group);
     void add_primitive(Primitive primitive);
+
+public:
+    void run_automation(const std::filesystem::path &script);
+
+private:
     void on_delete_current_group();
     void on_move_group(Document::MoveGroup op);
     void on_workspace_browser_document_checked(const UUID &uu_doc, bool checked);

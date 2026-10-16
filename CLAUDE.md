@@ -24,6 +24,11 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 
 ## Visual checks
 
+- Preferred: `tools/ui.sh script.txt` - in-app UI automation
+  (`src/editor/editor_automation.cpp`, enabled by `DUNE3D_AUTOMATION`):
+  actions by catalog name, pointer on the 3D view, buttons/fields by label,
+  `shot PATH` renders the window to PNG. Never touches the real mouse or
+  keyboard; the window is parked off-screen. Popover menus aren't in shots.
 - `tools/drive.ps1 -Steps "click:X:Y,key:...,drag:...,shot:PATH"` launches
   `build/dune3d.exe`, sizes the window to 1400x900, drives it with real mouse
   and key input and captures only the app window (PrintWindow), then closes
