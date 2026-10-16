@@ -1105,7 +1105,7 @@ bool WorkspaceBrowser::select_row_by_name(const std::string &name, unsigned int 
             row_name = it->m_name.get_value();
         else if (auto it = std::dynamic_pointer_cast<GroupItem>(row->get_item()))
             row_name = it->m_name.get_value();
-        if (row_name == name && nth-- == 0) {
+        if (row_name.raw() == name && nth-- == 0) {
             m_selection_model->select_item(i, true);
             return true;
         }

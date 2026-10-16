@@ -257,7 +257,7 @@ void Editor::run_automation(const std::filesystem::path &script)
                 for (auto w : Gtk::Window::list_toplevels()) {
                     if (!bu && w->get_visible())
                         bu = find_widget<Gtk::Button>(*w, [&rest](Gtk::Button &b) {
-                            return b.is_sensitive() && (b.get_label() == rest || widget_text(b) == rest);
+                            return b.is_sensitive() && (b.get_label().raw() == rest || widget_text(b) == rest);
                         });
                 }
                 if (!bu)
