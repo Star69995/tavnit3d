@@ -128,6 +128,14 @@ private:
     void update_object_drag();
     void end_object_drag();
     void close_object_editor();
+    struct PlacingDecal {
+        UUID doc, body;
+        std::shared_ptr<const class PictureData> data;
+    };
+    std::optional<PlacingDecal> m_placing_decal; // waiting for the click on the object
+    void choose_decal_picture(const UUID &doc_uu, const UUID &body_uu);
+    void begin_place_decal(const UUID &doc_uu, const UUID &body_uu, const std::filesystem::path &picture);
+    bool place_decal_under_cursor();
     Gtk::Widget *m_object_editor = nullptr;
     bool m_object_editor_keep = false; // skip the next refresh, the change came from the panel
     UUID m_object_editor_doc;

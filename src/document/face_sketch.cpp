@@ -24,6 +24,8 @@ namespace {
 struct RayHit {
     TopoDS_Face face;
     UUID body;
+    gp_Pnt point;
+    double u, v; // on the face's surface
 };
 
 // nearest face of any body's final solid along the ray
@@ -42,7 +44,7 @@ std::optional<RayHit> cast_ray(const Document &doc, const UUID &upto, const glm:
         for (int i = 1; i <= inter.NbPnt(); i++) {
             if (inter.WParameter(i) < best_w) {
                 best_w = inter.WParameter(i);
-                best = RayHit{inter.Face(i), bs.body};
+                best = RayHit{inter.Face(i), bs.body, inter.Pnt(i), inter.UParameter(i), inter.VParameter(i)};
             }
         }
     }
@@ -56,6 +58,33 @@ std::optional<UUID> pick_body(const Document &doc, const UUID &upto, const glm::
     if (auto hit = cast_ray(doc, upto, ray_origin, ray_dir, filter))
         return hit->body;
     return {};
+}
+
+std::optional<SurfacePick> pick_surface_point(const Document &doc, const UUID &upto, const glm::dvec3 &ray_origin,
+                                              const glm::dvec3 &ray_dir, const BodyFilter &filter)
+{
+    auto hit = cast_ray(doc, upto, ray_origin, ray_dir, filter);
+    if (!hit || hit->face.IsNull())
+        return {};
+    BRepAdaptor_Surface surf{hit->face};
+    gp_Pnt p;
+    gp_Vec du, dv;
+    surf.D1(hit->u, hit->v, p, du, dv);
+    auto n = du.Crossed(dv);
+    if (n.Magnitude() < 1e-12)
+        return {};
+    n.Normalize();
+    if (hit->face.Orientation() == TopAbs_REVERSED)
+        n.Reverse();
+    glm::dvec3 normal{n.X(), n.Y(), n.Z()};
+    // the side facing the viewer
+    if (glm::dot(normal, ray_dir) > 0)
+        normal = -normal;
+    return SurfacePick{
+            .body = hit->body,
+            .point = {hit->point.X(), hit->point.Y(), hit->point.Z()},
+            .normal = normal,
+    };
 }
 
 std::optional<FacePick> pick_planar_face(const Document &doc, const UUID &upto, const glm::dvec3 &ray_origin,

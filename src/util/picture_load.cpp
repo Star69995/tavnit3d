@@ -11,6 +11,7 @@
 #include "logger/logger.hpp"
 #include "document/document.hpp"
 #include "document/entity/entity_picture.hpp"
+#include "document/group/group.hpp"
 
 namespace dune3d {
 
@@ -180,41 +181,50 @@ static std::shared_ptr<PictureData> read_png(const std::filesystem::path &filena
 void pictures_load(Document &doc, const std::filesystem::path &dir)
 {
     std::map<UUID, std::shared_ptr<const PictureData>> pictures_loaded;
+    auto load = [&](const UUID &data_uuid) -> std::shared_ptr<const PictureData> {
+        if (pictures_loaded.count(data_uuid))
+            return pictures_loaded.at(data_uuid);
+        const auto pic_filename = build_pic_filename(dir, data_uuid);
+        try {
+            if (std::filesystem::is_regular_file(pic_filename)) {
+                auto data = read_png(pic_filename, data_uuid);
+                pictures_loaded.emplace(data_uuid, data);
+                return data;
+            }
+        }
+        catch (const std::exception &e) {
+            Logger::log_warning("error loading picture " + (std::string)data_uuid, Logger::Domain::PICTURE,
+                                e.what());
+        }
+        catch (...) {
+            Logger::log_warning("error loading picture " + (std::string)data_uuid, Logger::Domain::PICTURE);
+        }
+        return nullptr;
+    };
     for (auto &[uu, en] : doc.m_entities) {
         if (auto pic = dynamic_cast<EntityPicture *>(en.get())) {
-            if (pictures_loaded.count(pic->m_data_uuid)) {
-                pic->m_data = pictures_loaded.at(pic->m_data_uuid);
-            }
-            else {
-                const auto pic_filename = build_pic_filename(dir, pic->m_data_uuid);
-                try {
-                    if (std::filesystem::is_regular_file(pic_filename)) {
-                        auto data = read_png(pic_filename, pic->m_data_uuid);
-                        pic->m_data = data;
-                        pictures_loaded.emplace(pic->m_data_uuid, data);
-                    }
-                }
-                catch (const std::exception &e) {
-                    Logger::log_warning("error loading picture " + (std::string)pic->m_data_uuid,
-                                        Logger::Domain::PICTURE, e.what());
-                }
-                catch (...) {
-                    Logger::log_warning("error loading picture " + (std::string)pic->m_data_uuid,
-                                        Logger::Domain::PICTURE);
-                }
-            }
+            if (auto data = load(pic->m_data_uuid))
+                pic->m_data = data;
+        }
+    }
+    for (auto &[uu, group] : doc.get_groups()) {
+        if (!group->m_body)
+            continue;
+        for (auto &decal : group->m_body->m_decals) {
+            if (auto data = load(decal.m_data_uuid))
+                decal.m_data = data;
         }
     }
 }
 
-static void write_png_to_file(const std::filesystem::path &filename, const PictureData &data)
+// writes through `write`, called with each chunk of the PNG file
+static void write_png(const PictureData &data, png_rw_ptr write, void *user)
 {
     /* PNG complains about "Image width or height is zero in IHDR" */
     if (data.m_width == 0 || data.m_height == 0) {
         throw std::runtime_error("image must not have zero width or height");
     }
 
-    FileWrapper fp{filename, "wb"};
     PngWrite png;
 
     int status = 0;
@@ -229,7 +239,7 @@ static void write_png_to_file(const std::filesystem::path &filename, const Pictu
         throw std::runtime_error("png error");
     }
 
-    png_init_io(png.png, fp.fp);
+    png_set_write_fn(png.png, user, write, nullptr);
 
     const int bpc = 8;
     const int png_color_type = PNG_COLOR_TYPE_RGB_ALPHA;
@@ -253,6 +263,32 @@ static void write_png_to_file(const std::filesystem::path &filename, const Pictu
     png_write_png(png.png, png.info, PNG_TRANSFORM_IDENTITY, NULL);
 }
 
+static void write_png_to_file(const std::filesystem::path &filename, const PictureData &data)
+{
+    FileWrapper fp{filename, "wb"};
+    write_png(
+            data,
+            [](png_structp png, png_bytep buf, size_t size) {
+                auto fp = static_cast<FILE *>(png_get_io_ptr(png));
+                if (fwrite(buf, 1, size, fp) != size)
+                    png_error(png, "write error");
+            },
+            fp.fp);
+}
+
+std::vector<uint8_t> picture_data_to_png(const PictureData &data)
+{
+    std::vector<uint8_t> out;
+    write_png(
+            data,
+            [](png_structp png, png_bytep buf, size_t size) {
+                auto v = static_cast<std::vector<uint8_t> *>(png_get_io_ptr(png));
+                v->insert(v->end(), buf, buf + size);
+            },
+            &out);
+    return out;
+}
+
 void pictures_save(const Document &doc, const std::filesystem::path &dir)
 {
     std::set<UUID> pictures_to_delete;
@@ -266,29 +302,35 @@ void pictures_save(const Document &doc, const std::filesystem::path &dir)
     }
 
 
-    for (auto &[uu, en] : doc.m_entities) {
-        if (auto pic = dynamic_cast<EntityPicture *>(en.get())) {
-            if (pic->m_data) {
-                try {
-                    auto data = pic->m_data;
-                    pictures_to_delete.erase(pic->m_data->m_uuid);
-                    auto pic_filename = build_pic_filename(dir, pic->m_data->m_uuid);
-                    if (!std::filesystem::exists(pic_filename)) {
-                        if (!std::filesystem::is_directory(dir))
-                            std::filesystem::create_directory(dir);
-                        write_png_to_file(pic_filename, *data);
-                    }
-                }
-                catch (const std::exception &e) {
-                    Logger::log_warning("error saving picture " + (std::string)pic->m_data->m_uuid,
-                                        Logger::Domain::PICTURE, e.what());
-                }
-                catch (...) {
-                    Logger::log_warning("error saving picture " + (std::string)pic->m_data->m_uuid,
-                                        Logger::Domain::PICTURE);
-                }
+    auto save = [&](const std::shared_ptr<const PictureData> &data) {
+        if (!data)
+            return;
+        try {
+            pictures_to_delete.erase(data->m_uuid);
+            auto pic_filename = build_pic_filename(dir, data->m_uuid);
+            if (!std::filesystem::exists(pic_filename)) {
+                if (!std::filesystem::is_directory(dir))
+                    std::filesystem::create_directory(dir);
+                write_png_to_file(pic_filename, *data);
             }
         }
+        catch (const std::exception &e) {
+            Logger::log_warning("error saving picture " + (std::string)data->m_uuid, Logger::Domain::PICTURE,
+                                e.what());
+        }
+        catch (...) {
+            Logger::log_warning("error saving picture " + (std::string)data->m_uuid, Logger::Domain::PICTURE);
+        }
+    };
+    for (auto &[uu, en] : doc.m_entities) {
+        if (auto pic = dynamic_cast<EntityPicture *>(en.get()))
+            save(pic->m_data);
+    }
+    for (auto &[uu, group] : doc.get_groups()) {
+        if (!group->m_body)
+            continue;
+        for (auto &decal : group->m_body->m_decals)
+            save(decal.m_data);
     }
     for (const auto &it : pictures_to_delete) {
         const auto filename = build_pic_filename(dir, it);

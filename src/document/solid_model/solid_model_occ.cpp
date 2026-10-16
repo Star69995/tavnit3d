@@ -149,6 +149,8 @@ bool Triangulator::processFace(const TopoDS_Face &face, const glm::dmat4 &mat_in
         face_out.vertices.push_back(vertex);
     }
 
+    // the triangulation follows the surface; a reversed face points the other way
+    const bool reversed = face.Orientation() == TopAbs_REVERSED;
     face_out.normals.reserve(triangulation->NbNodes());
     for (int i = 1; i <= triangulation->NbNodes(); i++) {
 #ifdef HORIZON_NEW_OCC
@@ -162,7 +164,9 @@ bool Triangulator::processFace(const TopoDS_Face &face, const glm::dmat4 &mat_in
         glm::vec4 vg(x, y, z, 0);
 #endif
         auto vt = mat * vg;
-        vt /= vt.length();
+        vt = glm::normalize(vt);
+        if (reversed)
+            vt = -vt;
         face_out.normals.emplace_back(vt.x, vt.y, vt.z);
     }
 
@@ -188,6 +192,8 @@ bool Triangulator::processFace(const TopoDS_Face &face, const glm::dmat4 &mat_in
 #else
         arrTriangles(i).Get(a, b, c);
 #endif
+        if (reversed)
+            std::swap(b, c);
         face_out.triangle_indices.emplace_back(a - 1, b - 1, c - 1);
         // std::cout << "tr " << a - 1 << " " << b - 1 << " " << c - 1 << std::endl;
     }
@@ -199,7 +205,7 @@ bool Triangulator::processShell(const TopoDS_Shape &shape, const glm::dmat4 &mat
 {
     TopoDS_Iterator it;
     bool ret = false;
-    for (it.Initialize(shape, false, false); it.More(); it.Next()) {
+    for (it.Initialize(shape, true, false); it.More(); it.Next()) {
         const TopoDS_Face &face = TopoDS::Face(it.Value());
 
         if (processFace(face, mat))
@@ -216,7 +222,7 @@ bool Triangulator::processSolid(const TopoDS_Shape &shape, const glm::dmat4 &mat
     auto mat = update_matrix(shape.Location().Transformation(), mat_in);
 
     TopoDS_Iterator it;
-    for (it.Initialize(shape, false, false); it.More(); it.Next()) {
+    for (it.Initialize(shape, true, false); it.More(); it.Next()) {
         const TopoDS_Shape &subShape = it.Value();
 
         if (processShell(subShape, mat))
@@ -235,7 +241,7 @@ bool Triangulator::processComp(const TopoDS_Shape &shape, const glm::dmat4 &mat_
 
     bool ret = false;
 
-    for (it.Initialize(shape, false, false); it.More(); it.Next()) {
+    for (it.Initialize(shape, true, false); it.More(); it.Next()) {
         const TopoDS_Shape &subShape = it.Value();
         TopAbs_ShapeEnum stype = subShape.ShapeType();
 

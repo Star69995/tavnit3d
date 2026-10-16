@@ -159,6 +159,8 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
                                                            : 0));
             if (sr)
                 m_ca.add_selectable(vref, *sr);
+            for (const auto &decal : body_groups.body.m_decals)
+                m_ca.add_decal(make_decal_mesh(decal, last_solid_model->m_faces), decal.m_data);
         }
     }
 

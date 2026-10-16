@@ -1,4 +1,5 @@
 #include "canvas.hpp"
+#include "document/decal.hpp"
 #include "selectable_ref.hpp"
 #include "gl_util.hpp"
 #include "import_step/import.hpp"
@@ -40,7 +41,7 @@ static const MSD::Params msd_params_slow{
 
 Canvas::Canvas()
     : m_background_renderer(*this), m_face_renderer(*this), m_line_renderer(*this), m_glyph_renderer(*this),
-      m_glyph_3d_renderer(*this), m_icon_renderer(*this), m_picture_renderer(*this), m_box_selection(*this),
+      m_glyph_3d_renderer(*this), m_icon_renderer(*this), m_picture_renderer(*this), m_decal_renderer(*this), m_box_selection(*this),
       m_selection_texture_renderer(*this)
 {
     m_all_renderers.push_back(&m_face_renderer);
@@ -918,6 +919,7 @@ void Canvas::on_realize()
     m_glyph_3d_renderer.realize();
     m_icon_renderer.realize();
     m_picture_renderer.realize();
+    m_decal_renderer.realize();
     m_box_selection.realize();
     m_selection_texture_renderer.realize();
     GL_CHECK_ERROR
@@ -1165,12 +1167,15 @@ void Canvas::render_all(std::vector<pick_buf_t> &pick_buf)
         m_glyph_3d_renderer.push();
         m_icon_renderer.push();
         m_picture_renderer.push();
+        m_decal_renderer.push();
     }
     m_push_flags = PF_NONE;
 
     update_mats();
 
-    m_face_renderer.render();
+    m_face_renderer.render(false);
+    m_decal_renderer.render();
+    m_face_renderer.render(true); // glass
     GL_CHECK_ERROR
     // glColorMaski(1, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
     glEnablei(GL_BLEND, 0);
@@ -1670,6 +1675,21 @@ ICanvas::VertexRef Canvas::draw_picture(const std::array<glm::vec3, 4> &corners,
     });
 
     return {VertexType::PICTURE, m_current_chunk->m_pictures.size() - 1, m_current_chunk_id};
+}
+
+void Canvas::add_decal(const DecalMesh &mesh, std::shared_ptr<const PictureData> data)
+{
+    if (!data || mesh.positions.empty())
+        return;
+    auto &verts = m_current_chunk->m_decal_vertices;
+    const auto offset = verts.size();
+    for (size_t i = 0; i < mesh.positions.size(); i++) {
+        const auto p = transform_point(mesh.positions.at(i));
+        const auto n = transform_point_rel(mesh.normals.at(i));
+        const auto &uv = mesh.uvs.at(i);
+        verts.push_back({p.x, p.y, p.z, n.x, n.y, n.z, uv.x, uv.y});
+    }
+    m_current_chunk->m_decals.push_back({.offset = offset, .count = verts.size() - offset, .data = data});
 }
 
 

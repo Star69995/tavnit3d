@@ -1,5 +1,6 @@
 #pragma once
 #include "base_renderer.hpp"
+#include "texture_cache.hpp"
 #include <map>
 #include "util/uuid.hpp"
 #include <memory>
@@ -24,9 +25,7 @@ private:
     GLuint m_flags_loc;
     GLuint m_pick_base_loc;
 
-    std::map<UUID, std::pair<std::shared_ptr<const PictureData>, GLuint>> m_textures;
-    void cache_picture(std::shared_ptr<const PictureData> d);
-    void uncache_picture(const UUID &uu);
+    TextureCache m_textures;
 
     class PictureWithDepth;
 };

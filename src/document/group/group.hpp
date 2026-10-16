@@ -4,6 +4,7 @@
 #include "util/color.hpp"
 #include "nlohmann/json_fwd.hpp"
 #include "system/solve_result.hpp"
+#include "document/decal.hpp"
 #include <memory>
 #include <optional>
 #include <list>
@@ -24,6 +25,7 @@ public:
     // how the surface reflects light; only affects display
     enum class Material { SATIN, MATTE, GLOSSY, METAL, GLASS }; // see material.hpp
     Material m_material = Material::SATIN;
+    std::vector<Decal> m_decals; // stickers
 
     json serialize() const;
 };

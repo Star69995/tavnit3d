@@ -140,7 +140,7 @@ static int get_clipping_op(const ClippingPlanes::Plane &plane)
         return -1;
 }
 
-void FaceRenderer::render()
+void FaceRenderer::render(bool glass)
 {
     glUseProgram(m_program);
     glBindVertexArray(m_vao);
@@ -170,7 +170,8 @@ void FaceRenderer::render()
         return (group.material & 0xff) == static_cast<unsigned int>(Body::Material::GLASS);
     };
     const auto chunk_ids = m_ca.get_chunk_ids();
-    for (const bool glass_pass : {false, true}) {
+    {
+        const bool glass_pass = glass;
         if (glass_pass) {
             glEnablei(GL_BLEND, 0);
             glDepthMask(GL_FALSE);

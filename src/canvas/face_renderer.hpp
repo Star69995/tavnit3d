@@ -6,7 +6,8 @@ class FaceRenderer : public BaseRenderer {
 public:
     FaceRenderer(class Canvas &c);
     void realize();
-    void render();
+    // opaque faces, or (glass) the see-through ones drawn last
+    void render(bool glass);
     void push();
 
 private:

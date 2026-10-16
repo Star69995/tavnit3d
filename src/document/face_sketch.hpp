@@ -22,6 +22,15 @@ struct FacePick {
 std::optional<FacePick> pick_planar_face(const Document &doc, const UUID &upto, const glm::dvec3 &ray_origin,
                                          const glm::dvec3 &ray_dir, const BodyFilter &filter = {});
 
+// Where the ray first hits a surface of any body's final solid, flat or not.
+struct SurfacePick {
+    UUID body;
+    glm::dvec3 point;
+    glm::dvec3 normal; // pointing out of the solid, towards the ray's origin
+};
+std::optional<SurfacePick> pick_surface_point(const Document &doc, const UUID &upto, const glm::dvec3 &ray_origin,
+                                              const glm::dvec3 &ray_dir, const BodyFilter &filter = {});
+
 // The body (its first group) whose final solid the ray hits first, if any.
 std::optional<UUID> pick_body(const Document &doc, const UUID &upto, const glm::dvec3 &ray_origin,
                               const glm::dvec3 &ray_dir, const BodyFilter &filter = {});

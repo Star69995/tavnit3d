@@ -146,5 +146,21 @@ public:
     };
 
     std::vector<Picture> m_pictures;
+
+    class DecalVertex {
+    public:
+        float x, y, z;
+        float nx, ny, nz;
+        float u, v;
+    };
+    std::vector<DecalVertex> m_decal_vertices; // triangles
+    size_t m_decal_offset = 0;
+    class Decal {
+    public:
+        size_t offset; // in m_decal_vertices
+        size_t count;
+        std::shared_ptr<const PictureData> data;
+    };
+    std::vector<Decal> m_decals;
 };
 } // namespace dune3d

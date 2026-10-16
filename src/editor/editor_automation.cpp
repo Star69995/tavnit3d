@@ -1,6 +1,7 @@
 #include "editor.hpp"
 #include "dune3d_appwindow.hpp"
 #include "canvas/canvas.hpp"
+#include "util/fs_util.hpp"
 #include "workspace_browser.hpp"
 #include "action/action_catalog.hpp"
 #include "core/tool_id.hpp"
@@ -34,6 +35,7 @@ namespace dune3d {
  *   size W H                 resize the window
  *   shot PATH                save the window contents as PNG
  *   shotwin TITLE PATH       the same for another window, e.g. a dialog
+ *   sticker PATH             add a sticker with this picture to the object in the panel (then click on it)
  *   update-check             check for updates as from the menu (feed: DUNE3D_UPDATE_FEED)
  *   windows                  print the visible windows and their texts (dialogs aren't in shots)
  *   quit                     close the app
@@ -170,6 +172,11 @@ void Editor::run_automation(const std::filesystem::path &script)
                         200);
                 delay = 900;
             }
+            else if (cmd == "sticker") {
+                if (!m_object_editor)
+                    throw std::runtime_error("no object panel");
+                begin_place_decal(m_object_editor_doc, m_object_editor_body, path_from_string(rest));
+            }
             else if (cmd == "rotate") {
                 double x1, y1, x2, y2;
                 std::istringstream(rest) >> x1 >> y1 >> x2 >> y2;
@@ -206,6 +213,8 @@ void Editor::run_automation(const std::filesystem::path &script)
                 int col, row, w, h;
                 gtk_grid_query_child(grid->gobj(), GTK_WIDGET(la->gobj()), &col, &row, &w, &h);
                 auto widget = grid->get_child_at(col + 1, row);
+                if (auto box = dynamic_cast<Gtk::Box *>(widget); box && box->get_first_child())
+                    widget = box->get_first_child(); // a field with buttons next to it
                 if (auto sp = dynamic_cast<Gtk::SpinButton *>(widget)) {
                     sp->set_text(value);
                     sp->update();

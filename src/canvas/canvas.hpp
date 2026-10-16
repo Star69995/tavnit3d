@@ -7,6 +7,7 @@
 #include "glyph_3d_renderer.hpp"
 #include "icon_renderer.hpp"
 #include "picture_renderer.hpp"
+#include "decal_renderer.hpp"
 #include "box_selection.hpp"
 #include "selection_texture_renderer.hpp"
 #include "icanvas.hpp"
@@ -37,6 +38,7 @@ public:
     friend Glyph3DRenderer;
     friend IconRenderer;
     friend PictureRenderer;
+    friend class DecalRenderer;
     friend BaseRenderer;
     friend struct UBOBuffer;
     friend BoxSelection;
@@ -91,6 +93,7 @@ public:
     VertexRef draw_icon(IconTexture::IconTextureID id, glm::vec3 origin, glm::vec2 shift, glm::vec3 v) override;
     VertexRef draw_point(glm::vec3 point, IconTexture::IconTextureID id) override;
     VertexRef draw_picture(const std::array<glm::vec3, 4> &corners, std::shared_ptr<const PictureData> data) override;
+    void add_decal(const DecalMesh &mesh, std::shared_ptr<const PictureData> data) override;
 
     glm::dvec3 get_cursor_pos() const;
     glm::dvec3 get_cursor_pos_for_plane(glm::dvec3 origin, glm::dvec3 normal) const;
@@ -280,6 +283,7 @@ private:
     Glyph3DRenderer m_glyph_3d_renderer;
     IconRenderer m_icon_renderer;
     PictureRenderer m_picture_renderer;
+    DecalRenderer m_decal_renderer;
     BoxSelection m_box_selection;
     SelectionTextureRenderer m_selection_texture_renderer;
     std::vector<BaseRenderer *> m_all_renderers;

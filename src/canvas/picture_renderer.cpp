@@ -18,7 +18,7 @@ static GLuint create_vao(GLuint program)
     return vao;
 }
 
-PictureRenderer::PictureRenderer(Canvas &ca) : BaseRenderer(ca, Canvas::VertexType::PICTURE)
+PictureRenderer::PictureRenderer(Canvas &ca) : BaseRenderer(ca, Canvas::VertexType::PICTURE), m_textures(GL_NEAREST)
 {
 }
 
@@ -74,8 +74,7 @@ void PictureRenderer::render()
     pictures_sorted.sort([](const auto &a, const auto &b) { return a.depth > b.depth; });
 
     for (const auto &[pic, chunk_id, idx, depth] : pictures_sorted) {
-        const auto &tex = m_textures.at(pic.data->m_uuid);
-        glBindTexture(GL_TEXTURE_2D, tex.second);
+        glBindTexture(GL_TEXTURE_2D, m_textures.get(pic.data->m_uuid));
         glUniform1ui(m_pick_base_loc,
                      m_ca.m_vertex_type_picks.at({Canvas::VertexType::PICTURE, chunk_id}).offset + idx);
         glUniform1ui(m_flags_loc, static_cast<uint32_t>(pic.flags));
@@ -93,47 +92,16 @@ void PictureRenderer::render()
     glUseProgram(0);
 }
 
-void PictureRenderer::cache_picture(std::shared_ptr<const PictureData> d)
-{
-    if (m_textures.count(d->m_uuid))
-        return;
-    GLuint tex = 0;
-    glGenTextures(1, &tex);
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, d->m_width, d->m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, d->m_data.data());
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    m_textures.emplace(std::piecewise_construct, std::forward_as_tuple(d->m_uuid), std::forward_as_tuple(d, tex));
-}
-
-void PictureRenderer::uncache_picture(const UUID &uu)
-{
-    glDeleteTextures(1, &m_textures.at(uu).second);
-    m_textures.erase(uu);
-}
-
 void PictureRenderer::push()
 {
-    std::set<UUID> pics_to_evict, pics_needed;
+    std::set<UUID> pics_needed;
     for (auto &chunk : m_ca.m_chunks) {
         for (const auto &it : chunk.m_pictures) {
-            if (!m_textures.count(it.data->m_uuid))
-                cache_picture(it.data);
+            m_textures.get(it.data);
             pics_needed.insert(it.data->m_uuid);
         }
     }
-    for (const auto &[uu, it] : m_textures) {
-        if (!pics_needed.count(uu))
-            pics_to_evict.insert(uu);
-    }
-    for (const auto &it : pics_to_evict) {
-        uncache_picture(it);
-    }
+    m_textures.evict_except(pics_needed);
 
     const auto chunk_ids = m_ca.get_chunk_ids();
 

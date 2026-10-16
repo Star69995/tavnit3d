@@ -1620,6 +1620,8 @@ void Editor::handle_click(unsigned int button, unsigned int n)
         }
     }
     else if (button == 1) {
+        if (place_decal_under_cursor())
+            return;
         auto hover_sel = get_canvas().get_hover_selection();
         if (!hover_sel) {
             select_object_under_cursor();

@@ -400,6 +400,84 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
             grid->attach(*status, 1, top++, 1, 1);
     }
 
+    // stickers: a picture on the surface
+    if (std::ranges::any_of(get_body_solids(doc, UUID()), [&body_uu](const auto &bs) { return bs.body == body_uu; })) {
+        heading("Stickers");
+        auto decal_changed = [this, doc_uu, body_uu](const char *what) {
+            m_core.set_needs_save();
+            m_object_editor_keep = true;
+            m_core.rebuild(what);
+            canvas_update_keep_selection();
+        };
+        const auto &decals = body_group.m_body->m_decals;
+        for (size_t i = 0; i < decals.size(); i++) {
+            const auto &decal = decals.at(i);
+            const UUID decal_uu = decal.m_uuid;
+            auto find = [this, doc_uu, body_uu, decal_uu]() -> Decal * {
+                auto &d = m_core.get_idocument_info(doc_uu).get_document();
+                for (auto &it : d.get_group(body_uu).m_body->m_decals) {
+                    if (it.m_uuid == decal_uu)
+                        return &it;
+                }
+                return nullptr;
+            };
+            const auto n = decals.size() > 1 ? " " + std::to_string(i + 1) : std::string();
+            {
+                auto box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 5);
+                auto sp = Gtk::make_managed<SpinButtonDim>();
+                sp->set_range(0.1, 100000);
+                sp->set_increments(1, 10);
+                sp->set_value(decal.m_width);
+                sp->set_hexpand(true);
+                sp->set_tooltip_text("Width; the height follows the picture");
+                sp->signal_value_changed().connect([sp, find, decal_changed] {
+                    auto dc = find();
+                    if (!dc || dc->m_width == sp->get_value())
+                        return;
+                    dc->m_width = sp->get_value();
+                    decal_changed("sticker size");
+                });
+                box->append(*sp);
+                auto del = Gtk::make_managed<Gtk::Button>();
+                del->set_icon_name("edit-delete-symbolic");
+                del->set_tooltip_text("Remove this sticker");
+                del->signal_clicked().connect([this, doc_uu, body_uu, decal_uu] {
+                    Glib::signal_idle().connect_once([this, doc_uu, body_uu, decal_uu] {
+                        auto &d = m_core.get_idocument_info(doc_uu).get_document();
+                        std::erase_if(d.get_group(body_uu).m_body->m_decals,
+                                      [&decal_uu](const auto &x) { return x.m_uuid == decal_uu; });
+                        m_core.set_needs_save();
+                        m_core.rebuild("remove sticker");
+                        canvas_update_keep_selection();
+                        show_object_editor(doc_uu, body_uu);
+                    });
+                });
+                box->append(*del);
+                grid_attach_label_and_widget(*grid, "Sticker" + n, *box, top).add_css_class("tnum");
+            }
+            {
+                auto sp = Gtk::make_managed<Gtk::SpinButton>();
+                sp->set_range(-360, 360);
+                sp->set_increments(15, 45);
+                sp->set_digits(0);
+                sp->set_value(decal.m_angle);
+                sp->set_hexpand(true);
+                sp->signal_value_changed().connect([sp, find, decal_changed] {
+                    auto dc = find();
+                    if (!dc || dc->m_angle == sp->get_value())
+                        return;
+                    dc->m_angle = sp->get_value();
+                    decal_changed("rotate sticker");
+                });
+                grid_attach_label_and_widget(*grid, "Rotation" + n, *sp, top).add_css_class("tnum");
+            }
+        }
+        auto add = Gtk::make_managed<Gtk::Button>("Add sticker...");
+        add->set_tooltip_text("Put a picture on the object's surface");
+        add->signal_clicked().connect([this, doc_uu, body_uu] { choose_decal_picture(doc_uu, body_uu); });
+        grid->attach(*add, 0, top++, 2, 1);
+    }
+
     // combine with another shown object that has a solid
     {
         std::vector<std::pair<UUID, std::string>> others;

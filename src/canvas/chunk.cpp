@@ -64,6 +64,8 @@ void CanvasChunk::clear()
     m_icons.clear();
     m_icons_selection_invisible.clear();
     m_pictures.clear();
+    m_decal_vertices.clear();
+    m_decals.clear();
 }
 
 } // namespace dune3d
