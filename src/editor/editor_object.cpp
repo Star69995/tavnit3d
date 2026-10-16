@@ -264,6 +264,31 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         grid_attach_label_and_widget(*grid, "Material", *dd, top);
     }
     {
+        // like Tinkercad's holes: see-through, not printed, and "Cut" removes it from what it overlaps
+        auto box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 8);
+        auto sw = Gtk::make_managed<Gtk::Switch>();
+        sw->set_valign(Gtk::Align::CENTER);
+        sw->set_active(body_group.m_body->m_hole);
+        sw->set_tooltip_text("A hole is drawn see-through and isn't exported; use Cut to remove it from the "
+                             "objects it overlaps");
+        sw->property_active().signal_changed().connect([this, sw, doc_uu, body_uu, changed] {
+            auto &d = m_core.get_idocument_info(doc_uu).get_document();
+            d.get_group(body_uu).m_body->m_hole = sw->get_active();
+            changed(body_uu, false);
+            Glib::signal_idle().connect_once([this, doc_uu, body_uu] { show_object_editor(doc_uu, body_uu); });
+        });
+        box->append(*sw);
+        if (body_group.m_body->m_hole) {
+            auto cut = Gtk::make_managed<Gtk::Button>("Cut");
+            cut->set_tooltip_text("Remove this hole from every shown object it overlaps");
+            cut->signal_clicked().connect([this, doc_uu, body_uu] {
+                Glib::signal_idle().connect_once([this, doc_uu, body_uu] { cut_with_hole(doc_uu, body_uu); });
+            });
+            box->append(*cut);
+        }
+        grid_attach_label_and_widget(*grid, "Hole", *box, top);
+    }
+    {
         auto sw = Gtk::make_managed<Gtk::Switch>();
         sw->set_halign(Gtk::Align::START);
         sw->set_active(get_current_document_views()[doc_uu].m_body_views[body_uu].m_visible);
@@ -701,6 +726,48 @@ void Editor::combine_bodies(const UUID &doc_uu, const UUID &body_a, const UUID &
     set_current_group(group.m_uuid);
     if (!m_workspace_browser->select_body(doc_uu, group.m_uuid))
         show_object_editor(doc_uu, group.m_uuid);
+    canvas_update_keep_selection();
+}
+
+void Editor::cut_with_hole(const UUID &doc_uu, const UUID &hole)
+{
+    if (m_core.tool_is_active())
+        return;
+    auto &doc = m_core.get_idocument_info(doc_uu).get_document();
+    m_core.set_current_document(doc_uu);
+    Bnd_Box hole_box;
+    for (const auto &bs : get_body_solids(doc, UUID(), [&hole](const UUID &b) { return b == hole; }))
+        BRepBndLib::Add(bs.solid->m_shape_acc, hole_box, true);
+    std::vector<UUID> targets;
+    if (!hole_box.IsVoid()) {
+        for (const auto &bs : get_body_solids(doc, UUID(), [&](const UUID &b) {
+                 return b != hole && !doc.get_group(b).m_body->m_hole && body_is_shown(b);
+             })) {
+            Bnd_Box box;
+            BRepBndLib::Add(bs.solid->m_shape_acc, box, true);
+            if (!box.IsOut(hole_box))
+                targets.push_back(bs.body);
+        }
+    }
+    if (targets.empty()) {
+        m_workspace_browser->show_toast("The hole doesn't overlap any shown object");
+        return;
+    }
+    UUID last;
+    for (const auto &target : targets) {
+        last = add_combination(doc, target, hole, IGroupSolidModel::Operation::DIFFERENCE).m_uuid;
+        get_current_document_views()[doc_uu].m_body_views[target].m_visible = false;
+    }
+    // the hole has done its job; it stays in the tree, hidden
+    get_current_document_views()[doc_uu].m_body_views[hole].m_visible = false;
+    get_current_document_view().m_current_group = last;
+    m_core.set_current_group(last);
+    m_core.set_needs_save();
+    m_core.rebuild("cut with hole");
+    m_workspace_browser->update_documents(get_current_document_views());
+    set_current_group(last);
+    if (!m_workspace_browser->select_body(doc_uu, last))
+        show_object_editor(doc_uu, last);
     canvas_update_keep_selection();
 }
 

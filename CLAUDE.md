@@ -129,6 +129,9 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   endpoint for tests. HTTP: `src/util/http.*` (WinHTTP).
 - Resize handles (`src/editor/editor_handles.cpp`) use the object panel's
   dimension list (`src/editor/object_dimensions.hpp`).
+- Holes (`Body::m_hole`, object panel "Hole" switch + "Cut"): drawn as glass,
+  left out of STL/glTF export; `Editor::cut_with_hole` subtracts it from every
+  shown non-hole object whose bounds it touches (`add_combination`).
 - Find (`src/editor/action_search.*`, items in `editor_search.cpp`): Ctrl+K
   both as the FIND action and a window-level capture shortcut. When a
   feature lands, add it there with where it lives.

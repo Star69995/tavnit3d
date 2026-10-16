@@ -191,7 +191,10 @@ bool export_gltf(const Document &doc, const std::filesystem::path &path, const G
     GltfWriter w;
     json scene_nodes = json::array();
 
-    const auto solids = get_body_solids(doc, UUID(), options.filter);
+    // holes are only there to cut with
+    const auto solids = get_body_solids(doc, UUID(), [&](const UUID &b) {
+        return !doc.get_group(b).m_body->m_hole && (!options.filter || options.filter(b));
+    });
     for (const auto &bs : solids) {
         const auto &body = *doc.get_group(bs.body).m_body;
         const auto &faces = bs.solid->m_faces;

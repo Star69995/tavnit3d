@@ -36,7 +36,9 @@ bool export_bodies_stl(const Document &doc, const std::filesystem::path &path)
     BRep_Builder builder;
     builder.MakeCompound(compound);
     bool any = false;
-    for (const auto &bs : get_body_solids(doc, UUID())) {
+    // holes are only there to cut with
+    for (const auto &bs :
+         get_body_solids(doc, UUID(), [&doc](const UUID &b) { return !doc.get_group(b).m_body->m_hole; })) {
         builder.Add(compound, bs.solid->m_shape_acc);
         any = true;
     }

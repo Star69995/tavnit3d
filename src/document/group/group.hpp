@@ -26,6 +26,8 @@ public:
     enum class Material { SATIN, MATTE, GLOSSY, METAL, GLASS }; // see material.hpp
     Material m_material = Material::SATIN;
     std::vector<Decal> m_decals; // stickers
+    // a "hole": drawn see-through, left out of exports, cuts the objects it overlaps when asked to
+    bool m_hole = false;
 
     json serialize() const;
 };
