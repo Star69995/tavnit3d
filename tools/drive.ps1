@@ -7,6 +7,7 @@
 #   drag:X1:Y1:X2:Y2:BUTTON   drag with left/right/middle button
 #   key:TEXT       type text; {ENTER} {ESC} {BS} {DEL} {TAB} {HOME} {END} {SPACE}
 #                  and {CLEAR} (End + 20 backspaces) for special keys
+#   wheel:X:Y:N    turn the mouse wheel N notches (real input only)
 #   wait:MS        sleep
 #   shot:PATH      capture only the app's windows to PATH
 # Uses the real cursor and keyboard (needs focus). Prefer tools/ui.sh, which
@@ -125,6 +126,23 @@ try {
                     "key" { MsgType $arg }
                 }
                 continue }
+            "wheel" {
+                # wheel:X:Y:NOTCHES (positive = away from the user)
+                Focus; $r = Origin; $v = $arg.Split(":")
+                [U]::SetCursorPos($r.L + [int]$v[0], $r.T + [int]$v[1]) | Out-Null; Start-Sleep -Milliseconds 150
+                for ($k = 0; $k -lt [Math]::Abs([int]$v[2]); $k++) {
+                    # WHEEL_DELTA as a DWORD: -120 is 2^32 - 120
+                    $d = if ([int]$v[2] -gt 0) { [uint32]120 } else { [uint32]4294967176 }
+                    [U]::mouse_event(0x800, 0, 0, $d, [UIntPtr]::Zero); Start-Sleep -Milliseconds 80 }
+                Start-Sleep -Milliseconds 500 }
+            "rclick" {
+                Focus; $r = Origin; $xy = $arg.Split(":")
+                [U]::SetCursorPos($r.L + [int]$xy[0], $r.T + [int]$xy[1]) | Out-Null; Start-Sleep -Milliseconds 150
+                [U]::mouse_event(0x8, 0, 0, 0, [UIntPtr]::Zero); [U]::mouse_event(0x10, 0, 0, 0, [UIntPtr]::Zero)
+                Start-Sleep -Milliseconds 700 }
+            "move" {
+                Focus; $r = Origin; $xy = $arg.Split(":")
+                [U]::SetCursorPos($r.L + [int]$xy[0], $r.T + [int]$xy[1]) | Out-Null; Start-Sleep -Milliseconds 400 }
             { $_ -in "click", "dclick" } {
                 Focus; $r = Origin; $xy = $arg.Split(":")
                 [U]::SetCursorPos($r.L + [int]$xy[0], $r.T + [int]$xy[1]) | Out-Null; Start-Sleep -Milliseconds 150

@@ -24,13 +24,14 @@ void Editor::add_primitive(Primitive primitive)
     CanvasUpdater canvas_updater{*this};
     auto &doc = m_core.get_current_document();
     // next to what's there rather than inside it
+    const bool first = get_body_solids(doc, m_core.get_current_group()).empty();
     const auto pos = find_free_spot(doc, m_core.get_current_group());
     auto &group = dune3d::add_primitive(doc, m_core.get_current_group(), primitive, pos);
     m_core.set_needs_save();
     m_core.rebuild("add " + group.m_name);
     m_workspace_browser->update_documents(get_current_document_views());
     m_workspace_browser->select_group(group.m_uuid);
-    zoom_to_fit(true);
+    zoom_to_fit(!first); // the first one gets framed so it's big enough to work with
 }
 
 /*

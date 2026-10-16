@@ -129,6 +129,7 @@ private:
     void end_object_drag();
     void close_object_editor();
     Gtk::Widget *m_object_editor = nullptr;
+    bool m_object_editor_keep = false; // skip the next refresh, the change came from the panel
     UUID m_object_editor_doc;
     UUID m_object_editor_body;
 

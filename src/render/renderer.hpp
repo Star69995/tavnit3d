@@ -143,6 +143,7 @@ private:
 
 public:
     UUID m_highlight_body; // drawn tinted, e.g. the object being edited
+    bool m_hide_constraints = false;
 
 private:
 };

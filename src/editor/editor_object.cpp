@@ -104,6 +104,20 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         m_group_editor_box->remove(*m_group_editor);
         m_group_editor = nullptr;
     }
+    // the panel is rebuilt after every change: keep the focus on the same field
+    std::string focus_label;
+    if (m_object_editor && m_object_editor_doc == doc_uu && m_object_editor_body == body_uu) {
+        if (auto grid = dynamic_cast<Gtk::Grid *>(m_object_editor)) {
+            for (auto focus = m_win.get_focus(); focus && !focus_label.size(); focus = focus->get_parent()) {
+                if (focus->get_parent() != grid)
+                    continue;
+                int col, row, w, h;
+                gtk_grid_query_child(grid->gobj(), focus->gobj(), &col, &row, &w, &h);
+                if (auto la = dynamic_cast<Gtk::Label *>(grid->get_child_at(col - 1, row)))
+                    focus_label = la->get_text();
+            }
+        }
+    }
     if (m_object_editor) {
         m_group_editor_box->remove(*m_object_editor);
         m_object_editor = nullptr;
@@ -141,6 +155,7 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         else
             d.set_group_update_solid_model_pending(group);
         m_core.set_needs_save();
+        m_object_editor_keep = true; // the panel already shows the new value
         m_core.rebuild("edit object");
         canvas_update_keep_selection();
         m_workspace_browser->update_documents(get_current_document_views());
@@ -234,16 +249,16 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
             const auto [lo, hi] = text->get_bbox();
             sp->set_value(hi.y - lo.y);
         }
-        sp->signal_activate().connect([this, sp, doc_uu, text_uu] {
-            sp->update();
+        sp->signal_value_changed().connect([this, sp, doc_uu, text_uu] {
             auto &d = m_core.get_idocument_info(doc_uu).get_document();
             auto &t = d.get_entity<EntityText>(text_uu);
             const auto [lo, hi] = t.get_bbox();
-            if (hi.y <= lo.y || sp->get_value() <= 0)
+            if (hi.y <= lo.y || sp->get_value() <= 0 || std::abs(sp->get_value() - (hi.y - lo.y)) < 1e-9)
                 return;
             t.m_scale *= sp->get_value() / (hi.y - lo.y);
             d.set_group_generate_pending(t.m_group);
             m_core.set_needs_save();
+            m_object_editor_keep = true;
             m_core.rebuild("text size");
             canvas_update_keep_selection();
         });
@@ -297,6 +312,7 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         Gtk::SpinButton *sp = nullptr;
         if (datum->get_datum_unit() == DatumUnit::MM) {
             sp = Gtk::make_managed<SpinButtonDim>();
+            sp->set_increments(1, 10); // +/- by whole millimetres; any value can be typed
         }
         else {
             sp = Gtk::make_managed<Gtk::SpinButton>();
@@ -310,11 +326,12 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         const UUID co_uu = dim.constraint;
         const UUID group_uu = dim.group;
         const double scale = dim.scale;
-        sp->signal_activate().connect([this, sp, doc_uu, co_uu, group_uu, scale, changed] {
-            sp->update();
+        sp->signal_value_changed().connect([this, sp, doc_uu, co_uu, group_uu, scale, changed] {
             auto &d = m_core.get_idocument_info(doc_uu).get_document();
-            auto &c = *d.m_constraints.at(co_uu);
-            dynamic_cast<IConstraintDatum &>(c).set_datum(sp->get_value() / scale);
+            auto &c = dynamic_cast<IConstraintDatum &>(*d.m_constraints.at(co_uu));
+            if (c.get_datum() == sp->get_value() / scale)
+                return;
+            c.set_datum(sp->get_value() / scale);
             changed(group_uu, true);
         });
         grid_attach_label_and_widget(*grid, dim.label, *sp, top).add_css_class("tnum");
@@ -334,10 +351,12 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         status->set_wrap(true);
         if (fillet && !fillet->get_solid_model())
             status->set_text("That radius is too big for this object");
-        sp->signal_activate().connect([this, sp, doc_uu, body_uu] {
-            sp->update();
+        sp->signal_value_changed().connect([this, sp, doc_uu, body_uu] {
             auto &d = m_core.get_idocument_info(doc_uu).get_document();
             const auto r = sp->get_value();
+            const auto existing = find_round_edges(d, body_uu);
+            if ((existing ? existing->m_radius : 0) == r)
+                return;
             if (!set_round_edges(d, body_uu, r) && r > 0) {
                 m_workspace_browser->show_toast("This object has no edges to round");
                 return;
@@ -431,6 +450,26 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
     }
 
     m_group_editor_box->append(*grid);
+    if (focus_label.size()) {
+        for (auto ch = grid->get_first_child(); ch; ch = ch->get_next_sibling()) {
+            auto la = dynamic_cast<Gtk::Label *>(ch);
+            if (!la || la->get_text() != focus_label)
+                continue;
+            int col, row, w, h;
+            gtk_grid_query_child(grid->gobj(), GTK_WIDGET(la->gobj()), &col, &row, &w, &h);
+            if (auto field = grid->get_child_at(col + 1, row))
+                field->grab_focus();
+        }
+    }
+    else {
+        get_canvas().grab_focus(); // not the first entry of the new panel
+    }
+    {
+        // give the panel room; the browser keeps enough to see a few objects
+        auto &left_bar = m_win.get_left_bar();
+        if (left_bar.get_position() > 240)
+            left_bar.set_position(240);
+    }
     canvas_update_keep_selection(); // highlight it
 }
 

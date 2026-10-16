@@ -111,6 +111,7 @@ void Editor::init()
         update_action_sensitivity();
         m_workspace_browser->set_sensitive(m_core.has_documents());
         m_win.set_welcome_box_visible(!m_core.has_documents());
+        m_win.get_view_bar().set_sensitive(m_core.has_documents());
         update_version_info();
         update_action_bar_buttons_sensitivity();
         update_action_bar_visibility();
@@ -129,7 +130,7 @@ void Editor::init()
     create_action_bar_button(ActionID::ADD_TUBE, "Tube");
     create_action_bar_button(ActionID::ADD_TORUS, "Torus");
     create_action_bar_button(ActionID::ADD_WEDGE, "Wedge");
-    create_action_bar_button(ActionID::ADD_TEXT, "Text");
+    create_action_bar_button(ActionID::ADD_TEXT, "3D Text");
     m_win.add_action_bar_section("Sketch");
     create_action_bar_button(ToolID::SKETCH_ON_FACE, "On face");
     create_action_bar_button(ActionID::CREATE_GROUP_SKETCH, "New");
@@ -870,7 +871,12 @@ void Editor::init_properties_notebook()
         auto box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL);
         m_group_editor_box = Gtk::make_managed<Gtk::Box>();
         m_group_editor_box->set_vexpand(true);
-        box->append(*m_group_editor_box);
+        // tall panels (the object panel) scroll rather than squeezing the browser above
+        auto scrolled = Gtk::make_managed<Gtk::ScrolledWindow>();
+        scrolled->set_policy(Gtk::PolicyType::NEVER, Gtk::PolicyType::AUTOMATIC);
+        scrolled->set_vexpand(true);
+        scrolled->set_child(*m_group_editor_box);
+        box->append(*scrolled);
         auto label = Gtk::make_managed<Gtk::Label>("Commit pending");
         label->set_margin(3);
         m_group_commit_pending_revealer = Gtk::make_managed<Gtk::Revealer>();
@@ -889,6 +895,8 @@ void Editor::init_properties_notebook()
         else if (m_object_editor) {
             // values may have changed (undo, dragging, ...); the object may be gone
             Glib::signal_idle().connect_once([this] {
+                if (std::exchange(m_object_editor_keep, false))
+                    return; // rebuilding the panel mid-click would swallow the next click
                 if (!m_object_editor || m_object_drag)
                     return;
                 auto &doc = m_core.get_idocument_info(m_object_editor_doc).get_document();
@@ -983,7 +991,6 @@ void Editor::init_header_bar()
         menu->append_section(current);
         auto bu = Gtk::make_managed<Gtk::MenuButton>();
         bu->set_label("Export");
-        bu->set_tooltip_text("Export to other programs and 3D printers");
         bu->set_menu_model(menu);
         m_win.get_header_bar().pack_end(*bu);
     }
@@ -1435,8 +1442,10 @@ void Editor::render_document(const IDocumentInfo &doc)
     renderer.m_solid_model_edge_select_mode = m_solid_model_edge_select_mode;
     renderer.m_connect_curvature_comb = m_preferences.canvas.connect_curvature_combs;
     renderer.m_first_group = m_update_groups_after;
-    if (m_object_editor)
+    if (m_object_editor) {
         renderer.m_highlight_body = m_object_editor_body;
+        renderer.m_hide_constraints = true; // the object panel lists the dimensions
+    }
 
     if (doc.get_uuid() == m_core.get_current_idocument_info().get_uuid())
         renderer.add_constraint_icons(m_constraint_tip_pos, m_constraint_tip_vec, m_constraint_tip_icons);
