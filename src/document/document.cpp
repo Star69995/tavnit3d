@@ -49,6 +49,11 @@ json Document::serialize() const
         }
         j["constraints"] = o;
     }
+    if (m_lights.size()) {
+        auto &a = j["lights"] = json::array();
+        for (const auto &light : m_lights)
+            a.push_back(light.serialize());
+    }
     return j;
 }
 
@@ -105,6 +110,16 @@ Document::Document(const json &j, const std::filesystem::path &containing_dir) :
     for (const auto &[uu, it] : j.at("groups").items()) {
         load_and_log(m_groups, "Group", uu, it);
     }
+    if (j.contains("lights")) {
+        for (const auto &it : j.at("lights")) {
+            try {
+                m_lights.emplace_back(it);
+            }
+            catch (const std::exception &e) {
+                Logger::log_warning("couldn't load light", Logger::Domain::DOCUMENT, e.what());
+            }
+        }
+    }
     update_groups_sorted();
 
     if (m_groups.size())
@@ -143,7 +158,7 @@ void Document::erase_invalid()
     map_erase_if(m_constraints, [this](auto &x) { return !x.second->is_valid(*this); });
 }
 
-Document::Document(const Document &other) : m_version(other.m_version)
+Document::Document(const Document &other) : m_lights(other.m_lights), m_version(other.m_version)
 {
     for (const auto &[uu, it] : other.m_entities) {
         m_entities.emplace(uu, it->clone());

@@ -131,6 +131,10 @@ public:
     {
         return m_cam_distance;
     }
+    float get_cam_fov() const // vertical, degrees
+    {
+        return m_cam_fov;
+    }
 
     enum class ZoomCenter { SCREEN, CURSOR };
     void set_cam_distance(float dist, ZoomCenter zoom_center);

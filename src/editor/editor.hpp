@@ -132,6 +132,8 @@ private:
         UUID doc, body;
         std::shared_ptr<const class PictureData> data;
     };
+    struct GltfExportOptions get_gltf_export_options();
+    void export_gltf_now(const std::filesystem::path &path);
     std::optional<PlacingDecal> m_placing_decal; // waiting for the click on the object
     void choose_decal_picture(const UUID &doc_uu, const UUID &body_uu);
     void begin_place_decal(const UUID &doc_uu, const UUID &body_uu, const std::filesystem::path &picture);

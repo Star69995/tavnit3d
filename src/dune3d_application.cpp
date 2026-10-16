@@ -197,6 +197,7 @@ void Dune3DApplication::UserConfig::load(const std::filesystem::path &filename)
                 jpaths.at("step").get_to(it.step);
                 jpaths.at("paths").get_to(it.paths);
                 jpaths.at("projection").get_to(it.projection);
+                it.gltf = jpaths.value("gltf", "");
             }
         }
     }
@@ -215,6 +216,7 @@ void Dune3DApplication::UserConfig::save(const std::filesystem::path &filename)
                 {"step", it.step},
                 {"paths", it.paths},
                 {"projection", it.projection},
+                {"gltf", it.gltf},
         };
     }
     save_json_to_file(filename, j);

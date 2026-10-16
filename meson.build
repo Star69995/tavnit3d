@@ -56,6 +56,8 @@ src_common = files(
   'src/document/round_edges.cpp',
   'src/document/material.cpp',
   'src/document/decal.cpp',
+  'src/document/light.cpp',
+  'src/document/export_gltf.cpp',
   'src/util/update_check.cpp',
   'src/document/entity/entity.cpp',
   'src/document/entity/entity_and_point.cpp',

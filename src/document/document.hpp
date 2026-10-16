@@ -8,6 +8,8 @@
 #include <glm/glm.hpp>
 #include "util/file_version.hpp"
 #include "entity/entity_and_point.hpp"
+#include "light.hpp"
+#include <vector>
 
 namespace dune3d {
 using json = nlohmann::json;
@@ -38,6 +40,7 @@ public:
 
     std::map<UUID, std::unique_ptr<Entity>> m_entities;
     std::map<UUID, std::unique_ptr<Constraint>> m_constraints;
+    std::vector<Light> m_lights; // lamps for nicer pictures, see light.hpp
 
     FileVersion m_version;
     static unsigned int get_app_version();

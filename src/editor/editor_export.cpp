@@ -13,6 +13,8 @@
 #include "dune3d_application.hpp"
 #include "util/template_util.hpp"
 #include "util/step_exporter.hpp"
+#include "document/export_gltf.hpp"
+#include "workspace_browser.hpp"
 #include <iostream>
 
 namespace dune3d {
@@ -139,6 +141,12 @@ void Editor::on_export_solid_model(const ActionConnection &conn)
         suffix = ".step";
         export_type = &ExPaths::step;
     }
+    else if (action == ActionID::EXPORT_ALL_GLTF) {
+        filter_any->set_name("glTF binary");
+        filter_any->add_pattern("*.glb");
+        suffix = ".glb";
+        export_type = &ExPaths::gltf;
+    }
     else {
         filter_any->set_name("STL");
         filter_any->add_pattern("*.stl");
@@ -148,7 +156,8 @@ void Editor::on_export_solid_model(const ActionConnection &conn)
     filters->append(filter_any);
 
     // Use all-zeroes UUID for all-groups exports
-    const bool all = any_of(action, ActionID::EXPORT_ALL_SOLID_MODELS_STEP, ActionID::EXPORT_ALL_SOLID_MODELS_STL);
+    const bool all = any_of(action, ActionID::EXPORT_ALL_SOLID_MODELS_STEP, ActionID::EXPORT_ALL_SOLID_MODELS_STL,
+                            ActionID::EXPORT_ALL_GLTF);
     auto group_uuid = all ? UUID() : m_core.get_current_group();
     if (auto initial_file = get_export_initial_filename(
                 m_win.get_app().m_user_config, m_core.get_current_idocument_info(), group_uuid, suffix, export_type)) {
@@ -172,6 +181,9 @@ void Editor::on_export_solid_model(const ActionConnection &conn)
             else if (action == ActionID::EXPORT_ALL_SOLID_MODELS_STL) {
                 export_bodies_stl(doc_info.get_document(), path);
             }
+            else if (action == ActionID::EXPORT_ALL_GLTF) {
+                export_gltf_now(path);
+            }
             else {
                 auto &group = doc_info.get_document().get_group(group_uuid);
                 if (auto gr = dynamic_cast<const IGroupSolidModel *>(&group)) {
@@ -194,6 +206,34 @@ void Editor::on_export_solid_model(const ActionConnection &conn)
         }
     };
     dialog->save(m_win, handle_response);
+}
+
+GltfExportOptions Editor::get_gltf_export_options()
+{
+    GltfExportOptions opts;
+    opts.filter = [this](const UUID &b) { return body_is_shown(b); };
+    auto &ca = get_canvas();
+    ExportCamera cam;
+    cam.orientation = ca.get_cam_quat();
+    cam.position = glm::dvec3(ca.get_center()) + glm::dvec3(glm::rotate(ca.get_cam_quat(), glm::vec3(0, 0, ca.get_cam_distance())));
+    cam.orthographic = ca.get_projection() == Canvas::Projection::ORTHO;
+    cam.yfov_deg = ca.get_cam_fov();
+    cam.half_height = std::tan(glm::radians(ca.get_cam_fov()) / 2) * ca.get_cam_distance();
+    if (ca.get_height() > 0)
+        cam.aspect = (double)ca.get_width() / ca.get_height();
+    opts.camera = cam;
+    return opts;
+}
+
+void Editor::export_gltf_now(const std::filesystem::path &path)
+{
+    try {
+        if (!export_gltf(m_core.get_current_document(), path, get_gltf_export_options()))
+            m_workspace_browser->show_toast("There's nothing to export");
+    }
+    catch (const std::exception &e) {
+        m_workspace_browser->show_toast("Export failed: " + std::string(e.what()));
+    }
 }
 
 void Editor::on_export_paths(const ActionConnection &conn)

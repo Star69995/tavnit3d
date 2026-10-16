@@ -975,6 +975,7 @@ void Editor::init_header_bar()
 
     {
         add_tool_action(ActionID::EXPORT_ALL_SOLID_MODELS_STL, "export_all_stl");
+        add_tool_action(ActionID::EXPORT_ALL_GLTF, "export_all_gltf");
         add_tool_action(ActionID::EXPORT_ALL_SOLID_MODELS_STEP, "export_all_step");
         add_tool_action(ActionID::EXPORT_SOLID_MODEL_STL, "export_stl");
         add_tool_action(ActionID::EXPORT_SOLID_MODEL_STEP, "export_step");
@@ -983,6 +984,7 @@ void Editor::init_header_bar()
         auto all = Gio::Menu::create();
         all->append("All objects as STL (3D printing)…", "win.export_all_stl");
         all->append("All objects as STEP (CAD)…", "win.export_all_step");
+        all->append("Shown objects as glTF (colours, materials, stickers, lights)…", "win.export_all_gltf");
         menu->append_section(all);
         auto current = Gio::Menu::create();
         current->append("Current object as STL…", "win.export_stl");

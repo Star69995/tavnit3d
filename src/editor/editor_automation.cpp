@@ -36,6 +36,7 @@ namespace dune3d {
  *   shot PATH                save the window contents as PNG
  *   shotwin TITLE PATH       the same for another window, e.g. a dialog
  *   sticker PATH             add a sticker with this picture to the object in the panel (then click on it)
+ *   export-gltf PATH         export the shown objects as glTF, from the current view
  *   update-check             check for updates as from the menu (feed: DUNE3D_UPDATE_FEED)
  *   windows                  print the visible windows and their texts (dialogs aren't in shots)
  *   quit                     close the app
@@ -171,6 +172,9 @@ void Editor::run_automation(const std::filesystem::path &script)
                         },
                         200);
                 delay = 900;
+            }
+            else if (cmd == "export-gltf") {
+                export_gltf_now(path_from_string(rest));
             }
             else if (cmd == "sticker") {
                 if (!m_object_editor)
