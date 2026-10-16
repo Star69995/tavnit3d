@@ -129,6 +129,30 @@ private:
     void update_object_drag();
     void end_object_drag();
     void close_object_editor();
+
+public:
+    // resize handles on the picked object (editor_handles.cpp)
+    struct ObjectHandle {
+        glm::dvec3 face; // where it's attached
+        glm::dvec3 pos;  // where it's drawn and grabbed
+        glm::dvec3 dir;  // which way is bigger
+        UUID constraint, group;
+        double scale = 1;  // shown value = datum * scale
+        double per_mm = 1; // shown value change per mm the handle moves
+        std::string label;
+    };
+    std::vector<ObjectHandle> get_object_handles();
+
+private:
+    struct HandleDrag {
+        ObjectHandle handle;
+        double start_value = 0, start_param = 0;
+        bool moved = false;
+    };
+    std::optional<HandleDrag> m_handle_drag;
+    bool begin_handle_drag();
+    void update_handle_drag();
+    void end_handle_drag();
     struct PlacingDecal {
         UUID doc, body;
         std::shared_ptr<const class PictureData> data;

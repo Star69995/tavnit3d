@@ -489,8 +489,10 @@ void Editor::init_canvas()
         controller->signal_released().connect([this, controller](int n_press, double x, double y) {
             m_drag_tool = ToolID::NONE;
             const auto button = controller->get_current_button();
-            if (button == 1)
+            if (button == 1) {
                 end_object_drag();
+                end_handle_drag();
+            }
             if (button == 1 && n_press == 1) {
                 if (m_core.tool_is_active()) {
                     ToolArgs args;
@@ -1479,8 +1481,11 @@ void Editor::render_document(const IDocumentInfo &doc)
         renderer.m_highlight_body = m_object_editor_body;
         renderer.m_hide_constraints = true; // the object panel lists the dimensions
     }
-    if (doc.get_uuid() == m_core.get_current_idocument_info().get_uuid())
+    if (doc.get_uuid() == m_core.get_current_idocument_info().get_uuid()) {
         get_canvas().set_lights(get_canvas_lights(doc.get_document()));
+        for (const auto &h : get_object_handles())
+            renderer.m_handles.emplace_back(h.face, h.pos);
+    }
 
     if (doc.get_uuid() == m_core.get_current_idocument_info().get_uuid())
         renderer.add_constraint_icons(m_constraint_tip_pos, m_constraint_tip_vec, m_constraint_tip_icons);
@@ -1602,6 +1607,10 @@ void Editor::handle_cursor_move()
             update_object_drag();
             return;
         }
+        if (m_handle_drag) {
+            update_handle_drag();
+            return;
+        }
         if (m_drag_tool == ToolID::NONE)
             return;
         if (m_selection_for_drag.size() == 0)
@@ -1656,6 +1665,8 @@ void Editor::handle_click(unsigned int button, unsigned int n)
     }
     else if (button == 1) {
         if (place_decal_under_cursor())
+            return;
+        if (begin_handle_drag())
             return;
         if (pick_light_under_cursor())
             return;

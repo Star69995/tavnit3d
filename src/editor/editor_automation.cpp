@@ -41,6 +41,7 @@ namespace dune3d {
  *   sticker PATH             add a sticker with this picture to the object in the panel (then click on it)
  *   save PATH                save the current document under this name
  *   render-window            open the render window (then "button Render", "shotwin Render picture PATH")
+ *   handles                  print where the picked object's resize handles are, in window pixels
  *   groups                   print the current document's groups, their solids and messages
  *   describe TEXT            open "Make from a description" with this text (then "button Make it")
  *   recipe PATH              build the objects of a recipe (JSON file, see document/recipe.hpp)
@@ -178,6 +179,7 @@ void Editor::run_automation(const std::filesystem::path &script)
                             }
                             get_canvas().inject_release();
                             end_object_drag();
+                            end_handle_drag();
                         },
                         200);
                 delay = 900;
@@ -188,6 +190,15 @@ void Editor::run_automation(const std::filesystem::path &script)
             else if (cmd == "render-window") {
                 show_render_window();
                 delay = 800;
+            }
+            else if (cmd == "handles") {
+                for (const auto &h : get_object_handles()) {
+                    const auto p = get_canvas().project_to_window(h.pos);
+                    graphene_point_t in{(float)p.x, (float)p.y}, out;
+                    if (!gtk_widget_compute_point(GTK_WIDGET(get_canvas().gobj()), GTK_WIDGET(m_win.gobj()), &in, &out))
+                        out = in;
+                    std::cerr << "automation: handle " << h.label << " " << (int)out.x << " " << (int)out.y << std::endl;
+                }
             }
             else if (cmd == "groups") {
                 auto &doc = m_core.get_current_document();

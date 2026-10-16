@@ -1,4 +1,5 @@
 #include "editor.hpp"
+#include "object_dimensions.hpp"
 #include "group_editor/group_editor.hpp"
 #include "canvas/color_palette.hpp"
 #include "preferences/preferences.hpp"
@@ -46,6 +47,8 @@ struct DatumInfo {
     double scale = 1; // shown value = datum * scale
 };
 
+int label_order(const std::string &label);
+
 DatumInfo datum_info(const Document &doc, const Constraint &co, const IConstraintDatum &datum, const Group &group,
                      bool body_is_revolved)
 {
@@ -87,6 +90,47 @@ DatumInfo datum_info(const Document &doc, const Constraint &co, const IConstrain
     }
     return {datum.get_datum_name()};
 }
+
+} // namespace
+
+std::vector<ObjectDimension> get_object_dimensions(const Document &doc, const UUID &body_uu)
+{
+    const auto body_groups = doc.get_groups_by_body();
+    auto it = std::ranges::find_if(body_groups, [&body_uu](const auto &bg) { return bg.get_group().m_uuid == body_uu; });
+    if (it == body_groups.end())
+        return {};
+    const auto &groups = it->groups;
+    const bool revolved = std::ranges::any_of(groups, [](auto gr) { return gr->get_type() == Group::Type::REVOLVE; });
+    std::vector<ObjectDimension> dims;
+    for (auto gr : groups) {
+        for (auto &[uu, co] : doc.m_constraints) {
+            if (co->m_group != gr->m_uuid)
+                continue;
+            auto datum = dynamic_cast<const IConstraintDatum *>(co.get());
+            if (!datum || datum->is_measurement())
+                continue;
+            const auto info = datum_info(doc, *co, *datum, *gr, revolved);
+            dims.push_back({info.label, uu, gr->m_uuid, info.scale, datum->get_datum() * info.scale});
+        }
+    }
+    // two diameters (a tube): outer and inner
+    {
+        std::vector<ObjectDimension *> diameters;
+        for (auto &d : dims) {
+            if (d.label == "Diameter")
+                diameters.push_back(&d);
+        }
+        if (diameters.size() == 2) {
+            std::ranges::sort(diameters, {}, [](auto d) { return -d->value; });
+            diameters.at(0)->label = "Outer diameter";
+            diameters.at(1)->label = "Inner diameter";
+        }
+    }
+    std::ranges::stable_sort(dims, {}, [](const ObjectDimension &d) { return label_order(d.label); });
+    return dims;
+}
+
+namespace {
 
 int label_order(const std::string &label)
 {
@@ -280,40 +324,7 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
     std::vector<const Group *> groups;
     if (it != body_groups.end())
         groups = it->groups;
-    struct Dim {
-        std::string label;
-        UUID constraint;
-        UUID group;
-        double scale;
-        double value;
-    };
-    const bool revolved = std::ranges::any_of(groups, [](auto gr) { return gr->get_type() == Group::Type::REVOLVE; });
-    std::vector<Dim> dims;
-    for (auto gr : groups) {
-        for (auto &[uu, co] : doc.m_constraints) {
-            if (co->m_group != gr->m_uuid)
-                continue;
-            auto datum = dynamic_cast<IConstraintDatum *>(co.get());
-            if (!datum || datum->is_measurement())
-                continue;
-            const auto info = datum_info(doc, *co, *datum, *gr, revolved);
-            dims.push_back({info.label, uu, gr->m_uuid, info.scale, datum->get_datum() * info.scale});
-        }
-    }
-    // two diameters (a tube): outer and inner
-    {
-        std::vector<Dim *> diameters;
-        for (auto &d : dims) {
-            if (d.label == "Diameter")
-                diameters.push_back(&d);
-        }
-        if (diameters.size() == 2) {
-            std::ranges::sort(diameters, {}, [](auto d) { return -d->value; });
-            diameters.at(0)->label = "Outer diameter";
-            diameters.at(1)->label = "Inner diameter";
-        }
-    }
-    std::ranges::stable_sort(dims, {}, [](const Dim &d) { return label_order(d.label); });
+    const auto dims = get_object_dimensions(doc, body_uu);
     if (dims.size())
         heading("Dimensions");
     for (const auto &dim : dims) {

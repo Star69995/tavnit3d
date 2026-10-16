@@ -195,6 +195,7 @@ src_gui = files(
   'src/editor/editor_import.cpp',
   'src/editor/editor_recipe.cpp',
   'src/editor/editor_lights.cpp',
+  'src/editor/editor_handles.cpp',
   'src/editor/render_window.cpp',
   'src/editor/describe_window.cpp',
   'src/editor/editor_object_drag.cpp',
