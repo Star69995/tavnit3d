@@ -180,9 +180,9 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
     m_object_combine_dropdown = nullptr;
 
     auto grid = Gtk::make_managed<Gtk::Grid>();
-    grid->set_row_spacing(5);
-    grid->set_column_spacing(5);
-    grid->set_margin(10);
+    grid->set_row_spacing(8);
+    grid->set_column_spacing(10);
+    grid->set_margin(14);
     grid->add_css_class("object-editor");
     m_object_editor = grid;
     int top = 0;

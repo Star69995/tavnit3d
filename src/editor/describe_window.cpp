@@ -8,6 +8,7 @@ DescribeWindow::DescribeWindow(Gtk::Window &parent, std::string &api_key, OnReci
     : m_api_key(api_key), m_on_recipe(std::move(on_recipe))
 {
     set_title("Make from a description");
+    add_css_class("studio-dialog");
     set_transient_for(parent);
     set_default_size(520, 380);
 

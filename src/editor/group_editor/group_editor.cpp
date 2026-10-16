@@ -31,10 +31,11 @@ void GroupEditor::update_body_name()
 GroupEditor::GroupEditor(Core &core, const UUID &group_uu) : m_core(core), m_group_uu(group_uu)
 {
     set_valign(Gtk::Align::START);
-    set_row_spacing(5);
-    set_column_spacing(5);
-    set_margin(10);
+    set_row_spacing(8);
+    set_column_spacing(10);
+    set_margin(14);
     set_row_homogeneous(true);
+    add_css_class("object-editor"); // looks like the object panel
     m_type_label = Gtk::manage(new Gtk::Label);
     m_type_label->set_xalign(0);
     auto &group = m_core.get_current_document().get_group(group_uu);

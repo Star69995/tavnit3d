@@ -14,6 +14,7 @@ ActionSearchWindow::ActionSearchWindow(Gtk::Window &parent, std::function<std::v
     : m_get_items(std::move(get_items))
 {
     set_title("Find");
+    add_css_class("studio-dialog");
     set_transient_for(parent);
     set_modal(true);
     set_default_size(460, 420);

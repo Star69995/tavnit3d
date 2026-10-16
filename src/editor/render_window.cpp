@@ -55,6 +55,7 @@ RenderWindow::RenderWindow(Gtk::Window &parent, std::filesystem::path &blender_p
     : m_blender_path(blender_path), m_view_aspect(view_aspect), m_export_scene(std::move(export_scene))
 {
     set_title("Render picture");
+    add_css_class("studio-dialog");
     set_transient_for(parent);
     set_default_size(760, 640);
 

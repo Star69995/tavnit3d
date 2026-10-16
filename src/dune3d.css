@@ -150,3 +150,117 @@ notebook > header tab:checked {box-shadow: inset 0 -3px @accent_bg_color;}
   padding: 12px;
 }
 .welcome-box button {border-radius: 12px; padding: 10px 14px;}
+
+/* ---------------------------------------------------------------
+ * Smoother feel: soft hover and press feedback, flat header buttons,
+ * calmer fields, rounded selections, more room in the panels.
+ * --------------------------------------------------------------- */
+@define-color studio_field #f4f6f9;
+@define-color studio_hover alpha(@accent_bg_color, .08);
+
+button, entry, spinbutton, dropdown > button, checkbutton check, switch, row,
+.action-bar .action-button, .view-bar-button, notebook > header tab {
+  transition: background-color 160ms ease-out, box-shadow 160ms ease-out, color 160ms ease-out,
+              border-color 160ms ease-out;
+}
+
+/* buttons in panels and small windows: soft, lift a little on hover, settle when pressed */
+.object-editor button, .studio-dialog button {
+  background: @studio_panel;
+  border: 1px solid @studio_border;
+  box-shadow: 0 1px 2px alpha(black, .05);
+  padding: 5px 12px;
+  min-height: 26px;
+}
+.object-editor button:hover, .studio-dialog button:hover {
+  background: #f7f9fc; border-color: shade(@studio_border, .94); box-shadow: 0 2px 6px alpha(black, .08);}
+.object-editor button:active, .studio-dialog button:active {background: #edf1f7; box-shadow: inset 0 1px 2px alpha(black, .08);}
+.object-editor button:disabled, .studio-dialog button:disabled {box-shadow: none; opacity: .55;}
+/* small icon buttons elsewhere (the tree's toolbar, closing a document) stay flat */
+button.image-button, button.flat {background: none; border-color: transparent; box-shadow: none;}
+button.image-button:hover, button.flat:hover {background: @studio_hover; color: @accent_bg_color;}
+button.suggested-action {background: @accent_bg_color; color: @accent_fg_color; border-color: transparent;
+  box-shadow: 0 2px 8px alpha(@accent_bg_color, .35);}
+button.suggested-action:hover {background: shade(@accent_bg_color, 1.08); box-shadow: 0 4px 12px alpha(@accent_bg_color, .40);}
+button.suggested-action:active {background: shade(@accent_bg_color, .92); box-shadow: none;}
+button.destructive-action {background: #e5484d; color: white; border-color: transparent;
+  box-shadow: 0 2px 8px alpha(#e5484d, .30);}
+button.destructive-action:hover {background: #ec5d62;}
+button.destructive-action:active {background: #cf3d42; box-shadow: none;}
+
+/* the header bar's buttons are flat until you point at them */
+headerbar button, headerbar menubutton > button {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  color: @studio_text;
+  font-weight: 500;
+}
+headerbar button:hover, headerbar menubutton > button:hover {background: @studio_hover; color: @accent_bg_color;}
+headerbar button:active, headerbar menubutton > button:active,
+headerbar menubutton > button:checked {background: alpha(@accent_bg_color, .16);}
+headerbar .linked > button {border-radius: 8px;}
+headerbar .linked > button:not(:first-child), headerbar .linked > button:not(:last-child) {border-radius: 8px;}
+
+/* fields: a soft fill, a clear blue ring when typing in them */
+entry, spinbutton, .object-editor dropdown > button, .studio-dialog dropdown > button,
+.object-editor colordialogbutton > button {
+  background: @studio_field;
+  border: 1px solid transparent;
+  box-shadow: none;
+  min-height: 30px;
+}
+entry:hover, spinbutton:hover, dropdown > button:hover {background: #eef1f6;}
+entry:focus-within, spinbutton:focus-within {
+  background: @studio_panel;
+  border-color: alpha(@accent_bg_color, .65);
+  box-shadow: 0 0 0 3px alpha(@accent_bg_color, .15);
+}
+spinbutton > button {background: none; border: none; box-shadow: none; border-radius: 6px; margin: 2px; padding: 0 6px;}
+spinbutton > button:hover {background: alpha(@accent_bg_color, .10); color: @accent_bg_color;}
+spinbutton > text {padding-left: 8px;}
+
+/* switches and ticks in the accent colour */
+switch {border-radius: 14px;}
+switch:checked {background: @accent_bg_color;}
+checkbutton check:checked {background: @accent_bg_color; color: white; border-color: @accent_bg_color;}
+
+/* the tree and lists: rounded, tinted selection */
+.navigation-sidebar > row, listview > row {border-radius: 8px; margin: 1px 6px; padding: 2px 4px;}
+.navigation-sidebar > row:hover, listview > row:hover {background: @studio_hover;}
+.navigation-sidebar > row:selected, listview > row:selected {background: alpha(@accent_bg_color, .14); color: @studio_text;}
+
+/* Group / Constraints / Selection: pills */
+notebook > header {padding: 6px 8px; border: none; box-shadow: inset 0 1px @studio_border;}
+notebook > header tab {border-radius: 8px; padding: 5px 12px; margin: 0 2px; min-height: 0; color: @studio_dim; font-weight: 600;}
+notebook > header tab:hover {background: @studio_hover; color: @studio_text;}
+notebook > header tab:checked {background: alpha(@accent_bg_color, .12); color: @accent_bg_color; box-shadow: none;}
+
+/* the panels on the left */
+.object-editor {padding-bottom: 6px;}
+.object-editor > label:not(.object-editor-heading) {color: @studio_dim;}
+.object-editor-heading {
+  font-weight: 700;
+  font-size: 75%;
+  letter-spacing: 1px;
+  color: @studio_dim;
+  margin-top: 12px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid @studio_border;
+}
+
+/* palette and view bar: the same soft feedback */
+.action-bar .action-button {transition: background-color 140ms ease-out, color 140ms ease-out;}
+.action-bar .action-button:hover {box-shadow: 0 2px 8px alpha(@accent_bg_color, .12);}
+
+/* small windows: Find, Render, Make from a description */
+.studio-dialog list {border-radius: 10px; background: @studio_panel;}
+.studio-dialog scrolledwindow {border-radius: 10px;}
+.caption {font-size: 85%;}
+/* the +/- inside number fields stay small and flat, also in the panels */
+.object-editor spinbutton > button, .studio-dialog spinbutton > button {
+  background: none; border: none; box-shadow: none; padding: 0 5px; min-height: 0; min-width: 0; margin: 2px;
+}
+.object-editor spinbutton > button:hover, .studio-dialog spinbutton > button:hover {
+  background: alpha(@accent_bg_color, .10); color: @accent_bg_color;}
+.object-editor spinbutton > text {min-width: 40px;}
