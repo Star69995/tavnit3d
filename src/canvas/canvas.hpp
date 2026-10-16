@@ -215,6 +215,15 @@ public:
         handle_motion(x, y);
     }
     void inject_click(double x, double y);
+    void inject_press(double x, double y)
+    {
+        handle_motion(x, y);
+        handle_left_press(x, y);
+    }
+    void inject_release()
+    {
+        handle_click_release();
+    }
     void inject_rotate(glm::vec2 from, glm::vec2 to);
 
     void set_highlight(const std::set<SelectableRef> &sr);

@@ -455,6 +455,8 @@ void Editor::init_canvas()
         controller->signal_released().connect([this, controller](int n_press, double x, double y) {
             m_drag_tool = ToolID::NONE;
             const auto button = controller->get_current_button();
+            if (button == 1)
+                end_object_drag();
             if (button == 1 && n_press == 1) {
                 if (m_core.tool_is_active()) {
                     ToolArgs args;
@@ -865,6 +867,18 @@ void Editor::init_properties_notebook()
                 update_group_editor();
             else
                 m_group_editor->reload();
+        }
+        else if (m_object_editor) {
+            // values may have changed (undo, dragging, ...); the object may be gone
+            Glib::signal_idle().connect_once([this] {
+                if (!m_object_editor || m_object_drag)
+                    return;
+                auto &doc = m_core.get_idocument_info(m_object_editor_doc).get_document();
+                if (doc.get_groups().contains(m_object_editor_body))
+                    show_object_editor(m_object_editor_doc, m_object_editor_body);
+                else
+                    update_group_editor();
+            });
         }
     });
 
@@ -1496,6 +1510,10 @@ void Editor::handle_cursor_move()
         tool_process(r);
     }
     else {
+        if (m_object_drag) {
+            update_object_drag();
+            return;
+        }
         if (m_drag_tool == ToolID::NONE)
             return;
         if (m_selection_for_drag.size() == 0)

@@ -23,6 +23,7 @@ namespace dune3d {
  *   action NAME              trigger an action or tool by its catalog name (ADD_BOX, DRAW_CIRCLE_2D, ...)
  *   open PATH                open a document
  *   move X Y / click X Y     pointer on the 3D view, in window pixels (as in a shot)
+ *   drag X1 Y1 X2 Y2         left-button drag on the 3D view (moves an object grabbed at X1 Y1)
  *   rotate X1 Y1 X2 Y2       orbit the view as if dragging between the points
  *   button LABEL             click the visible, enabled button whose text is LABEL
  *   field LABEL VALUE        type VALUE into the input next to the panel label LABEL
@@ -145,6 +146,26 @@ void Editor::run_automation(const std::filesystem::path &script)
                             200);
                     delay = 700;
                 }
+            }
+            else if (cmd == "drag") {
+                // left-button drag on the 3D view, e.g. to move an object
+                double x1, y1, x2, y2;
+                std::istringstream(rest) >> x1 >> y1 >> x2 >> y2;
+                const auto a = to_canvas(x1, y1), b = to_canvas(x2, y2);
+                get_canvas().inject_motion(a.x, a.y);
+                Glib::signal_timeout().connect_once(
+                        [this, a, b] {
+                            handle_click(1, 1);
+                            get_canvas().inject_press(a.x, a.y);
+                            for (int i = 1; i <= 10; i++) {
+                                const auto p = a + (b - a) * (i / 10.f);
+                                get_canvas().inject_motion(p.x, p.y);
+                            }
+                            get_canvas().inject_release();
+                            end_object_drag();
+                        },
+                        200);
+                delay = 900;
             }
             else if (cmd == "rotate") {
                 double x1, y1, x2, y2;

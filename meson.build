@@ -175,6 +175,7 @@ src_gui = files(
   'src/editor/editor_workspace_browser.cpp',
   'src/editor/editor_primitives.cpp',
   'src/editor/editor_object.cpp',
+  'src/editor/editor_object_drag.cpp',
   'src/editor/editor_automation.cpp',
   'src/editor/editor_export.cpp',
   'src/editor/editor_workspace_view.cpp',

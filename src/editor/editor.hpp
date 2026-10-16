@@ -100,6 +100,17 @@ private:
     void show_object_editor(const UUID &doc_uu, const UUID &body_uu);
     void delete_body(const UUID &doc_uu, const UUID &body_uu);
     void select_object_under_cursor();
+    struct ObjectDrag {
+        UUID doc, body, group, wrkpl;
+        UUID cx, cy;     // position constraints
+        double x0, y0;   // their values when the drag began
+        glm::dvec2 start; // cursor in workplane coordinates then
+        bool moved = false;
+    };
+    std::optional<ObjectDrag> m_object_drag;
+    bool begin_object_drag(const UUID &doc_uu, const UUID &body_uu);
+    void update_object_drag();
+    void end_object_drag();
     void close_object_editor();
     Gtk::Widget *m_object_editor = nullptr;
     UUID m_object_editor_doc;

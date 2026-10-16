@@ -265,8 +265,11 @@ void Editor::select_object_under_cursor()
     auto &doc = m_core.get_current_document();
     if (auto body = pick_body(doc, m_core.get_current_group(), origin, dir)) {
         // selecting the row shows the object panel, like clicking it in the browser
-        if (!m_workspace_browser->select_body(m_core.get_current_idocument_info().get_uuid(), *body))
-            show_object_editor(m_core.get_current_idocument_info().get_uuid(), *body);
+        const auto doc_uu = m_core.get_current_idocument_info().get_uuid();
+        if (!m_workspace_browser->select_body(doc_uu, *body))
+            show_object_editor(doc_uu, *body);
+        begin_object_drag(doc_uu, *body); // in case the button stays down
+
     }
     else if (m_object_editor) {
         // clicked into empty space: let go of the object
