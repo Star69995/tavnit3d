@@ -188,7 +188,7 @@ void Editor::show_light_editor(const UUID &doc_uu, const UUID &light_uu)
         en->set_hexpand(true);
         en->signal_activate().connect([en, edit] {
             edit("rename light", [en](Light &l) {
-                if (l.m_name == en->get_text())
+                if (l.m_name == en->get_text().raw())
                     return false;
                 l.m_name = en->get_text();
                 return true;

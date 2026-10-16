@@ -285,7 +285,7 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         en->signal_activate().connect([this, en, doc_uu, text_uu] {
             auto &d = m_core.get_idocument_info(doc_uu).get_document();
             auto &t = d.get_entity<EntityText>(text_uu);
-            if (en->get_text().empty() || t.m_text == en->get_text())
+            if (en->get_text().empty() || t.m_text == en->get_text().raw())
                 return;
             t.m_text = en->get_text();
             render_text(t, get_pango_context(), d);
@@ -630,7 +630,7 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
     if (focus_label.size()) {
         for (auto ch = grid->get_first_child(); ch; ch = ch->get_next_sibling()) {
             auto la = dynamic_cast<Gtk::Label *>(ch);
-            if (!la || la->get_text() != focus_label)
+            if (!la || la->get_text().raw() != focus_label)
                 continue;
             int col, row, w, h;
             gtk_grid_query_child(grid->gobj(), GTK_WIDGET(la->gobj()), &col, &row, &w, &h);

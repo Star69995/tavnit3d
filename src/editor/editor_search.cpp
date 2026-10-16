@@ -24,7 +24,7 @@ void Editor::focus_object_panel_field(const std::string &label)
         return;
     for (auto ch = grid->get_first_child(); ch; ch = ch->get_next_sibling()) {
         auto la = dynamic_cast<Gtk::Label *>(ch);
-        if (la && la->get_text() == label) {
+        if (la && la->get_text().raw() == label) {
             int col, row, w, h;
             gtk_grid_query_child(grid->gobj(), GTK_WIDGET(la->gobj()), &col, &row, &w, &h);
             if (auto field = grid->get_child_at(col + 1, row))

@@ -8,6 +8,7 @@
 #include <TopTools_IndexedDataMapOfShapeListOfShape.hxx>
 #include <TopoDS.hxx>
 #include <TopoDS_Edge.hxx>
+#include <algorithm>
 #include <list>
 #include <ranges>
 
