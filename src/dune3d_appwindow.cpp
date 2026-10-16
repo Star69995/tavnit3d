@@ -407,6 +407,28 @@ void Dune3DAppWindow::add_action_bar_section(const std::string &title)
     m_action_bar_grid_n = 0;
 }
 
+Gtk::Revealer &Dune3DAppWindow::add_action_bar_collapsible_section(const std::string &title)
+{
+    auto revealer = Gtk::make_managed<Gtk::Revealer>();
+    revealer->set_transition_type(Gtk::RevealerTransitionType::SLIDE_DOWN);
+    auto box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 0);
+    if (title.size()) {
+        auto label = Gtk::make_managed<Gtk::Label>(title);
+        label->add_css_class("action-bar-section");
+        label->set_xalign(0.5);
+        box->append(*label);
+    }
+    m_action_bar_grid = Gtk::make_managed<Gtk::Grid>();
+    m_action_bar_grid->set_column_homogeneous(true);
+    m_action_bar_grid->set_row_spacing(2);
+    m_action_bar_grid->set_column_spacing(2);
+    box->append(*m_action_bar_grid);
+    revealer->set_child(*box);
+    m_action_bar_box->append(*revealer);
+    m_action_bar_grid_n = 0;
+    return *revealer;
+}
+
 void Dune3DAppWindow::set_action_bar_visible(bool v)
 {
     m_action_bar_revealer->set_reveal_child(v);

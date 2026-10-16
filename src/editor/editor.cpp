@@ -131,14 +131,36 @@ void Editor::init()
     attach_action_button(m_win.get_welcome_open_button(), ActionID::OPEN_DOCUMENT);
     attach_action_button(m_win.get_welcome_new_button(), ActionID::NEW_DOCUMENT);
 
+    // the common ones always; the rest fold away behind "More"
     m_win.add_action_bar_section("Shapes");
     create_action_bar_button(ActionID::ADD_BOX, "Box");
     create_action_bar_button(ActionID::ADD_CYLINDER, "Cylinder");
     create_action_bar_button(ActionID::ADD_SPHERE, "Sphere");
     create_action_bar_button(ActionID::ADD_CONE, "Cone");
+    create_action_bar_button(ActionID::ADD_WEDGE, "Wedge");
+    create_action_bar_button(ActionID::ADD_TEXT, "3D Text");
+    create_action_bar_button(ActionID::ADD_PICTURE_OBJECT, "Picture");
+    create_action_bar_button(ActionID::MAKE_FROM_DESCRIPTION, "Describe");
+    auto more = Gtk::make_managed<Gtk::ToggleButton>();
+    {
+        auto box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 2);
+        auto img = Gtk::make_managed<Gtk::Image>();
+        img->set_from_icon_name("view-more-symbolic");
+        img->set_icon_size(Gtk::IconSize::LARGE);
+        box->append(*img);
+        auto la = Gtk::make_managed<Gtk::Label>("More");
+        la->add_css_class("action-button-label");
+        box->append(*la);
+        more->set_child(*box);
+        more->set_has_frame(false);
+        more->add_css_class("action-button");
+        more->set_tooltip_text("More shapes");
+        m_win.add_action_button(*more);
+    }
+    auto &more_shapes = m_win.add_action_bar_collapsible_section("");
+    more->signal_toggled().connect([more, &more_shapes] { more_shapes.set_reveal_child(more->get_active()); });
     create_action_bar_button(ActionID::ADD_TUBE, "Tube");
     create_action_bar_button(ActionID::ADD_TORUS, "Torus");
-    create_action_bar_button(ActionID::ADD_WEDGE, "Wedge");
     create_action_bar_button(ActionID::ADD_HEXAGON, "Hexagon");
     create_action_bar_button(ActionID::ADD_TRIANGLE, "Triangle");
     create_action_bar_button(ActionID::ADD_STAR, "Star");
@@ -146,11 +168,8 @@ void Editor::init()
     create_action_bar_button(ActionID::ADD_HALF_SPHERE, "Dome");
     create_action_bar_button(ActionID::ADD_SCREW, "Screw");
     create_action_bar_button(ActionID::ADD_HOLE_SHAPE, "Hole");
-    create_action_bar_button(ActionID::ADD_TEXT, "3D Text");
-    create_action_bar_button(ActionID::ADD_PICTURE_OBJECT, "Picture");
     create_action_bar_button(ActionID::ADD_BOWL, "Bowl");
     create_action_bar_button(ActionID::ADD_VASE, "Vase");
-    create_action_bar_button(ActionID::MAKE_FROM_DESCRIPTION, "Describe");
     m_win.add_action_bar_section("Lights");
     create_action_bar_button(ActionID::ADD_LAMP, "Lamp");
     create_action_bar_button(ActionID::ADD_SPOTLIGHT, "Spotlight");

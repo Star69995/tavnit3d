@@ -140,6 +140,8 @@ public:
 
     void add_action_button(Gtk::Widget &widget);
     void add_action_bar_section(const std::string &title);
+    // a section that can be folded away; returns what to reveal. Buttons added next go in it.
+    Gtk::Revealer &add_action_bar_collapsible_section(const std::string &title);
     // shows a strip at the top of the 3D view (e.g. about updates); nullptr hides it
     void set_banner(Gtk::Widget *widget);
     Gtk::Box &get_view_bar()

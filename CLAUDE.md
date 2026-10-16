@@ -154,6 +154,9 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   shown non-hole object whose bounds it touches (`add_combination`).
 - Round hole (palette "Hole"): a 6 x 30 mm cylinder created as a hole body
   (`Editor::add_primitive(..., as_hole)`); move it into an object and press Cut.
+- Tool palette Shapes: the common shapes are always shown; Tube, Torus,
+  Hexagon, Triangle, Star, Heart, Dome, Screw, Hole, Bowl, Vase fold away
+  behind "More" (`Dune3DAppWindow::add_action_bar_collapsible_section`).
 - Find (`src/editor/action_search.*`, items in `editor_search.cpp`): Ctrl+K
   both as the FIND action and a window-level capture shortcut. When a
   feature lands, add it there with where it lives.
