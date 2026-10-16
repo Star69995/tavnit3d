@@ -1,17 +1,66 @@
+# Tavnit 3D
+
+A friendlier, Tinkercad/Shapr3D-style take on [Dune 3D](https://dune3d.org/)
+for Windows: ready-made shapes on a floor grid, click an object to edit its
+size, position, colour and material, then export STL for 3D printing - with
+the full parametric CAD underneath.
+
+**Download:** <https://star69995.github.io/tavnit3d/> (Windows 10/11, 64-bit
+installer; the app checks for new versions at start and updates itself in
+one click).
+
+![Tavnit 3D with a rounded box, a metal cylinder, a sphere, a torus and a cone on the floor grid](site/img/hero.webp)
+
+## What it adds to Dune 3D
+
+- Labelled tool palette and a light "studio" theme
+- Ready-made Box, Cylinder, Sphere, Cone, Tube, Torus, Wedge and 3D Text,
+  placed next to each other on a floor grid
+- Click a solid to select it; an object panel shows its dimensions, X/Y
+  position, colour, material (satin/matte/glossy/metal) and visibility
+- Drag to move, duplicate (Ctrl+D), round all edges, join/subtract/intersect
+- Sketch on a face, push/pull extrude with a typed distance (negative cuts)
+- Snap to a grid with a selectable size, studio lighting, one-click STL/STEP
+  export
+- Windows installer (per user, no admin rights) and in-app updates from this
+  repo's GitHub releases
+
+The app's own UI is in English; the website is in Hebrew.
+
+## Where the code comes from
+
+Tavnit 3D is a fork of **[Dune 3D](https://github.com/dune3d/dune3d)** by
+Lukas K. and contributors, and is licensed, like Dune 3D, under the
+[GNU GPL v3](LICENSE). Dune 3D in turn builds on
+[Open CASCADE](https://dev.opencascade.org/) (geometry kernel),
+[SolveSpace](https://solvespace.com/)'s constraint solver and GTK 4. All
+credit for the CAD core goes to them. This is not an official Dune 3D
+release - please report problems with Tavnit 3D
+[here](https://github.com/Star69995/tavnit3d/issues), not upstream.
+Generally useful fixes are offered back to Dune 3D as pull requests.
+
+**Written mostly by Claude.** Most of the code that Tavnit 3D adds on top of
+Dune 3D was written by Claude, an AI model by Anthropic (via Claude Code),
+with Star deciding what to build, testing it in real use and choosing what
+goes in. Commits are marked with a `Co-Authored-By: Claude` line, and the full
+history is public in this repository.
+
+## Building (Windows)
+
+Needs MSYS2 (UCRT64) with the packages from `.github/workflows/win32.yml`.
+`toolsuild.cmd` builds, `toolsuild.cmd test` also runs the tests,
+`toolsuild.cmd dist installer` makes the portable folder and the setup.exe.
+Releases are published with `tools/release.sh` - see `CLAUDE.md` for details.
+
+Branches: `studio` is Tavnit 3D (default), `main` mirrors upstream Dune 3D.
+
+---
+
+*Below is the original Dune 3D README.*
+
 # Dune 3D
 
 Dune 3D is a parametric 3D CAD application that supports STEP import/export, fillets and chamfers.
-
-> **About this fork - Tavnit 3D (`studio` branch):** a friendlier,
-> Shapr3D/Tinkercad-style take on Dune 3D for Windows: labelled tool palette
-> and light theme, ready-made Box/Cylinder/Sphere shapes placed on a floor
-> grid, click-to-select objects with a panel for size/position/colour/material,
-> sketch on a face, push/pull extrude with typed distances (negative cuts),
-> snap to grid, studio lighting, one-click STL/STEP export, drag to move,
-> duplicate, round edges, join/subtract/intersect, a Windows installer and
-> in-app updates.
-> Build on Windows with `tools\build.cmd [test] [dist]` (needs MSYS2 UCRT64,
-> see `CLAUDE.md`).
 
 ![Screenshot showing a PCB in a grey enclosure on a gradient background.](screenshot.png)
 

@@ -357,7 +357,8 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
             const auto existing = find_round_edges(d, body_uu);
             if ((existing ? existing->m_radius : 0) == r)
                 return;
-            if (!set_round_edges(d, body_uu, r) && r > 0) {
+            auto rounded = set_round_edges(d, body_uu, r);
+            if (!rounded && r > 0) {
                 m_workspace_browser->show_toast("This object has no edges to round");
                 return;
             }
@@ -365,6 +366,24 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
             m_core.rebuild("round edges");
             canvas_update_keep_selection();
             m_workspace_browser->update_documents(get_current_document_views());
+            // the view only shows groups up to the current one: move past the new fillet so the
+            // rounding is visible (later, as this panel is rebuilt by it)
+            const auto current = m_core.get_current_idocument_info().get_uuid() == doc_uu
+                                         ? m_core.get_current_group()
+                                         : get_current_document_views()[doc_uu].m_current_group;
+            if (rounded && d.get_groups().contains(current)
+                && rounded->get_index() > d.get_group(current).get_index()) {
+                Glib::signal_idle().connect_once([this, doc_uu, body_uu] {
+                    auto &dd = m_core.get_idocument_info(doc_uu).get_document();
+                    const auto last = dd.get_groups_sorted().back()->m_uuid;
+                    m_core.set_current_document(doc_uu);
+                    get_current_document_view().m_current_group = last;
+                    set_current_group(last);
+                    if (!m_workspace_browser->select_body(doc_uu, body_uu))
+                        show_object_editor(doc_uu, body_uu);
+                    canvas_update_keep_selection();
+                });
+            }
         });
         if (dims.empty())
             heading("Dimensions");

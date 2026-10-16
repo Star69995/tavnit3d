@@ -11,6 +11,7 @@ CAD on Windows, while sending generally useful improvements upstream as PRs.
 ## Branches and remotes
 
 - `upstream` remote = dune3d/dune3d. `main` tracks upstream untouched.
+- `origin` remote = Star69995/tavnit3d (public; see "Public repo" below).
 - `studio` = our work. Keep commits focused so generic ones can be
   cherry-picked into upstream PR branches; UI restyling/branding stays here.
 
@@ -77,7 +78,9 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   body's groups/entities/constraints with new UUIDs; constraints on
   generated entities are re-pointed by matching geometry after generating.
 - Round edges (object panel, `src/document/round_edges.*`): a fillet group
-  named "Rounded edges" at the end of the body over all non-seam edges.
+  named "Rounded edges" at the end of the body over all non-seam edges. The
+  view only shows groups up to the current one, so after adding it the panel
+  moves the current group to the document's last group (like Duplicate/Combine).
 - Sketch lines of bodies other than the current one are hidden by default
   (`Renderer::render`, View > Sketch lines of other objects).
 - Combine (object panel, `src/document/combine.*`): solid model operation
@@ -100,21 +103,68 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 - Changing a document directly (not through a tool): mark groups pending
   *before* deleting anything they reference, then `m_core.rebuild(...)`.
 
-## Releasing (installer + in-app updates)
+## Public repo, website, releases
 
-1. Bump `app_version` in `src/util/branding.hpp` (installer reads it).
-2. `tools\build.cmd test dist installer` -> `dist/Tavnit3D-<ver>-setup.exe`
-   (Inno Setup 6: `winget install JRSoftware.InnoSetup`).
-3. Publish a GitHub release tagged `v<ver>` on the repo named by
-   `update_repo` in branding.hpp, with the setup.exe attached (asset name
-   must end in `-setup.exe`). Drafts/prereleases are ignored.
-4. Running copies check `releases/latest` at start (toggle in the main
-   menu), show a strip above the 3D view, download the installer, run it
-   with `/SILENT /RELAUNCH=1` and quit; the installer waits on the app's
-   mutex and restarts the new version. Code: `src/util/update_check.*`,
-   `src/editor/editor_update.cpp`. `DUNE3D_UPDATE_FEED=<url>` overrides the
-   feed for testing (a local `python -m http.server` with a release.json
-   works; the end-to-end flow was tested that way).
+- GitHub: `origin` = https://github.com/Star69995/tavnit3d (public, a GitHub
+  fork of dune3d/dune3d), default branch `studio`. Upstream's own CI
+  workflows (all/freebsd/macos/win32.yml) are disabled there via
+  `gh workflow disable`; only `pages.yml` runs.
+- `site/` - the public landing/download page, https://star69995.github.io/tavnit3d/
+  (GitHub Pages, deployed by `.github/workflows/pages.yml` on pushes to
+  `studio` touching `site/`). Static HTML/CSS/JS, Hebrew RTL, no build step;
+  structure, `style.css` and `app.js` come from the sibling `backuper` project.
+  Preview: `python -m http.server 8766` in `site/`. `app.js` fills the
+  download buttons and version list from the GitHub Releases API at runtime
+  (installer = the `*-setup.exe` asset). When a user-visible feature lands or
+  changes, update the feature cards / tour / FAQ in the same pass; don't
+  claim what the app doesn't do or announce a feature before its release.
+  Screenshots in `site/img/*.webp` are real app shots (`tools/ui.sh` scripts
+  with `shot`, 1400x900, converted with `cwebp -q 82`); `og.png` is a
+  1200x630 shot of the deployed page's top.
+- Credits: the README, the site's "מאיפה הקוד" section and the about dialog
+  (`src/widgets/about_dialog.cpp`) say it's a Dune 3D fork and that the
+  changes were written mostly by Claude, directed by Star. Keep that true.
+  Avoid gendered Hebrew verbs/adjectives for Star on the site.
+
+### Releasing (installer + in-app updates)
+
+1. Bump `app_version` in `src/util/branding.hpp` (installer reads it), commit, push.
+2. `tools/release.sh [notes.md] [--yes]` - checks the tag is new on GitHub
+   and HEAD is pushed, runs `tools/build.sh test dist installer`, shows the
+   notes (default: commit subjects since the last release) and asks, then
+   publishes release `v<ver>` with `Tavnit3D-<ver>-setup.exe` and
+   `Tavnit3D-<ver>-portable.zip` (Inno Setup 6: `winget install JRSoftware.InnoSetup`).
+   The site and the in-app updater pick it up by themselves; drafts and
+   prereleases are ignored.
+3. Running copies check `releases/latest` of `update_repo` at start (toggle in
+   the main menu), show a strip above the 3D view with "Update now", download
+   the installer, run it with `/SILENT /RELAUNCH=1` and quit; the installer
+   waits on the app's mutex and restarts the new version. Code:
+   `src/util/update_check.*`, `src/editor/editor_update.cpp`.
+   `DUNE3D_UPDATE_FEED=<url>` overrides the feed for testing (a local
+   `python -m http.server` with a release.json works).
+- Gotcha: the local clone has upstream's tags (v0.9.0 ... v1.4.0). Our tags
+  live only on GitHub (`gh release create` makes them); never `git push --tags`.
+  Our own 0.9.x would clash with upstream's names locally - skip from 0.8.x to 0.10.0.
+
+## Web UI rules (for `site/`)
+
+Inlined from ~/.claude/web-ui-rules.md; keep in sync with it.
+
+Apply only in projects with a browser-based user interface.
+
+- Use `-` (hyphen), never `—` (em dash), in UI copy/text.
+- Minimum text size: 12px. Layout must stay usable down to a 320px viewport width.
+- Focusable fields (`input`, `textarea`, `select`) need `font-size: 16px` or larger - this overrides the 12px minimum above. Below 16px, iOS Safari zooms the page in when the field gets focus, and that zoom shifts the visual viewport, so sticky/fixed bars drift off screen and the user has to pinch back out. Never solve it with `user-scalable=no` or a permanent `maximum-scale=1` in the viewport meta: Safari ignores the former anyway, and both block pinch-zoom for everyone for the whole visit. If a field genuinely must show smaller text, add `maximum-scale=1` to the viewport meta on `focusin` and remove it on `focusout`.
+- **iOS Safari's on-screen keyboard shrinks and offsets the *visual* viewport without touching the *layout* viewport, and doesn't fire `visualViewport` events continuously during its own open/close animation** - any sticky/fixed bar (header, toolbar, action bar) can drift off-screen or end up hidden behind the keyboard. This does not reproduce in a desktop browser or in the iOS Simulator's software keyboard - it needs a real device to test. Extensively tested across many real-device approaches, on a page with a *stack* of several sticky bars (not just one): the fix that looks obvious - give each bar its own `transform`/`top` that chases `window.visualViewport.offsetTop` - is fragile once there's more than one bar. It breaks in different ways depending on the exact implementation: z-index ordering between the bars becomes load-bearing and easy to get backwards (a bar with no explicit `z-index` silently paints *underneath* a sibling that has one, even if it's later in the DOM), and WebKit can glitch-repaint (a bar flickers transparent/disappears) even with a permanently-applied `transform` meant to keep it on a stable GPU layer. The approach that held up cleanly, repeatedly: don't move each bar - make the **app's own outer shell** the thing that tracks the keyboard. Give the shell `position: fixed` with its `top` and `height` bound to CSS variables kept in sync with `visualViewport.offsetTop` and `visualViewport.height` (a `resize`/`scroll` listener on `window.visualViewport`, refreshed every frame via `requestAnimationFrame` for as long as a field has focus - listeners alone leave the frame visibly lagging behind the keyboard's open/close animation). With the shell's own geometry always matching what's actually visible, everything inside it - header, sticky toolbars - can use plain normal-flow/sticky positioning with no per-element `transform` or `top` hacks at all: there's nothing to chase, so there's no overlap or stacking-order question to get wrong. Separately, and just as easy to miss: scroll the newly-focused field into view **on focus**, not only once the user starts typing - a field near the bottom of scrollable content can end up hidden under the keyboard the instant it opens, before any keystroke, and no browser does this for you automatically inside a custom scroll container.
+- **A persistent bottom bar (bottom nav / tab bar) is hidden while a text field has focus on touch devices, and shown again only when the scroll container is at its very end.** With the on-screen keyboard open, a bar parked between the content and the keyboard just eats scarce visible height; at the end of the content there's nothing left below it to hide, so it comes back. Gate it on `(pointer: coarse)` (on desktop there's no keyboard, so hiding it looks like a glitch). Use *different* reveal/hide distance-from-bottom thresholds (e.g. reveal within 4px, hide beyond 96px) rather than a single toggle point: the bar's own show/hide changes the scroll container's `clientHeight` by its height, which would otherwise flip the "at bottom" check back and forth. Re-check after the keyboard's open animation settles (~350ms after `focusin`), and animate with `max-height` + `opacity`, not `display: none`. Reference: `useHideWhileTyping` in `src/components/BottomNav.tsx`.
+- **Don't layer a manual "scroll the caret/focused element into view" correction on top of an auto-scroll mechanism that already exists** (a rich-text editor's own built-in scrollIntoView, or the browser's native reveal-on-focus scrolling) - **two scrollers acting on the same container in the same animation frame is what produces a visible jump/overcorrection, not a missing feature.** This surfaced as: typing in the *last* line of a scrollable editor on iOS Safari made the whole view jump to the top instead of scrolling down slightly to reveal the caret - happened only there, not mid-document, because with no more room to scroll down, the browser's own reveal-scroll escalates the gesture to an ancestor/the whole page instead of the exhausted inner container, and a second corrective `scrollBy` fighting it in the same frame is what turned that into a jump rather than a no-op. Diagnosing this kind of "two scrollers fighting" bug: put a kill switch on each of your own correction mechanisms and disable them all first - if the symptom disappears completely, your code (not the platform) is the thing to fix, and you can binary-search which mechanism and which direction (scrolling up to reveal a caret hidden under sticky top bars, vs. scrolling down to reveal one hidden under the keyboard) is the culprit by re-enabling one branch at a time. The fix that held up: don't add a second scroll call after the fact - find the hook that lets you feed the *existing* mechanism what it doesn't already know (e.g. ProseMirror's `editorProps.scrollThreshold`/`scrollMargin`, which it already applies on every content transaction) so there's still only one scroller. Concretely, for an editor with sticky top bars covering part of the scroll container: set `scrollThreshold.top`/`scrollMargin.top` to the sticky stack's covered height so the editor's own scrollIntoView already treats that height as hidden, and **leave the bottom/keyboard side at its default** - the editor and the browser already handle "caret hidden under the keyboard" correctly on their own, and adding a bottom-side correction is what reintroduces the fight. If the covered height can change (a bar that's conditionally shown, a toolbar that wraps to two lines at narrow widths), make the threshold/margin a live getter, not a value computed once - re-measure the DOM on each read rather than caching a stale number.
+- Lean toward centering elements rather than just dumping them against the start edge (the right side in RTL). Empty states, page headers/intros, standalone cards, forms, modals' content, call-to-action buttons and narrow content blocks should be visually centered (in a constrained max-width column where appropriate) unless there's a clear reason for start alignment - e.g. long running text, table/list rows, or form labels inside a field group stay start-aligned for readability.
+- No emoji in UI elements - use an icon library or SVG instead.
+- Never use native browser dialogs (`alert()`, `confirm()`, `prompt()`) for user-facing interaction - always build a custom in-app modal component instead. Native dialogs can't be styled to match the app, don't respect the page's language/RTL direction or button-label conventions, and (`confirm`/`prompt`) block the JS thread while open.
+- Every site needs Open Graph + Twitter Card meta tags in `<head>` (`og:title`, `og:description`, `og:image`, `og:url`, `og:image:width`/`height`, `og:locale` set to the site's actual content language (e.g. `he_IL`, not the visitor's), `og:image:alt` describing what's shown in the image, `twitter:card` set to `summary_large_image`), pointing at an absolute image URL. The preview image (1200x630) is a designed brand card, not a screenshot: the project's logo (from its original source file), the site name, a short tagline, on a clean background in the brand colors, readable at small sizes (e.g. a Slack/WhatsApp link preview). Generate it with a script kept in the repo (e.g. `scripts/generate-og-image.js`) so it can be regenerated from the logo instead of being edited by hand, and mention the script in the README. If the project has no logo yet, ask for one rather than inventing artwork. Keep the card's text in sync with `og:title`/`og:description`.
+- **Text editors with mixed Hebrew/English (or any RTL + LTR) multi-line content: give every line its own explicit direction, and an empty line inherits the direction of the line above it.** A single `dir` on the field cannot get both languages right: `dir=rtl` flips English lines (right-aligned, trailing period jumps to the start), and `dir=auto`/`unicode-bidi: plaintext` leave a new empty line with no strong character, so after a Hebrew paragraph the caret lands on the left. An invisible RLM/LRM inserted on Return fixes the caret but then wins over what is typed next (English typed after it stays right-aligned) and pollutes the saved text - don't use it. What held up (verified in Chrome and on a real iPhone; the extra hardening below is what made it hold on iOS): build the editor as a `contenteditable` with one block (`div`) per line; on `input`, `beforeinput` (re-check in a microtask), `compositionstart/update/end`, `keyup`, `focus` and `selectionchange`, set each block's direction from its first strong character, falling back to the previous block's direction for an empty block (and to the page default for the first). Apply it as `data-dir="rtl|ltr"` plus the `dir` attribute, and enforce it in CSS with `!important` (`direction`, `text-align`, `unicode-bidi: isolate`) because **iOS Safari writes its own direction onto the block (a `dir` attribute or inline `direction`/`unicode-bidi`, sometimes on a wrapper span) when the keyboard language is switched**, which otherwise beats yours and leaves the line stuck on the old direction even after typing in the other language. On every sync, strip foreign `direction`/`unicode-bidi`/`text-align` inline styles and nested `dir` attributes, and wrap loose text nodes in their own block. Reference implementation: the `blockdir` behavior in `lab.js` of the `hebrew-caret-lab` branch of the `ios-lab` repo.
+- **The same per-line direction rule in a Tiptap/ProseMirror editor: a `dir` node attribute on every paragraph/heading, recomputed in `appendTransaction`** (verified on a real iPhone with Tiptap 2.11.5 StarterKit; `dir=auto` on the editor root has the same problem as on a plain field). Add a global attribute `dir` (`default: null`, `parseHTML: el => el.getAttribute('dir')`, `renderHTML: a => a.dir ? { dir: a.dir, 'data-dir': a.dir } : {}`) on `paragraph` and `heading`, and a ProseMirror `Plugin` whose `appendTransaction` returns `null` unless a transaction has `docChanged`, then computes each top-level block's direction (first strong character of its text, else the previous block's, else the page default) and calls `tr.setNodeMarkup(pos, undefined, { ...node.attrs, dir })` only for blocks whose `dir` differs. **Only touch node types that declare the attribute (`paragraph`, `heading`)**, or `appendTransaction` never settles and loops forever. Seed the initial document with the `dir` values already computed (a plugin that only reacts to `docChanged` does not run on load). Enforce it with the same `!important` CSS on `[data-dir]` as for plain `contenteditable` (`direction`, `text-align`, `unicode-bidi: isolate`), so a direction iOS writes inline when the keyboard language switches cannot win; don't fight ProseMirror by stripping inline styles itself. Set `.ProseMirror p { margin: 0 }` if lines should behave like lines. Import `Plugin` from `@tiptap/pm/state` at the same version as the rest of Tiptap. Reference implementation: `blockDirExtension` in `lab.js` of the `hebrew-caret-lab` branch of the `ios-lab` repo (setup `tt-blockdir`).
 
 ## General rules (copied from ~/.claude/CLAUDE.md)
 
