@@ -167,7 +167,7 @@ private:
     void attach_action_button(Gtk::Button &button, ActionToolID action);
     void attach_action_sensitive(Gtk::Widget &widget, ActionToolID action);
 
-    Gtk::Button &create_action_bar_button(ActionToolID action);
+    Gtk::Button &create_action_bar_button(ActionToolID action, const std::string &label);
     std::map<ActionToolID, Gtk::Button *> m_action_bar_buttons;
     void update_action_bar_buttons_sensitivity();
     void update_action_bar_visibility();

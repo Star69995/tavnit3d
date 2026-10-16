@@ -72,6 +72,8 @@ const Preferences *the_preferences = nullptr;
 void Dune3DApplication::on_startup()
 {
     Gtk::Application::on_startup();
+    // The UI isn't translated, so don't mirror it for RTL system locales.
+    Gtk::Widget::set_default_direction(Gtk::TextDirection::LTR);
     create_config_dir();
     m_preferences.load_default();
     the_preferences = &m_preferences;

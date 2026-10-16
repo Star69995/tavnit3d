@@ -139,6 +139,7 @@ public:
     void set_welcome_box_visible(bool v);
 
     void add_action_button(Gtk::Widget &widget);
+    void add_action_bar_section(const std::string &title);
     void set_action_bar_visible(bool v);
 
     void set_view_hints_label(const std::vector<std::string> &s);
@@ -237,6 +238,8 @@ private:
     Gtk::Button *m_welcome_open_button = nullptr;
 
     Gtk::Box *m_action_bar_box = nullptr;
+    Gtk::Grid *m_action_bar_grid = nullptr;
+    unsigned int m_action_bar_grid_n = 0;
     Gtk::Revealer *m_action_bar_revealer = nullptr;
 
     Gtk::Paned *m_left_bar = nullptr;

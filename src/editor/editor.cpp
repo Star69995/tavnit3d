@@ -119,12 +119,21 @@ void Editor::init()
     attach_action_button(m_win.get_welcome_open_button(), ActionID::OPEN_DOCUMENT);
     attach_action_button(m_win.get_welcome_new_button(), ActionID::NEW_DOCUMENT);
 
-    create_action_bar_button(ToolID::DRAW_CONTOUR);
-    create_action_bar_button(ToolID::DRAW_RECTANGLE);
-    create_action_bar_button(ToolID::DRAW_CIRCLE_2D);
-    create_action_bar_button(ToolID::DRAW_REGULAR_POLYGON);
-    create_action_bar_button(ToolID::DRAW_TEXT);
-    create_action_bar_button(ToolID::DRAW_WORKPLANE);
+    m_win.add_action_bar_section("Sketch");
+    create_action_bar_button(ActionID::CREATE_GROUP_SKETCH, "New");
+    create_action_bar_button(ToolID::DRAW_CONTOUR, "Line");
+    create_action_bar_button(ToolID::DRAW_RECTANGLE, "Rectangle");
+    create_action_bar_button(ToolID::DRAW_CIRCLE_2D, "Circle");
+    create_action_bar_button(ToolID::DRAW_REGULAR_POLYGON, "Polygon");
+    create_action_bar_button(ToolID::DRAW_TEXT, "Text");
+    create_action_bar_button(ToolID::DRAW_WORKPLANE, "Plane");
+    m_win.add_action_bar_section("Solid");
+    create_action_bar_button(ActionID::CREATE_GROUP_EXTRUDE, "Extrude");
+    create_action_bar_button(ActionID::CREATE_GROUP_REVOLVE, "Revolve");
+    create_action_bar_button(ActionID::CREATE_GROUP_LOFT, "Loft");
+    create_action_bar_button(ActionID::CREATE_GROUP_FILLET, "Fillet");
+    create_action_bar_button(ActionID::CREATE_GROUP_CHAMFER, "Chamfer");
+    create_action_bar_button(ActionID::CREATE_GROUP_SOLID_MODEL_OPERATION, "Combine");
 
     init_view_options();
 
@@ -275,7 +284,7 @@ void Editor::init_view_options()
     }
 }
 
-Gtk::Button &Editor::create_action_bar_button(ActionToolID action)
+Gtk::Button &Editor::create_action_bar_button(ActionToolID action, const std::string &label)
 {
     static const std::map<ActionToolID, std::string> action_icons = {
             {ToolID::DRAW_CONTOUR, "action-draw-contour-symbolic"},
@@ -284,6 +293,13 @@ Gtk::Button &Editor::create_action_bar_button(ActionToolID action)
             {ToolID::DRAW_REGULAR_POLYGON, "action-draw-line-regular-polygon-symbolic"},
             {ToolID::DRAW_WORKPLANE, "action-draw-workplane-symbolic"},
             {ToolID::DRAW_TEXT, "action-draw-text-symbolic"},
+            {ActionID::CREATE_GROUP_SKETCH, "action-create-sketch-symbolic"},
+            {ActionID::CREATE_GROUP_EXTRUDE, "action-create-extrude-symbolic"},
+            {ActionID::CREATE_GROUP_REVOLVE, "action-create-revolve-symbolic"},
+            {ActionID::CREATE_GROUP_LOFT, "action-create-loft-symbolic"},
+            {ActionID::CREATE_GROUP_FILLET, "action-create-fillet-symbolic"},
+            {ActionID::CREATE_GROUP_CHAMFER, "action-create-chamfer-symbolic"},
+            {ActionID::CREATE_GROUP_SOLID_MODEL_OPERATION, "action-create-boolean-symbolic"},
     };
     auto bu = Gtk::make_managed<Gtk::Button>();
     auto img = Gtk::make_managed<Gtk::Image>();
@@ -292,8 +308,13 @@ Gtk::Button &Editor::create_action_bar_button(ActionToolID action)
     else
         img->set_from_icon_name("face-worried-symbolic");
     img->set_icon_size(Gtk::IconSize::LARGE);
-    bu->set_child(*img);
-    bu->add_css_class("osd");
+    auto box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 2);
+    box->append(*img);
+    auto la = Gtk::make_managed<Gtk::Label>(label);
+    la->add_css_class("action-button-label");
+    box->append(*la);
+    bu->set_child(*box);
+    bu->set_has_frame(false);
     bu->add_css_class("action-button");
     bu->signal_clicked().connect([this, action] {
         if (force_end_tool())

@@ -354,7 +354,26 @@ void Dune3DAppWindow::set_welcome_box_visible(bool v)
 
 void Dune3DAppWindow::add_action_button(Gtk::Widget &widget)
 {
-    m_action_bar_box->append(widget);
+    // buttons are laid out two per row within the current section
+    if (!m_action_bar_grid)
+        add_action_bar_section("");
+    m_action_bar_grid->attach(widget, m_action_bar_grid_n % 2, m_action_bar_grid_n / 2);
+    m_action_bar_grid_n++;
+}
+
+void Dune3DAppWindow::add_action_bar_section(const std::string &title)
+{
+    auto label = Gtk::make_managed<Gtk::Label>(title);
+    label->add_css_class("action-bar-section");
+    label->set_xalign(0.5);
+    if (title.size())
+        m_action_bar_box->append(*label);
+    m_action_bar_grid = Gtk::make_managed<Gtk::Grid>();
+    m_action_bar_grid->set_column_homogeneous(true);
+    m_action_bar_grid->set_row_spacing(2);
+    m_action_bar_grid->set_column_spacing(2);
+    m_action_bar_box->append(*m_action_bar_grid);
+    m_action_bar_grid_n = 0;
 }
 
 void Dune3DAppWindow::set_action_bar_visible(bool v)
