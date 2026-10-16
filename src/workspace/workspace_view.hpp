@@ -53,6 +53,11 @@ public:
     double m_grid_step = 0;
     bool m_studio_lighting = true;
     bool m_snap_to_grid = true;
+    bool m_show_other_sketches = false;
+    bool show_other_sketches() const override
+    {
+        return m_show_other_sketches;
+    }
     double get_grid_step() const override
     {
         return m_grid_step;

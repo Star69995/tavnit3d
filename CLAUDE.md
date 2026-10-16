@@ -76,6 +76,10 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 - Duplicate (object panel / Ctrl+D, `src/document/duplicate.*`): copies a
   body's groups/entities/constraints with new UUIDs; constraints on
   generated entities are re-pointed by matching geometry after generating.
+- Round edges (object panel, `src/document/round_edges.*`): a fillet group
+  named "Rounded edges" at the end of the body over all non-seam edges.
+- Sketch lines of bodies other than the current one are hidden by default
+  (`Renderer::render`, View > Sketch lines of other objects).
 - Combine (object panel, `src/document/combine.*`): solid model operation
   group in a new body after everything; the sources get hidden, not removed.
 - Tool palette: `Editor::create_action_bar_button` / `add_action_bar_section`.

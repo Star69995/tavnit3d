@@ -18,6 +18,8 @@
 #include "document/body_solids.hpp"
 #include "document/combine.hpp"
 #include "document/duplicate.hpp"
+#include "document/round_edges.hpp"
+#include "document/group/group_fillet.hpp"
 #include "document/primitives.hpp"
 #include "document/solid_model/solid_model_occ.hpp"
 #include <BRepBndLib.hxx>
@@ -271,6 +273,40 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
             changed(group_uu, true);
         });
         grid_attach_label_and_widget(*grid, dim.label, *sp, top).add_css_class("tnum");
+    }
+
+    // rounding all edges, like a rounded box
+    if (std::ranges::any_of(get_body_solids(doc, UUID()), [&body_uu](const auto &bs) { return bs.body == body_uu; })) {
+        auto sp = Gtk::make_managed<SpinButtonDim>();
+        sp->set_range(0, 1000);
+        sp->set_hexpand(true);
+        auto fillet = find_round_edges(doc, body_uu);
+        sp->set_value(fillet ? fillet->m_radius : 0);
+        sp->set_tooltip_text("Rounds all edges; 0 for sharp edges");
+        auto status = Gtk::make_managed<Gtk::Label>();
+        status->add_css_class("dim-label");
+        status->set_xalign(0);
+        status->set_wrap(true);
+        if (fillet && !fillet->get_solid_model())
+            status->set_text("That radius is too big for this object");
+        sp->signal_activate().connect([this, sp, doc_uu, body_uu] {
+            sp->update();
+            auto &d = m_core.get_idocument_info(doc_uu).get_document();
+            const auto r = sp->get_value();
+            if (!set_round_edges(d, body_uu, r) && r > 0) {
+                m_workspace_browser->show_toast("This object has no edges to round");
+                return;
+            }
+            m_core.set_needs_save();
+            m_core.rebuild("round edges");
+            canvas_update_keep_selection();
+            m_workspace_browser->update_documents(get_current_document_views());
+        });
+        if (dims.empty())
+            heading("Dimensions");
+        grid_attach_label_and_widget(*grid, "Round edges", *sp, top).add_css_class("tnum");
+        if (status->get_text().size())
+            grid->attach(*status, 1, top++, 1, 1);
     }
 
     // combine with another shown object that has a solid

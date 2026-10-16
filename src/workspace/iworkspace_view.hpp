@@ -10,6 +10,8 @@ public:
     virtual float get_curvature_comb_scale() const = 0;
     // spacing of the workplane grid in mm, 0 for automatic
     virtual double get_grid_step() const = 0;
+    // sketch lines etc. of bodies other than the current one
+    virtual bool show_other_sketches() const = 0;
 };
 
 } // namespace dune3d

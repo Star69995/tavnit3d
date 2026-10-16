@@ -384,6 +384,14 @@ void Editor::set_hide_irrelevant_workplanes(bool hide)
 }
 
 
+void Editor::set_show_other_sketches(bool show)
+{
+    CanvasUpdater canvas_updater{*this};
+    if (m_core.has_documents())
+        get_current_workspace_view().m_show_other_sketches = show;
+    m_show_other_sketches_action->set_state(Glib::Variant<bool>::create(show));
+}
+
 void Editor::set_snap_to_grid(bool snap)
 {
     if (m_core.has_documents())

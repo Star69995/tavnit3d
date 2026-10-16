@@ -232,6 +232,8 @@ private:
     void set_studio_lighting(bool studio);
     Glib::RefPtr<Gio::SimpleAction> m_snap_to_grid_action;
     void set_snap_to_grid(bool snap);
+    Glib::RefPtr<Gio::SimpleAction> m_show_other_sketches_action;
+    void set_show_other_sketches(bool show);
     void add_tool_action(ActionToolID id, const std::string &action);
     Gtk::Scale *m_curvature_comb_scale = nullptr;
 

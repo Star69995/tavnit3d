@@ -184,7 +184,8 @@ void Editor::run_automation(const std::filesystem::path &script)
                 delay = 600;
             }
             else if (cmd == "field") {
-                const auto sp = rest.find(' ');
+                // the value is the last word; labels may have spaces ("Round edges 2")
+                const auto sp = rest.rfind(' ');
                 const auto label = rest.substr(0, sp);
                 const auto value = rest.substr(sp + 1);
                 auto la = find_widget<Gtk::Label>(m_win, [&label](Gtk::Label &l) { return l.get_text() == label; });

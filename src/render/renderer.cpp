@@ -110,6 +110,11 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
             continue;
         if (!group_is_visible(group->m_uuid))
             continue;
+        // other objects just show their solids, unless asked otherwise; the
+        // reference planes (and the grid on them) always show
+        if (!m_workspace_view->show_other_sketches() && group->get_type() != Group::Type::REFERENCE
+            && &group->find_body(doc).group != m_current_body_group)
+            continue;
         set_chunk_from_group(*group);
         for (const auto &[uu, el] : doc.m_entities) {
             if (el->m_group == group->m_uuid)

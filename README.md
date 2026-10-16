@@ -7,7 +7,9 @@ Dune 3D is a parametric 3D CAD application that supports STEP import/export, fil
 > and light theme, ready-made Box/Cylinder/Sphere shapes placed on a floor
 > grid, click-to-select objects with a panel for size/position/colour/material,
 > sketch on a face, push/pull extrude with typed distances (negative cuts),
-> snap to grid, studio lighting, one-click STL/STEP export.
+> snap to grid, studio lighting, one-click STL/STEP export, drag to move,
+> duplicate, round edges, join/subtract/intersect, a Windows installer and
+> in-app updates.
 > Build on Windows with `tools\build.cmd [test] [dist]` (needs MSYS2 UCRT64,
 > see `CLAUDE.md`).
 

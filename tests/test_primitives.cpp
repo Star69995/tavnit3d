@@ -8,6 +8,8 @@
 #include "document/body_solids.hpp"
 #include "document/combine.hpp"
 #include "document/duplicate.hpp"
+#include "document/round_edges.hpp"
+#include "document/group/group_fillet.hpp"
 #include <filesystem>
 #include <fstream>
 #include "document/entity/entity_workplane.hpp"
@@ -324,6 +326,39 @@ static void test_save_load()
           "material survives");
 }
 
+static void test_round_edges()
+{
+    std::cout << "round edges" << std::endl;
+    for (auto [prim, name, expect] : std::vector<std::tuple<Primitive, const char *, bool>>{
+                 {Primitive::BOX, "box", true},
+                 {Primitive::CYLINDER, "cylinder", true},
+                 {Primitive::WEDGE, "wedge", true},
+                 {Primitive::SPHERE, "sphere", false},
+         }) {
+        Document doc;
+        auto &shape = add_primitive(doc, doc.get_groups_sorted().back()->m_uuid, prim);
+        doc.update_pending();
+        const auto body = shape.find_body(doc).group.m_uuid;
+        const auto vol0 = body_volume(doc, shape);
+        auto fillet = set_round_edges(doc, body, 2);
+        doc.update_pending();
+        check((fillet != nullptr) == expect, std::string(name) + (expect ? ": edges get rounded" : ": nothing to round"));
+        if (!fillet)
+            continue;
+        const auto vol = body_volume(doc, *fillet);
+        check(vol > 0 && vol < vol0 && vol > vol0 * .8,
+              std::string(name) + ": smaller but similar volume (" + std::to_string(vol) + " < " + std::to_string(vol0) + ")");
+        check(find_round_edges(doc, body) == fillet, std::string(name) + ": found again");
+        set_round_edges(doc, body, 3);
+        doc.update_pending();
+        check(body_volume(doc, *fillet) < vol, std::string(name) + ": bigger radius, less volume");
+        set_round_edges(doc, body, 0);
+        doc.update_pending();
+        check(!find_round_edges(doc, body) && std::abs(body_volume(doc, shape) - vol0) < 1e-3,
+              std::string(name) + ": radius 0 takes it away");
+    }
+}
+
 static void test_combine()
 {
     std::cout << "combine" << std::endl;
@@ -367,6 +402,7 @@ int main()
     test_more_shapes();
     test_duplicate();
     test_save_load();
+    test_round_edges();
     std::cout << (failures ? "FAILED" : "PASSED") << " (" << failures << " failures)" << std::endl;
     return failures ? 1 : 0;
 }

@@ -262,6 +262,10 @@ void Editor::init_view_options()
         set_hide_irrelevant_workplanes(b);
     });
 
+    m_show_other_sketches_action = m_win.add_action_bool("show_other_sketches", false);
+    m_show_other_sketches_action->signal_change_state().connect([this](const Glib::VariantBase &v) {
+        set_show_other_sketches(Glib::VariantBase::cast_dynamic<Glib::Variant<bool>>(v).get());
+    });
     m_snap_to_grid_action = m_win.add_action_bool("snap_to_grid", true);
     m_snap_to_grid_action->signal_change_state().connect([this](const Glib::VariantBase &v) {
         set_snap_to_grid(Glib::VariantBase::cast_dynamic<Glib::Variant<bool>>(v).get());
@@ -283,6 +287,7 @@ void Editor::init_view_options()
     m_view_options_menu->append("Hide irrelevant workplanes", "win.irrelevant_workplanes");
     m_view_options_menu->append("Perspective projection", "win.perspective");
     m_view_options_menu->append("Studio lighting", "win.studio_lighting");
+    m_view_options_menu->append("Sketch lines of other objects", "win.show_other_sketches");
     {
         auto grid_menu = Gio::Menu::create();
         grid_menu->append("Automatic", "win.grid_step('0')");
