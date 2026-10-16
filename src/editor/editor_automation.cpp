@@ -4,6 +4,7 @@
 #include "util/fs_util.hpp"
 #include "document/document.hpp"
 #include "nlohmann/json.hpp"
+#include "action_search.hpp"
 #include "document/group/igroup_solid_model.hpp"
 #include "workspace_browser.hpp"
 #include "action/action_catalog.hpp"
@@ -43,6 +44,8 @@ namespace dune3d {
  *   render-window            open the render window (then "button Render", "shotwin Render picture PATH")
  *   handles                  print where the picked object's resize handles are, in window pixels
  *   groups                   print the current document's groups, their solids and messages
+ *   find TEXT                open Find with this typed in (then "shotwin Find PATH", "key Return")
+ *   find-run                 run what Find shows first
  *   describe TEXT            open "Make from a description" with this text (then "button Make it")
  *   recipe PATH              build the objects of a recipe (JSON file, see document/recipe.hpp)
  *   import PATH              import objects from a model file
@@ -209,6 +212,18 @@ void Editor::run_automation(const std::filesystem::path &script)
                     for (const auto &m : gr->get_messages())
                         std::cerr << "automation:   " << m.message << std::endl;
                 }
+            }
+            else if (cmd == "find") {
+                show_search();
+                if (auto w = find_widget<Gtk::SearchEntry>(*m_search_window, [](auto &) { return true; }))
+                    w->set_text(rest);
+                delay = 600;
+            }
+            else if (cmd == "find-run") {
+                // run the first thing found
+                if (auto w = find_widget<Gtk::SearchEntry>(*m_search_window, [](auto &) { return true; }))
+                    g_signal_emit_by_name(w->gobj(), "activate");
+                delay = 800;
             }
             else if (cmd == "describe") {
                 show_describe_window(rest);

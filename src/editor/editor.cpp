@@ -1,6 +1,7 @@
 #include "editor.hpp"
 #include "render_window.hpp"
 #include "describe_window.hpp"
+#include "action_search.hpp"
 #include "util/branding.hpp"
 #include "dune3d_appwindow.hpp"
 #include "core/tool_id.hpp"
@@ -1018,6 +1019,22 @@ void Editor::init_header_bar()
         bu->set_label("Export");
         bu->set_menu_model(menu);
         m_win.get_header_bar().pack_end(*bu);
+
+        auto find = Gtk::make_managed<Gtk::Button>();
+        find->set_icon_name("system-search-symbolic");
+        find->set_tooltip_text("Find a command, and where it is (Ctrl+K)");
+        find->signal_clicked().connect([this] { show_search(); });
+        m_win.get_header_bar().pack_end(*find);
+        {
+            auto shortcuts = Gtk::ShortcutController::create();
+            shortcuts->set_scope(Gtk::ShortcutScope::GLOBAL);
+            shortcuts->add_shortcut(Gtk::Shortcut::create(
+                    Gtk::ShortcutTrigger::parse_string("<Control>k"), Gtk::CallbackAction::create([this](Gtk::Widget &, const Glib::VariantBase &) {
+                        show_search();
+                        return true;
+                    })));
+            m_win.add_controller(shortcuts);
+        }
 
         auto render = Gtk::make_managed<Gtk::Button>("Render");
         render->set_tooltip_text("A photo-like picture of the objects as you see them now (uses Blender)");

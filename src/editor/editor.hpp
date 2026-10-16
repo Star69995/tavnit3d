@@ -168,6 +168,11 @@ private:
     // builds objects from a recipe (see document/recipe.hpp) next to what's there
     bool add_from_recipe(const json &recipe, const std::string &what);
     void show_describe_window(const std::string &text = {});
+    // Find (Ctrl+K), editor_search.cpp
+    std::vector<struct SearchItem> get_search_items();
+    void show_search();
+    void focus_object_panel_field(const std::string &label);
+    std::unique_ptr<class ActionSearchWindow> m_search_window;
     std::unique_ptr<class DescribeWindow> m_describe_window;
     void add_bowl();
     void add_vase();
