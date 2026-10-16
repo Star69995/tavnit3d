@@ -133,6 +133,7 @@ void Editor::init()
     create_action_bar_button(ActionID::ADD_TUBE, "Tube");
     create_action_bar_button(ActionID::ADD_TORUS, "Torus");
     create_action_bar_button(ActionID::ADD_WEDGE, "Wedge");
+    create_action_bar_button(ActionID::ADD_SCREW, "Screw");
     create_action_bar_button(ActionID::ADD_TEXT, "3D Text");
     create_action_bar_button(ActionID::ADD_BOWL, "Bowl");
     create_action_bar_button(ActionID::ADD_VASE, "Vase");
@@ -380,6 +381,7 @@ Gtk::Button &Editor::create_action_bar_button(ActionToolID action, const std::st
             {ActionID::ADD_SPOTLIGHT, "action-add-spotlight-symbolic"},
             {ActionID::ADD_SUN, "action-add-sun-symbolic"},
             {ActionID::ADD_WEDGE, "action-add-wedge-symbolic"},
+            {ActionID::ADD_SCREW, "action-add-screw-symbolic"},
             {ActionID::ADD_TEXT, "action-draw-text-symbolic"},
     };
     auto bu = Gtk::make_managed<Gtk::Button>();

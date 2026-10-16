@@ -183,6 +183,7 @@ private:
     std::unique_ptr<class ActionSearchWindow> m_search_window;
     std::unique_ptr<class DescribeWindow> m_describe_window;
     void add_bowl();
+    void add_screw();
     void add_vase();
     void on_import_object();
     void import_object_file(const std::filesystem::path &path);

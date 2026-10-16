@@ -70,6 +70,7 @@ std::vector<SearchItem> Editor::get_search_items()
     items.push_back({"Tube", shapes, "pipe ring צינור", action(ActionID::ADD_TUBE), keys(ActionID::ADD_TUBE)});
     items.push_back({"Torus", shapes, "ring donut טבעת", action(ActionID::ADD_TORUS), keys(ActionID::ADD_TORUS)});
     items.push_back({"Wedge", shapes, "ramp טריז", action(ActionID::ADD_WEDGE), keys(ActionID::ADD_WEDGE)});
+    items.push_back({"Screw", shapes, "bolt thread hex בורג ברגים", action(ActionID::ADD_SCREW), keys(ActionID::ADD_SCREW)});
     items.push_back({"3D text", shapes, "letters words טקסט כיתוב", action(ActionID::ADD_TEXT), keys(ActionID::ADD_TEXT)});
     items.push_back({"Bowl", shapes, "dish קערה", action(ActionID::ADD_BOWL), keys(ActionID::ADD_BOWL)});
     items.push_back({"Vase", shapes, "bottle אגרטל", action(ActionID::ADD_VASE), keys(ActionID::ADD_VASE)});

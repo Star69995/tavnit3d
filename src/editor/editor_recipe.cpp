@@ -8,6 +8,7 @@
 #include "describe_window.hpp"
 #include "dune3d_appwindow.hpp"
 #include "dune3d_application.hpp"
+#include <cmath>
 
 namespace dune3d {
 
@@ -80,6 +81,28 @@ void Editor::add_bowl()
         "profile": [[0, 0], [22, 0], [30, 6], [38, 18], [42, 30], [0, 30]],
         "hollow": {"thickness": 2.5, "open": "top"}, "round_edges": 1}]})"),
                     "add bowl");
+}
+
+// An M8 bolt: hexagon head, and a shank whose ridges are rings rather than a
+// real thread (a helix is slow and often fails in the solid kernel)
+void Editor::add_screw()
+{
+    json shank = json::array({json::array({0, 4}), json::array({3.4, 4})});
+    const double pitch = 1.5;
+    const int ridges = 12;
+    for (int i = 0; i <= 2 * ridges; i++)
+        shank.push_back({i % 2 ? 4.0 : 3.4, 5 + i * pitch / 2});
+    shank.push_back({0, 5 + ridges * pitch});
+    json head_outline = json::array();
+    for (int i = 0; i < 6; i++)
+        head_outline.push_back({std::round(7.5 * std::cos(i * M_PI / 3) * 100) / 100,
+                                std::round(7.5 * std::sin(i * M_PI / 3) * 100) / 100});
+    json head = {{"id", "head"}, {"name", "Screw"}, {"shape", "extrude"}, {"outline", head_outline},
+                 {"height", 5.3}, {"material", "metal"}, {"color", "#b4b8bc"}};
+    json shaft = {{"id", "shank"}, {"shape", "revolve"}, {"profile", shank}};
+    json recipe = {{"objects", json::array({head, shaft})},
+                   {"combine", json::array({json{{"target", "head"}, {"tool", "shank"}, {"op", "join"}}})}};
+    add_from_recipe(recipe, "add screw");
 }
 
 void Editor::add_vase()

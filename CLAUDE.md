@@ -129,6 +129,8 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   endpoint for tests. HTTP: `src/util/http.*` (WinHTTP).
 - Resize handles (`src/editor/editor_handles.cpp`) use the object panel's
   dimension list (`src/editor/object_dimensions.hpp`).
+- Screw (`Editor::add_screw`, editor_recipe.cpp): M8 bolt as a recipe - hexagon
+  head joined with a revolved shank whose ridges are rings, not a helix.
 - Find (`src/editor/action_search.*`, items in `editor_search.cpp`): Ctrl+K
   both as the FIND action and a window-level capture shortcut. When a
   feature lands, add it there with where it lives.
