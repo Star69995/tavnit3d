@@ -39,6 +39,7 @@ namespace dune3d {
  *   size W H                 resize the window
  *   shot PATH                save the window contents as PNG
  *   shotwin TITLE PATH       the same for another window, e.g. a dialog
+ *   picture PATH             add a picture as a flat object
  *   sticker PATH             add a sticker with this picture to the object in the panel (then click on it)
  *   save PATH                save the current document under this name
  *   render-window            open the render window (then "button Render", "shotwin Render picture PATH")
@@ -245,6 +246,9 @@ void Editor::run_automation(const std::filesystem::path &script)
                 if (!m_object_editor)
                     throw std::runtime_error("no object panel");
                 begin_place_decal(m_object_editor_doc, m_object_editor_body, path_from_string(rest));
+            }
+            else if (cmd == "picture") {
+                add_picture_object(path_from_string(rest));
             }
             else if (cmd == "rotate") {
                 double x1, y1, x2, y2;

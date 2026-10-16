@@ -210,6 +210,7 @@ private:
     std::optional<PlacingDecal> m_placing_decal; // waiting for the click on the object
     void choose_picture_file(const std::string &title, std::function<void(const std::filesystem::path &)> cb);
     void add_picture_object();
+    void add_picture_object(const std::filesystem::path &picture);
     void choose_decal_picture(const UUID &doc_uu, const UUID &body_uu);
     void begin_place_decal(const UUID &doc_uu, const UUID &body_uu, const std::filesystem::path &picture);
     bool place_decal_under_cursor();

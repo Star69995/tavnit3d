@@ -65,7 +65,14 @@ void Editor::add_picture_object()
 {
     if (m_core.tool_is_active() || !m_core.has_documents())
         return;
-    choose_picture_file("Picture to add", [this](const std::filesystem::path &picture) {
+    choose_picture_file("Picture to add", [this](const std::filesystem::path &picture) { add_picture_object(picture); });
+}
+
+void Editor::add_picture_object(const std::filesystem::path &picture)
+{
+    if (!m_core.has_documents())
+        return;
+    {
         std::shared_ptr<const PictureData> data;
         try {
             data = picture_data_from_file(picture);
@@ -128,7 +135,7 @@ void Editor::add_picture_object()
         m_workspace_browser->update_documents(get_current_document_views());
         m_workspace_browser->select_group(group.m_uuid);
         zoom_to_fit(!first);
-    });
+    }
 }
 
 void Editor::begin_place_decal(const UUID &doc_uu, const UUID &body_uu, const std::filesystem::path &picture)
