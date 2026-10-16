@@ -367,6 +367,14 @@ void Editor::set_hide_irrelevant_workplanes(bool hide)
 }
 
 
+void Editor::set_snap_to_grid(bool snap)
+{
+    if (m_core.has_documents())
+        get_current_workspace_view().m_snap_to_grid = snap;
+    m_snap_to_grid_action->set_state(Glib::Variant<bool>::create(snap));
+    update_workplane_label();
+}
+
 void Editor::set_studio_lighting(bool studio)
 {
     if (m_core.has_documents())

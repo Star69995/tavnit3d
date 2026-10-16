@@ -48,6 +48,7 @@ public:
     glm::quat get_cam_quat() const override;
     glm::dvec3 get_cursor_pos_for_plane(glm::dvec3 origin, glm::dvec3 normal) const override;
     std::pair<glm::dvec3, glm::dvec3> get_cursor_ray() const override;
+    double get_grid_snap(const EntityWorkplane &wrkpl) const override;
     void tool_update_data(std::unique_ptr<ToolData> data) override;
     void enable_hover_selection(bool enable) override;
     std::optional<SelectableRef> get_hover_selection() const override;
@@ -204,6 +205,8 @@ private:
     void set_grid_step(double step);
     Glib::RefPtr<Gio::SimpleAction> m_studio_lighting_action;
     void set_studio_lighting(bool studio);
+    Glib::RefPtr<Gio::SimpleAction> m_snap_to_grid_action;
+    void set_snap_to_grid(bool snap);
     void add_tool_action(ActionToolID id, const std::string &action);
     Gtk::Scale *m_curvature_comb_scale = nullptr;
 

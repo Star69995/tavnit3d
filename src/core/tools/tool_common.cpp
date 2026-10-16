@@ -58,7 +58,13 @@ void ToolCommon::set_current_group_update_solid_model_pending()
 
 glm::dvec3 ToolCommon::get_cursor_pos_for_workplane(const EntityWorkplane &wrkpl) const
 {
-    return m_intf.get_cursor_pos_for_plane(wrkpl.m_origin, wrkpl.get_normal_vector());
+    const auto p = m_intf.get_cursor_pos_for_plane(wrkpl.m_origin, wrkpl.get_normal_vector());
+    if (const auto step = m_intf.get_grid_snap(wrkpl); step > 0) {
+        // snap to the grid drawn on the workplane
+        const auto q = wrkpl.project(p);
+        return wrkpl.transform(glm::round(q / step) * step);
+    }
+    return p;
 }
 
 bool ToolCommon::current_group_has_redundant_constraints()

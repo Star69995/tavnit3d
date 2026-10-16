@@ -52,6 +52,7 @@ public:
     }
     double m_grid_step = 0;
     bool m_studio_lighting = true;
+    bool m_snap_to_grid = true;
     double get_grid_step() const override
     {
         return m_grid_step;

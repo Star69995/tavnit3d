@@ -257,6 +257,10 @@ void Editor::init_view_options()
         set_hide_irrelevant_workplanes(b);
     });
 
+    m_snap_to_grid_action = m_win.add_action_bool("snap_to_grid", true);
+    m_snap_to_grid_action->signal_change_state().connect([this](const Glib::VariantBase &v) {
+        set_snap_to_grid(Glib::VariantBase::cast_dynamic<Glib::Variant<bool>>(v).get());
+    });
     m_studio_lighting_action = m_win.add_action_bool("studio_lighting", true);
     m_studio_lighting_action->signal_change_state().connect([this](const Glib::VariantBase &v) {
         set_studio_lighting(Glib::VariantBase::cast_dynamic<Glib::Variant<bool>>(v).get());
@@ -280,6 +284,7 @@ void Editor::init_view_options()
         for (const auto step : {"1", "2", "5", "10", "20", "50"})
             grid_menu->append(std::string(step) + " mm", std::string("win.grid_step('") + step + "')");
         m_view_options_menu->append_submenu("Grid size", grid_menu);
+        m_view_options_menu->append("Snap to grid", "win.snap_to_grid");
     }
     {
         auto it = Gio::MenuItem::create("scale", "scale");
@@ -1237,6 +1242,8 @@ void Editor::update_workplane_label()
         const auto user_step = get_current_workspace_view().m_grid_step;
         const auto step = get_grid_step(user_step, grid_wrkpl->m_size.x, grid_wrkpl->m_size.y);
         s += "  ·  grid " + format_grid_step(step) + (user_step > 0 ? "" : " (auto)");
+        if (get_current_workspace_view().m_snap_to_grid)
+            s += ", snap";
     }
     m_win.set_workplane_label(s);
 }
@@ -1429,6 +1436,16 @@ glm::vec3 Editor::get_cam_normal() const
 glm::quat Editor::get_cam_quat() const
 {
     return get_canvas().get_cam_quat();
+}
+
+double Editor::get_grid_snap(const EntityWorkplane &wrkpl) const
+{
+    if (!m_core.has_documents())
+        return 0;
+    auto &wv = m_workspace_views.at(m_current_workspace_view);
+    if (!wv.m_snap_to_grid)
+        return 0;
+    return get_grid_step(wv.m_grid_step, wrkpl.m_size.x, wrkpl.m_size.y);
 }
 
 std::pair<glm::dvec3, glm::dvec3> Editor::get_cursor_ray() const
