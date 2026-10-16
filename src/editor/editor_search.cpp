@@ -32,7 +32,7 @@ void Editor::focus_object_panel_field(const std::string &label)
             return;
         }
         // buttons spanning the row, like "Add sticker..."
-        if (auto bu = dynamic_cast<Gtk::Button *>(ch); bu && bu->get_label() == label) {
+        if (auto bu = dynamic_cast<Gtk::Button *>(ch); bu && bu->get_label().raw() == label) {
             bu->grab_focus();
             return;
         }

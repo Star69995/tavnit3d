@@ -275,7 +275,7 @@ void Editor::run_automation(const std::filesystem::path &script)
                 for (auto w : Gtk::Window::list_toplevels()) {
                     if (!la && w->get_visible())
                         la = find_widget<Gtk::Label>(*w, [&label](Gtk::Label &l) {
-                            return l.get_text() == label && dynamic_cast<Gtk::Grid *>(l.get_parent());
+                            return l.get_text().raw() == label && dynamic_cast<Gtk::Grid *>(l.get_parent());
                         });
                 }
                 auto grid = la ? dynamic_cast<Gtk::Grid *>(la->get_parent()) : nullptr;
