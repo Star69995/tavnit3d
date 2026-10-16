@@ -43,6 +43,7 @@ public:
         std::map<std::pair<std::filesystem::path, UUID>, ExportPaths> export_paths;
         bool check_for_updates = true;
         std::filesystem::path blender_path; // for rendering pictures; found by itself if empty
+        std::string claude_api_key;         // for making shapes from descriptions
     };
 
     UserConfig m_user_config;

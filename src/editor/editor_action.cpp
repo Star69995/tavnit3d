@@ -233,6 +233,9 @@ void Editor::init_actions()
     connect_action(ActionID::ADD_WEDGE, [this](auto &a) { add_primitive(Primitive::WEDGE); });
     connect_action(ActionID::ADD_TEXT, [this](auto &a) { add_text_object(); });
     connect_action(ActionID::ADD_LAMP, [this](auto &a) { add_light(Light::Type::POINT); });
+    connect_action(ActionID::ADD_BOWL, [this](auto &a) { add_bowl(); });
+    connect_action(ActionID::MAKE_FROM_DESCRIPTION, [this](auto &a) { show_describe_window(); });
+    connect_action(ActionID::ADD_VASE, [this](auto &a) { add_vase(); });
     connect_action(ActionID::ADD_SPOTLIGHT, [this](auto &a) { add_light(Light::Type::SPOT); });
     connect_action(ActionID::ADD_SUN, [this](auto &a) { add_light(Light::Type::SUN); });
     connect_action(ActionID::DUPLICATE_OBJECT, [this](auto &a) {
@@ -548,7 +551,8 @@ void Editor::update_action_sensitivity(const std::set<SelectableRef> &sel)
     m_action_sensitivity[ActionID::NEW_DOCUMENT] = true;
     for (auto act : {ActionID::ADD_BOX, ActionID::ADD_CYLINDER, ActionID::ADD_SPHERE, ActionID::ADD_CONE, ActionID::ADD_TUBE,
                      ActionID::ADD_TORUS, ActionID::ADD_WEDGE, ActionID::ADD_TEXT, ActionID::COMBINE_OBJECTS,
-                     ActionID::ADD_LAMP, ActionID::ADD_SPOTLIGHT, ActionID::ADD_SUN,
+                     ActionID::ADD_LAMP, ActionID::ADD_SPOTLIGHT, ActionID::ADD_SUN, ActionID::ADD_BOWL,
+                     ActionID::ADD_VASE, ActionID::MAKE_FROM_DESCRIPTION,
                      ActionID::DUPLICATE_OBJECT})
         m_action_sensitivity[act] = m_core.has_documents();
     m_action_sensitivity[ActionID::TOGGLE_WORKPLANE] = m_core.has_documents();

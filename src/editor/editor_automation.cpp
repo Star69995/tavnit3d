@@ -3,6 +3,7 @@
 #include "canvas/canvas.hpp"
 #include "util/fs_util.hpp"
 #include "document/document.hpp"
+#include "nlohmann/json.hpp"
 #include "document/group/igroup_solid_model.hpp"
 #include "workspace_browser.hpp"
 #include "action/action_catalog.hpp"
@@ -41,6 +42,8 @@ namespace dune3d {
  *   save PATH                save the current document under this name
  *   render-window            open the render window (then "button Render", "shotwin Render picture PATH")
  *   groups                   print the current document's groups, their solids and messages
+ *   describe TEXT            open "Make from a description" with this text (then "button Make it")
+ *   recipe PATH              build the objects of a recipe (JSON file, see document/recipe.hpp)
  *   import PATH              import objects from a model file
  *   export-gltf PATH         export the shown objects as glTF, from the current view
  *   update-check             check for updates as from the menu (feed: DUNE3D_UPDATE_FEED)
@@ -195,6 +198,15 @@ void Editor::run_automation(const std::filesystem::path &script)
                     for (const auto &m : gr->get_messages())
                         std::cerr << "automation:   " << m.message << std::endl;
                 }
+            }
+            else if (cmd == "describe") {
+                show_describe_window(rest);
+                delay = 800;
+            }
+            else if (cmd == "recipe") {
+                std::ifstream ifs(path_from_string(rest));
+                add_from_recipe(json::parse(ifs), "recipe");
+                delay = 1500;
             }
             else if (cmd == "import") {
                 import_object_file(path_from_string(rest));

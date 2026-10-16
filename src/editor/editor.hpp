@@ -141,6 +141,12 @@ private:
     UUID m_object_editor_light; // the panel shows this light rather than an object
     void show_render_window();
     std::unique_ptr<class RenderWindow> m_render_window;
+    // builds objects from a recipe (see document/recipe.hpp) next to what's there
+    bool add_from_recipe(const json &recipe, const std::string &what);
+    void show_describe_window(const std::string &text = {});
+    std::unique_ptr<class DescribeWindow> m_describe_window;
+    void add_bowl();
+    void add_vase();
     void on_import_object();
     void import_object_file(const std::filesystem::path &path);
     struct GltfExportOptions get_gltf_export_options();

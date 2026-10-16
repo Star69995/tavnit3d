@@ -1,5 +1,6 @@
 #include "editor.hpp"
 #include "render_window.hpp"
+#include "describe_window.hpp"
 #include "util/branding.hpp"
 #include "dune3d_appwindow.hpp"
 #include "core/tool_id.hpp"
@@ -132,6 +133,9 @@ void Editor::init()
     create_action_bar_button(ActionID::ADD_TORUS, "Torus");
     create_action_bar_button(ActionID::ADD_WEDGE, "Wedge");
     create_action_bar_button(ActionID::ADD_TEXT, "3D Text");
+    create_action_bar_button(ActionID::ADD_BOWL, "Bowl");
+    create_action_bar_button(ActionID::ADD_VASE, "Vase");
+    create_action_bar_button(ActionID::MAKE_FROM_DESCRIPTION, "Describe");
     m_win.add_action_bar_section("Lights");
     create_action_bar_button(ActionID::ADD_LAMP, "Lamp");
     create_action_bar_button(ActionID::ADD_SPOTLIGHT, "Spotlight");
@@ -369,6 +373,9 @@ Gtk::Button &Editor::create_action_bar_button(ActionToolID action, const std::st
             {ActionID::ADD_TUBE, "action-add-tube-symbolic"},
             {ActionID::ADD_TORUS, "action-add-torus-symbolic"},
             {ActionID::ADD_LAMP, "action-add-lamp-symbolic"},
+            {ActionID::ADD_BOWL, "action-add-bowl-symbolic"},
+            {ActionID::MAKE_FROM_DESCRIPTION, "action-describe-symbolic"},
+            {ActionID::ADD_VASE, "action-add-vase-symbolic"},
             {ActionID::ADD_SPOTLIGHT, "action-add-spotlight-symbolic"},
             {ActionID::ADD_SUN, "action-add-sun-symbolic"},
             {ActionID::ADD_WEDGE, "action-add-wedge-symbolic"},

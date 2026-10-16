@@ -63,6 +63,9 @@
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-sphere-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-cone-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-lamp-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-bowl-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-vase-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/scalable/actions/action-describe-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-spotlight-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-sun-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-tube-symbolic.svg</file>

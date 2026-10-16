@@ -188,6 +188,7 @@ void Dune3DApplication::UserConfig::load(const std::filesystem::path &filename)
     }
     check_for_updates = j.value("check_for_updates", true);
     blender_path = path_from_string(j.value("blender_path", ""));
+    claude_api_key = j.value("claude_api_key", "");
     if (j.count("export_paths")) {
         const json &o = j.at("export_paths");
         for (const auto &[fn, v] : o.items()) {
@@ -210,6 +211,8 @@ void Dune3DApplication::UserConfig::save(const std::filesystem::path &filename)
     j["check_for_updates"] = check_for_updates;
     if (!blender_path.empty())
         j["blender_path"] = path_to_string(blender_path);
+    if (!claude_api_key.empty())
+        j["claude_api_key"] = claude_api_key;
     for (const auto &[path, mod] : recent_items) {
         j["recent"][path_to_string(path)] = mod.to_unix();
     }
