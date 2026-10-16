@@ -8,7 +8,6 @@
 # Bump app_version in branding.hpp, commit and push first.
 set -e
 cd "$(dirname "$0")/.."
-export PATH="/c/msys64/ucrt64/bin:/c/msys64/usr/bin:$PATH"
 
 notes_file="" yes=""
 for arg in "$@"; do
@@ -36,7 +35,8 @@ if ! git branch -r --contains "$head" | grep -q "origin/"; then
     echo "HEAD isn't pushed to origin - push it first"; exit 1
 fi
 
-tools/build.sh test dist installer
+# through a MSYS2 UCRT64 login shell like tools\build.cmd: the toolchain needs its environment
+MSYSTEM=UCRT64 CHERE_INVOKING=1 /c/msys64/usr/bin/bash.exe -lc "tools/build.sh test dist installer"
 setup="dist/Tavnit3D-$ver-setup.exe"
 portable="dist/Tavnit3D-$ver-portable.zip"
 latest_zip=$(ls -t dist/dune3d-*.zip | head -1)
