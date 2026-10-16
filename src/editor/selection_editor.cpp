@@ -1,4 +1,5 @@
 #include "selection_editor.hpp"
+#include "util/branding.hpp"
 #include "core/core.hpp"
 #include "document/document.hpp"
 #include "document/group/group.hpp"
@@ -264,7 +265,7 @@ public:
             auto filters = Gio::ListStore<Gtk::FileFilter>::create();
 
             auto filter_any = Gtk::FileFilter::create();
-            filter_any->set_name("Dune 3D document");
+            filter_any->set_name(std::string(app_name) + " document");
             filter_any->add_pattern("*.d3ddoc");
             filters->append(filter_any);
 

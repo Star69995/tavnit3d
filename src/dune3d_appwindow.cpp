@@ -1,4 +1,5 @@
 #include "dune3d_application.hpp"
+#include "util/branding.hpp"
 #include "dune3d_appwindow.hpp"
 #ifdef G_OS_WIN32
 #include <gdk/win32/gdkwin32.h>
@@ -588,7 +589,7 @@ void Dune3DAppWindow::set_window_title_from_path(const std::filesystem::path &pa
 
 void Dune3DAppWindow::set_window_title(const std::string &extra)
 {
-    std::string title = "Dune 3D";
+    std::string title = app_name;
     if (!extra.empty()) {
         title = extra + " - " + title;
     }

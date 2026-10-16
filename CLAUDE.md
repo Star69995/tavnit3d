@@ -1,7 +1,11 @@
 # Project notes
 
-Fork of [Dune 3D](https://github.com/dune3d/dune3d) (GPLv3, C++20, GTK4/gtkmm,
-OpenCASCADE, SolveSpace solver). Goal: a friendlier, Shapr3D/Tinkercad-like
+**Tavnit 3D** - fork of [Dune 3D](https://github.com/dune3d/dune3d) (GPLv3,
+C++20, GTK4/gtkmm, OpenCASCADE, SolveSpace solver). The user-facing name is
+`app_name` in `src/util/branding.hpp` (plus window.ui/welcome texts and the
+icon in `src/icons/`); the binary, file format and code namespace stay
+`dune3d` to keep merging/PRs with upstream easy. Credit to Dune 3D stays in
+the about dialog. Goal: a friendlier, Shapr3D/Tinkercad-like
 CAD on Windows, while sending generally useful improvements upstream as PRs.
 
 ## Branches and remotes

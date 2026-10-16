@@ -1,4 +1,5 @@
 #include "editor.hpp"
+#include "util/branding.hpp"
 #include "dune3d_appwindow.hpp"
 #include "core/tool_id.hpp"
 #include "widgets/constraints_box.hpp"
@@ -1016,7 +1017,7 @@ void Editor::on_open_document(const ActionConnection &conn)
     auto filters = Gio::ListStore<Gtk::FileFilter>::create();
 
     auto filter_any = Gtk::FileFilter::create();
-    filter_any->set_name("Dune 3D documents");
+    filter_any->set_name(std::string(app_name) + " documents");
     filter_any->add_pattern("*.d3ddoc");
     filters->append(filter_any);
 
@@ -1054,7 +1055,7 @@ void Editor::on_save_as(const ActionConnection &conn)
     auto filters = Gio::ListStore<Gtk::FileFilter>::create();
 
     auto filter_any = Gtk::FileFilter::create();
-    filter_any->set_name("Dune 3D documents");
+    filter_any->set_name(std::string(app_name) + " documents");
     filter_any->add_pattern("*.d3ddoc");
     filters->append(filter_any);
 

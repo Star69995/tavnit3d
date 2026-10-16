@@ -1,4 +1,5 @@
 #include "step_exporter.hpp"
+#include "util/branding.hpp"
 #include "util/fs_util.hpp"
 
 #include <APIHeaderSection_MakeHeader.hxx>
@@ -64,7 +65,7 @@ void STEPExporter::write(const std::filesystem::path &path) const
     hdr.SetName(new TCollection_HAsciiString("Body"));
     hdr.SetAuthorValue(1, new TCollection_HAsciiString("An Author"));
     hdr.SetOrganizationValue(1, new TCollection_HAsciiString("A Company"));
-    hdr.SetOriginatingSystem(new TCollection_HAsciiString("Dune 3D"));
+    hdr.SetOriginatingSystem(new TCollection_HAsciiString(app_name));
     hdr.SetDescriptionValue(1, new TCollection_HAsciiString("Body"));
 
     if (false == writer.Write(path_to_string(path).c_str()))

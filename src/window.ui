@@ -6,7 +6,7 @@
   <object class="GtkApplicationWindow" id="window">
     <property name="default-height">750</property>
     <property name="default-width">1024</property>
-    <property name="title">Dune 3D</property>
+    <property name="title">Tavnit 3D</property>
     <property name="titlebar">
       <object class="GtkHeaderBar" id="titlebar">
         <property name="title-widget">
@@ -157,6 +157,40 @@ welcome-box</property>
                         <property name="valign">center</property>
                         <child>
                           <object class="GtkBox">
+                            <property name="margin-top">24</property>
+                            <property name="margin-start">20</property>
+                            <property name="margin-end">20</property>
+                            <property name="spacing">14</property>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="icon-name">dune3d</property>
+                                <property name="pixel-size">56</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="orientation">vertical</property>
+                                <property name="valign">center</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="css-classes">welcome-title</property>
+                                    <property name="label">Tavnit 3D</property>
+                                    <property name="xalign">0.0</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="css-classes">dim-label</property>
+                                    <property name="label">Design parts for 3D printing and CAD, the easy way</property>
+                                    <property name="xalign">0.0</property>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox">
                             <property name="margin-bottom">20</property>
                             <property name="margin-end">20</property>
                             <property name="margin-start">20</property>
@@ -297,8 +331,7 @@ welcome-box</property>
                                       <object class="GtkLabel">
                                         <property name="halign">start</property>
                                         <property name="hexpand">True</property>
-                                        <property name="justify">fill</property>
-                                        <property name="label">Press space anywhere in the 3D viewport to open the searchable global menu.</property>
+                                        <property name="label">Start with a shape (Box, Cylinder, Sphere) from the palette, then click it to change its size, colour or material. Space opens a searchable list of every command.</property>
                                         <property name="max-width-chars">0</property>
                                         <property name="natural-wrap-mode">word</property>
                                         <property name="wrap">True</property>

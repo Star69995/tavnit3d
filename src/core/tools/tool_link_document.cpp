@@ -1,4 +1,5 @@
 #include "tool_link_document.hpp"
+#include "util/branding.hpp"
 #include "document/document.hpp"
 #include "document/entity/entity_document.hpp"
 #include "editor/editor_interface.hpp"
@@ -29,7 +30,7 @@ ToolResponse ToolLinkDocument::begin(const ToolArgs &args)
     auto filters = Gio::ListStore<Gtk::FileFilter>::create();
 
     auto filter_any = Gtk::FileFilter::create();
-    filter_any->set_name("Dune 3D documents");
+    filter_any->set_name(std::string(app_name) + " documents");
     filter_any->add_pattern("*.d3ddoc");
     filters->append(filter_any);
 
