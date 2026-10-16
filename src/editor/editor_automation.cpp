@@ -305,7 +305,7 @@ void Editor::run_automation(const std::filesystem::path &script)
                     auto model = dd->get_model();
                     for (guint i = 0; i < model->get_n_items(); i++) {
                         auto so = std::dynamic_pointer_cast<Gtk::StringObject>(model->get_object(i));
-                        if (so && so->get_string() == value)
+                        if (so && so->get_string().raw() == value)
                             dd->set_selected(i);
                     }
                 }
@@ -359,7 +359,7 @@ void Editor::run_automation(const std::filesystem::path &script)
                     path = rest.substr(sp + 1);
                     win = nullptr;
                     for (auto w : Gtk::Window::list_toplevels()) {
-                        if (w->get_visible() && w->get_title() == title)
+                        if (w->get_visible() && w->get_title().raw() == title)
                             win = w;
                     }
                     if (!win)
