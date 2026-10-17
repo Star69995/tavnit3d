@@ -9,7 +9,10 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <winhttp.h>
+#else
+#include <unistd.h>
 #endif
+#include <cstdlib>
 
 namespace dune3d {
 
@@ -53,7 +56,19 @@ int compare_versions(const std::string &a, const std::string &b)
     return 0;
 }
 
-std::optional<UpdateInfo> parse_release(const std::string &json_text, const std::string &current)
+std::string update_asset_suffix()
+{
+#ifdef _WIN32
+    return "-setup.exe";
+#elif defined(__aarch64__)
+    return "-aarch64.AppImage";
+#else
+    return "-x86_64.AppImage";
+#endif
+}
+
+std::optional<UpdateInfo> parse_release(const std::string &json_text, const std::string &current,
+                                        const std::string &suffix)
 {
     const auto j = nlohmann::json::parse(json_text);
     if (j.value("draft", false) || j.value("prerelease", false))
@@ -69,7 +84,7 @@ std::optional<UpdateInfo> parse_release(const std::string &json_text, const std:
     if (j.contains("assets")) {
         for (const auto &asset : j.at("assets")) {
             const auto name = asset.value("name", "");
-            if (name.ends_with("-setup.exe")) {
+            if (name.ends_with(suffix)) {
                 info.installer_url = asset.value("browser_download_url", "");
                 break;
             }
@@ -80,7 +95,6 @@ std::optional<UpdateInfo> parse_release(const std::string &json_text, const std:
     return info;
 }
 
-#ifdef _WIN32
 std::optional<UpdateInfo> check_for_update(const std::string &feed_url, const std::string &current)
 {
     std::string body;
@@ -110,6 +124,12 @@ void download_file(const std::string &url, const std::filesystem::path &dest,
     std::filesystem::rename(tmp, dest);
 }
 
+#ifdef _WIN32
+std::string launch_failure_message()
+{
+    return "Couldn't start the installer.";
+}
+
 bool launch_installer(const std::filesystem::path &installer)
 {
     std::wstring cmd = L"\"" + installer.wstring() + L"\" /SILENT /SUPPRESSMSGBOXES /NORESTART /RELAUNCH=1";
@@ -125,17 +145,50 @@ bool launch_installer(const std::filesystem::path &installer)
     return true;
 }
 #else
-std::optional<UpdateInfo> check_for_update(const std::string &, const std::string &)
+std::string launch_failure_message()
 {
-    return {};
+    const char *appimage = getenv("APPIMAGE");
+    if (!appimage || !*appimage)
+        return "Automatic updates work when you run the AppImage. Download the new version from the release page.";
+    return std::string("Couldn't replace ") + appimage
+           + ". Move the file to a folder you can write to, or download the new version from the release page.";
 }
-void download_file(const std::string &, const std::filesystem::path &, const std::function<void(uint64_t, uint64_t)> &)
+
+bool launch_installer(const std::filesystem::path &downloaded)
 {
-    throw std::runtime_error("updates are only available on Windows");
-}
-bool launch_installer(const std::filesystem::path &)
-{
-    return false;
+    namespace fs = std::filesystem;
+    const char *appimage = getenv("APPIMAGE");
+    if (!appimage || !*appimage)
+        return false; // not an AppImage: nothing to replace
+    const fs::path target = appimage;
+    fs::path staged = target;
+    staged += ".new";
+    std::error_code ec;
+    fs::copy_file(downloaded, staged, fs::copy_options::overwrite_existing, ec);
+    if (ec)
+        return false;
+    fs::permissions(staged, fs::perms::owner_all | fs::perms::group_read | fs::perms::group_exec
+                                    | fs::perms::others_read | fs::perms::others_exec,
+                    ec);
+    // renaming over the running file is fine: the old one lives on until it exits
+    fs::rename(staged, target, ec);
+    if (ec) {
+        fs::remove(staged, ec);
+        return false;
+    }
+    fs::remove(downloaded, ec);
+
+    // start the new one once we're gone (the application is single-instance)
+    const auto pid = fork();
+    if (pid < 0)
+        return true; // replaced; the user can start it themselves
+    if (pid == 0) {
+        setsid();
+        unsetenv("DUNE3D_AUTOMATION");
+        execl("/bin/sh", "sh", "-c", "sleep 2; exec \"$0\"", target.c_str(), (char *)nullptr);
+        _exit(127);
+    }
+    return true;
 }
 #endif
 

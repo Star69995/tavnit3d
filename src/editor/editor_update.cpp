@@ -114,7 +114,7 @@ void Editor::start_update(const UpdateInfo &info)
     box.append(*progress);
     m_win.set_banner(&box);
 
-    const auto dest = std::filesystem::temp_directory_path() / ("Tavnit3D-" + info.version + "-setup.exe");
+    const auto dest = std::filesystem::temp_directory_path() / ("Tavnit3D-" + info.version + update_asset_suffix());
     std::thread([this, info, dest, progress] {
         try {
             download_file(info.installer_url, dest, [progress](uint64_t done, uint64_t total) {
@@ -123,7 +123,7 @@ void Editor::start_update(const UpdateInfo &info)
             });
             on_main([this, dest] {
                 if (!launch_installer(dest)) {
-                    show_update_message("Couldn't start the installer.", true);
+                    show_update_message(launch_failure_message(), true);
                     return;
                 }
                 // the installer waits for us to exit, then starts the new version

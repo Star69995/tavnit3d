@@ -454,6 +454,12 @@ build_dependencies = [gtk4, gtkmm, epoxy, opencascade, eigen, glm, stdlibs, spna
 if not is_windows
 	uuid = dependency('uuid')
 	build_dependencies += uuid
+	# HTTPS for updates and "make from a description" outside Windows
+	curl = dependency('libcurl', required: false)
+	if curl.found()
+		build_dependencies += curl
+		cpp_args += '-DHAVE_CURL'
+	endif
 else
 	build_dependencies += [cxx.find_library('rpcrt4'), cxx.find_library('winhttp')]
 	src_common += 'src/util/uuid_win32.cpp'

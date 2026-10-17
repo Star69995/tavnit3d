@@ -1,9 +1,13 @@
 #include "http.hpp"
 #include <memory>
 #include <stdexcept>
+#include <cstdlib>
+#include <filesystem>
 #ifdef _WIN32
 #include <windows.h>
 #include <winhttp.h>
+#elif defined(HAVE_CURL)
+#include <curl/curl.h>
 #endif
 
 namespace dune3d {
@@ -143,6 +147,119 @@ HttpResponse http_post(const std::string &url, const HttpHeaders &headers, const
             break;
         resp.body.append(buf.data(), read);
     }
+    return resp;
+}
+#elif defined(HAVE_CURL)
+namespace {
+void curl_init_once()
+{
+    static const bool done = [] {
+        curl_global_init(CURL_GLOBAL_DEFAULT);
+        return true;
+    }();
+    (void)done;
+}
+
+struct CurlEasy {
+    CURL *h = curl_easy_init();
+    curl_slist *headers = nullptr;
+    CurlEasy()
+    {
+        curl_init_once();
+        if (!h)
+            throw std::runtime_error("network error");
+        curl_easy_setopt(h, CURLOPT_USERAGENT, "Tavnit3D");
+        curl_easy_setopt(h, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(h, CURLOPT_CONNECTTIMEOUT, 20L);
+        // an AppImage may carry a libcurl whose built-in CA path doesn't exist here
+        if (!getenv("SSL_CERT_FILE") && !getenv("CURL_CA_BUNDLE")) {
+            for (const char *ca : {"/etc/ssl/certs/ca-certificates.crt", "/etc/pki/tls/certs/ca-bundle.crt",
+                                   "/etc/ssl/ca-bundle.pem", "/etc/ssl/cert.pem"}) {
+                if (std::filesystem::exists(ca)) {
+                    curl_easy_setopt(h, CURLOPT_CAINFO, ca);
+                    break;
+                }
+            }
+        }
+    }
+    void set_headers(const HttpHeaders &hs)
+    {
+        for (const auto &[k, v] : hs)
+            headers = curl_slist_append(headers, (k + ": " + v).c_str());
+        curl_easy_setopt(h, CURLOPT_HTTPHEADER, headers);
+    }
+    ~CurlEasy()
+    {
+        curl_slist_free_all(headers);
+        curl_easy_cleanup(h);
+    }
+    CurlEasy(const CurlEasy &) = delete;
+    CurlEasy &operator=(const CurlEasy &) = delete;
+};
+
+struct GetState {
+    const std::function<void(const char *, size_t, uint64_t)> *sink;
+    CURL *h;
+    std::string error_body;
+    bool ok = false;
+};
+
+size_t get_write(char *data, size_t size, size_t n, void *user)
+{
+    auto &st = *static_cast<GetState *>(user);
+    long code = 0;
+    curl_easy_getinfo(st.h, CURLINFO_RESPONSE_CODE, &code);
+    if (code != 200)
+        return size * n; // an error page: not for the caller; checked afterwards
+    curl_off_t total = -1;
+    curl_easy_getinfo(st.h, CURLINFO_CONTENT_LENGTH_DOWNLOAD_T, &total);
+    (*st.sink)(data, size * n, total > 0 ? (uint64_t)total : 0);
+    return size * n;
+}
+
+size_t post_write(char *data, size_t size, size_t n, void *user)
+{
+    static_cast<std::string *>(user)->append(data, size * n);
+    return size * n;
+}
+} // namespace
+
+void http_get(const std::string &url, const std::function<void(const char *, size_t, uint64_t)> &sink,
+              const HttpHeaders &headers)
+{
+    CurlEasy c;
+    c.set_headers(headers);
+    GetState st{&sink, c.h};
+    curl_easy_setopt(c.h, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(c.h, CURLOPT_WRITEFUNCTION, get_write);
+    curl_easy_setopt(c.h, CURLOPT_WRITEDATA, &st);
+    const auto rc = curl_easy_perform(c.h);
+    if (rc != CURLE_OK)
+        throw std::runtime_error(std::string("network error: ") + curl_easy_strerror(rc));
+    long code = 0;
+    curl_easy_getinfo(c.h, CURLINFO_RESPONSE_CODE, &code);
+    if (code != 200)
+        throw std::runtime_error("the server answered " + std::to_string(code));
+}
+
+HttpResponse http_post(const std::string &url, const HttpHeaders &headers, const std::string &body, int timeout_s)
+{
+    CurlEasy c;
+    c.set_headers(headers);
+    HttpResponse resp;
+    curl_easy_setopt(c.h, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(c.h, CURLOPT_POST, 1L);
+    curl_easy_setopt(c.h, CURLOPT_POSTFIELDS, body.c_str());
+    curl_easy_setopt(c.h, CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t)body.size());
+    curl_easy_setopt(c.h, CURLOPT_TIMEOUT, (long)timeout_s);
+    curl_easy_setopt(c.h, CURLOPT_WRITEFUNCTION, post_write);
+    curl_easy_setopt(c.h, CURLOPT_WRITEDATA, &resp.body);
+    const auto rc = curl_easy_perform(c.h);
+    if (rc != CURLE_OK)
+        throw std::runtime_error(std::string("network error: ") + curl_easy_strerror(rc));
+    long code = 0;
+    curl_easy_getinfo(c.h, CURLINFO_RESPONSE_CODE, &code);
+    resp.status = (int)code;
     return resp;
 }
 #else

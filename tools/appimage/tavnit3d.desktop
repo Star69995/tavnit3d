@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Tavnit 3D
+Comment=A friendly parametric 3D CAD for 3D printing
+Exec=dune3d %F
+Icon=dune3d
+Terminal=false
+Categories=Graphics;3DGraphics;Engineering;
+Keywords=CAD;3D;printing;STL;
