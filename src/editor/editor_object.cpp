@@ -309,27 +309,19 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
                 return;
             }
             m_core.set_needs_save();
+            // the panel is made again once the clicks are over, see schedule_object_panel_refresh
+            m_object_editor_keep = true;
             m_core.rebuild("round edges");
             canvas_update_keep_selection();
             m_workspace_browser->update_documents(get_current_document_views());
             // the view only shows groups up to the current one: move past the new fillet so the
-            // rounding is visible (later, as this panel is rebuilt by it)
+            // rounding is visible
             const auto current = m_core.get_current_idocument_info().get_uuid() == doc_uu
                                          ? m_core.get_current_group()
                                          : get_current_document_views()[doc_uu].m_current_group;
-            if (rounded && d.get_groups().contains(current)
-                && rounded->get_index() > d.get_group(current).get_index()) {
-                Glib::signal_idle().connect_once([this, doc_uu, body_uu] {
-                    auto &dd = m_core.get_idocument_info(doc_uu).get_document();
-                    const auto last = dd.get_groups_sorted().back()->m_uuid;
-                    m_core.set_current_document(doc_uu);
-                    get_current_document_view().m_current_group = last;
-                    set_current_group(last);
-                    if (!m_workspace_browser->select_body(doc_uu, body_uu))
-                        show_object_editor(doc_uu, body_uu);
-                    canvas_update_keep_selection();
-                });
-            }
+            const bool go_to_last = rounded && d.get_groups().contains(current)
+                                    && rounded->get_index() > d.get_group(current).get_index();
+            schedule_object_panel_refresh(go_to_last ? 300 : 700, go_to_last);
         });
         if (dims.empty())
             heading("Dimensions");
@@ -361,6 +353,7 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
                 return;
             auto shell = set_hollow(d, body_uu, t, open);
             m_core.set_needs_save();
+            m_object_editor_keep = true; // made again once the clicks are over
             m_core.rebuild("hollow");
             canvas_update_keep_selection();
             m_workspace_browser->update_documents(get_current_document_views());
@@ -368,18 +361,9 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
             const auto current = m_core.get_current_idocument_info().get_uuid() == doc_uu
                                          ? m_core.get_current_group()
                                          : get_current_document_views()[doc_uu].m_current_group;
-            if (shell && d.get_groups().contains(current) && shell->get_index() > d.get_group(current).get_index()) {
-                Glib::signal_idle().connect_once([this, doc_uu, body_uu] {
-                    auto &dd = m_core.get_idocument_info(doc_uu).get_document();
-                    const auto last = dd.get_groups_sorted().back()->m_uuid;
-                    m_core.set_current_document(doc_uu);
-                    get_current_document_view().m_current_group = last;
-                    set_current_group(last);
-                    if (!m_workspace_browser->select_body(doc_uu, body_uu))
-                        show_object_editor(doc_uu, body_uu);
-                    canvas_update_keep_selection();
-                });
-            }
+            const bool go_to_last =
+                    shell && d.get_groups().contains(current) && shell->get_index() > d.get_group(current).get_index();
+            schedule_object_panel_refresh(go_to_last ? 300 : 700, go_to_last);
         };
         sp->signal_value_changed().connect(apply);
         dd->property_selected().signal_changed().connect(apply);

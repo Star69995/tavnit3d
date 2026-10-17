@@ -954,23 +954,9 @@ void Editor::init_properties_notebook()
         }
         else if (m_object_editor) {
             // values may have changed (undo, dragging, ...); the object may be gone
-            Glib::signal_idle().connect_once([this] {
-                if (std::exchange(m_object_editor_keep, false))
-                    return; // rebuilding the panel mid-click would swallow the next click
-                if (!m_object_editor || m_object_drag)
-                    return;
-                auto &doc = m_core.get_idocument_info(m_object_editor_doc).get_document();
-                if (m_object_editor_light) {
-                    if (std::ranges::any_of(doc.m_lights, [this](auto &l) { return l.m_uuid == m_object_editor_light; }))
-                        show_light_editor(m_object_editor_doc, m_object_editor_light);
-                    else
-                        update_group_editor();
-                }
-                else if (doc.get_groups().contains(m_object_editor_body))
-                    show_object_editor(m_object_editor_doc, m_object_editor_body);
-                else
-                    update_group_editor();
-            });
+            if (std::exchange(m_object_editor_keep, false))
+                return; // the change came from the panel, which shows it already
+            schedule_object_panel_refresh();
         }
     });
 
@@ -2076,6 +2062,59 @@ const Buffer *Editor::get_buffer() const
 void Editor::set_first_update_group(const UUID &group)
 {
     m_update_groups_after = group;
+}
+
+void Editor::schedule_object_panel_refresh(unsigned int ms, bool go_to_last)
+{
+    m_object_panel_go_to_last = m_object_panel_go_to_last || go_to_last;
+    m_object_panel_refresh_connection.disconnect();
+    m_object_panel_refresh_connection = Glib::signal_timeout().connect(
+            [this] {
+                if (!m_object_editor)
+                    return false;
+                // not while a button is held down (a +/- that repeats) or something is dragged
+                if (m_object_drag || m_handle_drag)
+                    return true;
+                if (auto seat = m_win.get_display()->get_default_seat()) {
+                    if (auto pointer = seat->get_pointer();
+                        pointer
+                        && (static_cast<unsigned int>(pointer->get_modifier_state())
+                            & static_cast<unsigned int>(Gdk::ModifierType::BUTTON1_MASK)))
+                        return true;
+                }
+                const auto doc_uu = m_object_editor_doc;
+                if (!m_core.has_documents()
+                    || std::ranges::none_of(m_core.get_documents(),
+                                            [&doc_uu](auto d) { return d->get_uuid() == doc_uu; })) {
+                    update_group_editor();
+                    return false;
+                }
+                auto &doc = m_core.get_idocument_info(doc_uu).get_document();
+                if (std::exchange(m_object_panel_go_to_last, false) && m_core.get_current_idocument_info().get_uuid() == doc_uu) {
+                    const auto last = doc.get_groups_sorted().back()->m_uuid;
+                    if (m_core.get_current_group() != last) {
+                        get_current_document_view().m_current_group = last;
+                        set_current_group(last);
+                        canvas_update_keep_selection();
+                    }
+                }
+                if (m_object_editor_light) {
+                    if (std::ranges::any_of(doc.m_lights, [this](auto &l) { return l.m_uuid == m_object_editor_light; }))
+                        show_light_editor(doc_uu, m_object_editor_light);
+                    else
+                        update_group_editor();
+                }
+                else if (doc.get_groups().contains(m_object_editor_body)) {
+                    const auto body = m_object_editor_body;
+                    if (!m_workspace_browser->select_body(doc_uu, body))
+                        show_object_editor(doc_uu, body);
+                }
+                else {
+                    update_group_editor();
+                }
+                return false;
+            },
+            ms);
 }
 
 } // namespace dune3d

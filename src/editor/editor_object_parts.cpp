@@ -73,16 +73,7 @@ void Editor::finish_parts_change(const UUID &doc_uu, const std::string &what)
     canvas_update_keep_selection();
     m_workspace_browser->update_documents(get_current_document_views());
     // ... and shows what moved along once they're done
-    m_parts_refresh_connection.disconnect();
-    m_parts_refresh_connection = Glib::signal_timeout().connect(
-            [this, doc_uu] {
-                if (m_object_editor && !m_object_editor_light && m_object_editor_doc == doc_uu
-                    && !m_object_drag && !m_handle_drag
-                    && m_core.get_idocument_info(doc_uu).get_document().get_groups().contains(m_object_editor_body))
-                    show_object_editor(doc_uu, m_object_editor_body);
-                return false;
-            },
-            700);
+    schedule_object_panel_refresh(700);
 }
 
 void Editor::append_object_parts(Gtk::Grid &grid, int &top, const UUID &doc_uu, const UUID &body_uu)

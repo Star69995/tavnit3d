@@ -240,7 +240,12 @@ private:
     std::vector<UUID> get_part_set(const Document &doc, const UUID &object, const UUID &part) const;
     bool can_move_object(const Document &doc, const UUID &body) const;
     void finish_parts_change(const UUID &doc_uu, const std::string &what);
-    sigc::connection m_parts_refresh_connection;
+    // The object panel is made again after changes, but only once clicks are over: taking away
+    // a +/- button that's still getting clicks crashed GTK. go_to_last: first make the last group
+    // the current one, so a new step (rounding, hollow) is shown.
+    void schedule_object_panel_refresh(unsigned int ms = 300, bool go_to_last = false);
+    sigc::connection m_object_panel_refresh_connection;
+    bool m_object_panel_go_to_last = false;
     static Gtk::SpinButton &make_dimension_spin(const class IConstraintDatum &datum, const ObjectDimension &dim);
 
 public:
