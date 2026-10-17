@@ -9,7 +9,9 @@
 #                  and {CLEAR} (End + 20 backspaces) for special keys
 #   wheel:X:Y:N    turn the mouse wheel N notches (real input only)
 #   wait:MS        sleep
-#   shot:PATH      capture only the app's windows to PATH
+#   shot:PATH      capture only the app's windows to PATH (always the main window's area)
+#   dialog         send the following input to the app's topmost other window (a dialog),
+#                  with coordinates relative to it; "main" goes back to the main window
 # Uses the real cursor and keyboard (needs focus). Prefer tools/ui.sh, which
 # drives the app from the inside. -Messages posts window messages instead,
 # but GTK takes the pointer position from the real cursor, so clicks land
@@ -52,6 +54,7 @@ $p = if ($Doc) { Start-Process $Exe -ArgumentList "`"$Doc`"" -PassThru } else { 
 try {
     for ($i = 0; $i -lt 60; $i++) { Start-Sleep -Milliseconds 500; $p.Refresh(); if ($p.HasExited) { throw "app exited: $($p.ExitCode)" }; if ($p.MainWindowHandle -ne 0) { break } }
     $h = $p.MainWindowHandle
+    $main = $h
     [U]::ShowWindow($h, 9) | Out-Null
     [U]::MoveWindow($h, 0, 0, $Width, $Height, $true) | Out-Null
     Start-Sleep 3
@@ -107,6 +110,11 @@ try {
         $a = $step.Trim().Split(":", 2); $cmd = $a[0]; $arg = if ($a.Count -gt 1) { $a[1] } else { "" }
         switch ($cmd) {
             "wait" { Start-Sleep -Milliseconds ([int]$arg) }
+            "dialog" {
+                $others = @([U]::ProcessWindows([uint32]$p.Id) | Where-Object { $_ -ne $main })
+                if (-not $others.Count) { throw "no dialog open" }
+                $h = $others[-1] }
+            "main" { $h = $main }
             { $Messages -and $_ -in "click", "rclick", "dclick", "move", "drag", "key" } {
                 $v = $arg.Split(":")
                 switch ($cmd) {
@@ -160,7 +168,7 @@ try {
             "key" { Focus; [System.Windows.Forms.SendKeys]::SendWait($arg); Start-Sleep -Milliseconds 600 }
             "shot" {
                 # main window plus the app's own popups (menus are separate windows), nothing else
-                $r = Origin
+                $r = New-Object U+RECT; [U]::GetWindowRect($main, [ref]$r) | Out-Null
                 $bmp = New-Object System.Drawing.Bitmap ($r.R - $r.L), ($r.B - $r.T)
                 $g = [System.Drawing.Graphics]::FromImage($bmp)
                 foreach ($w in [U]::ProcessWindows([uint32]$p.Id)) {

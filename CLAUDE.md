@@ -31,7 +31,7 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 
 - Preferred: `tools/ui.sh script.txt` - in-app UI automation (also commands for
   stickers, import, export-gltf, save, recipe, describe, find, handles,
-  groups, render-window - see the top of editor_automation.cpp)
+  groups, render-window, zoom - see the top of editor_automation.cpp)
   (`src/editor/editor_automation.cpp`, enabled by `DUNE3D_AUTOMATION`):
   actions by catalog name, pointer on the 3D view, buttons/fields by label,
   `shot PATH` renders the window to PNG. Never touches the real mouse or
@@ -42,6 +42,12 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   it. Coordinates are window-relative, as seen in a previous shot. Shots
   composite the app's own popup windows (menus) too. It refuses to send input
   if it can't bring the app to the front (e.g. the user is typing elsewhere).
+  A modal dialog (About, the Windows file dialog's GTK parent) blocks the main
+  window: the `dialog` step sends the following input to it instead.
+  Native Windows file dialogs need typing into their own window (Alt+N, path,
+  Enter) from a second script that finds it by title.
+- Site screenshots: lay the scene out with a recipe (`recipe PATH`) rather
+  than clicks, then `action VIEW_FIT` and `zoom F X Y`.
 - `tools/snap.ps1 -Out PATH [-Doc file.d3ddoc]` just launches and captures.
 - Sample documents: https://github.com/dune3d/samples
 
@@ -128,6 +134,15 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 - Hollow (`GroupShell`, `src/document/hollow.*`, `solid_model_shell.cpp`): a
   thick-solid group before the "Rounded edges" fillet, which now finds its
   edges again on every rebuild (`GroupLocalOperation::m_all_edges`).
+- Positions: every ready-made shape has X/Y dimensions from the workplane
+  origin to a point its sketch hangs on. Revolved profiles stand on an upright
+  plane, extruded outlines lie on a flat plane of their own (`add_flat_plane`
+  in primitives.cpp), so the X/Y moves them whole. A full 360 degree revolve
+  keeps its angle pinned in the solver (`System::add(const GroupRevolve &)`);
+  without that, moving a smooth profile shrank the turn. Joined objects
+  (Combine, the screw) have no X/Y of their own yet, so they can't be moved.
+- Links (`website_url`, `source_url`, `issues_url` in branding.hpp): about
+  dialog credits and main menu (Website, Source code on GitHub, Report a problem).
 - Recipes (`src/document/recipe.*`): JSON descriptions of objects built from
   `add_primitive` (sizes, `Placement`), `add_revolved_profile`,
   `add_extruded_outline`, hollow, rounding, combining. Bowl/Vase are recipes;

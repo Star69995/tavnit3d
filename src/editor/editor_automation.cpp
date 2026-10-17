@@ -30,6 +30,7 @@ namespace dune3d {
  *   move X Y / click X Y     pointer on the 3D view, in window pixels (as in a shot)
  *   drag X1 Y1 X2 Y2         left-button drag on the 3D view (moves an object grabbed at X1 Y1)
  *   rotate X1 Y1 X2 Y2       orbit the view as if dragging between the points
+ *   zoom F [X Y]             zoom in by F (out if F < 1), towards window pixel X Y if given
  *   button LABEL             click the visible, enabled button whose text is LABEL
  *   field LABEL VALUE        type VALUE into the input next to the panel label LABEL (any window);
  *                            LABEL=VALUE if the value has spaces
@@ -258,6 +259,18 @@ void Editor::run_automation(const std::filesystem::path &script)
                 int pattern = 0, colour = 0;
                 std::istringstream(rest) >> pattern >> colour;
                 begin_place_pattern(m_object_editor_doc, m_object_editor_body, pattern, colour);
+            }
+            else if (cmd == "zoom") {
+                // zoom F [X Y]: F > 1 zooms in, towards the window pixel X Y if given
+                double f = 1, x = -1, y = -1;
+                std::istringstream(rest) >> f >> x >> y;
+                if (x >= 0 && y >= 0) {
+                    const auto p = to_canvas(x, y);
+                    get_canvas().inject_motion(p.x, p.y);
+                }
+                get_canvas().set_cam_distance(get_canvas().get_cam_distance() / f,
+                                              x >= 0 ? Canvas::ZoomCenter::CURSOR : Canvas::ZoomCenter::SCREEN);
+                delay = 400;
             }
             else if (cmd == "rotate") {
                 double x1, y1, x2, y2;
