@@ -1,6 +1,8 @@
 #include "dune3d_application.hpp"
 #include "util/exception_util.hpp"
 #include "util/branding.hpp"
+#include "util/crash_report.hpp"
+#include "util/util.hpp"
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -32,6 +34,8 @@ int main(int argc, char *argv[])
 
     auto application = dune3d::Dune3DApplication::create();
     dune3d::install_signal_exception_handler();
+    // say what happened rather than just vanish
+    dune3d::install_crash_report(dune3d::get_config_dir() / "crashes");
 
     // Start the application, showing the initial window,
     // and opening extra views for any files that it is asked to open,

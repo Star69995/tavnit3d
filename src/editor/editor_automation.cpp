@@ -55,6 +55,7 @@ namespace dune3d {
  *   export-gltf PATH         export the shown objects as glTF, from the current view
  *   update-check             check for updates as from the menu (feed: DUNE3D_UPDATE_FEED)
  *   panel-scroll F           scroll the side panel to F (0 top ... 1 bottom)
+ *   crash                    crash on purpose, to see the crash report
  *   close TITLE              close the window with this title as with its X button
  *   windows                  print the visible windows and their texts (dialogs aren't in shots)
  *   quit                     close the app
@@ -444,6 +445,11 @@ void Editor::run_automation(const std::filesystem::path &script)
                         break;
                     }
                 }
+            }
+            else if (cmd == "crash") {
+                // to see the crash report (util/crash_report.cpp)
+                volatile int *nothing = nullptr;
+                *nothing = 1;
             }
             else if (cmd == "close") {
                 // close a window as with its X button

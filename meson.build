@@ -64,6 +64,7 @@ src_common = files(
   'src/document/import_objects.cpp',
   'src/util/update_check.cpp',
   'src/util/http.cpp',
+  'src/util/crash_report.cpp',
   'src/util/blender_render.cpp',
   'src/document/entity/entity.cpp',
   'src/document/entity/entity_and_point.cpp',
