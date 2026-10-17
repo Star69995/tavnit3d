@@ -47,6 +47,7 @@ namespace dune3d {
  *   save PATH                save the current document under this name
  *   render-window            open the render window (then "button Render", "shotwin Render picture PATH")
  *   layout PATH              write where the picked object and the panel's number fields are
+ *   lights                   print where the lights (and what they're aimed at) are on screen and in mm, with colour and brightness
  *   handles                  print where the picked object's resize handles are, in window pixels
  *   check-solids             fail if a step that makes a solid has none ("not done")
  *   groups                   print the current document's groups, their solids and messages
@@ -166,6 +167,7 @@ void Editor::run_automation(const std::filesystem::path &script)
                                 // the button's let go of, as a real click's release does
                                 end_object_drag();
                                 end_handle_drag();
+                                end_light_drag();
                                 if (m_core.tool_is_active()) {
                                     ToolArgs args;
                                     args.type = ToolEventType::ACTION;
@@ -195,6 +197,7 @@ void Editor::run_automation(const std::filesystem::path &script)
                             get_canvas().inject_release();
                             end_object_drag();
                             end_handle_drag();
+                            end_light_drag();
                         },
                         200);
                 delay = 900;
@@ -263,6 +266,24 @@ void Editor::run_automation(const std::filesystem::path &script)
                     if (!gtk_widget_compute_point(GTK_WIDGET(get_canvas().gobj()), GTK_WIDGET(m_win.gobj()), &in, &out))
                         out = in;
                     std::cerr << "automation: handle " << h.label << " " << (int)out.x << " " << (int)out.y << std::endl;
+                }
+            }
+            else if (cmd == "lights") {
+                // where each light and its aimed-at point are, in window pixels
+                for (const auto &l : m_core.get_current_document().m_lights) {
+                    for (const bool target : {false, true}) {
+                        if (target && l.m_type == Light::Type::POINT)
+                            continue;
+                        const auto p = get_canvas().project_to_window(target ? l.m_target : l.m_position);
+                        graphene_point_t in{(float)p.x, (float)p.y}, out;
+                        if (!gtk_widget_compute_point(GTK_WIDGET(get_canvas().gobj()), GTK_WIDGET(m_win.gobj()), &in, &out))
+                            out = in;
+                        const auto &v = target ? l.m_target : l.m_position;
+                        std::cerr << "automation: light " << l.m_name << (target ? " target " : " ") << (int)out.x << " "
+                                  << (int)out.y << " at " << v.x << " " << v.y << " " << v.z << " colour " << l.m_color.r
+                                  << " " << l.m_color.g << " " << l.m_color.b << " brightness " << l.m_brightness
+                                  << std::endl;
+                    }
                 }
             }
             else if (cmd == "groups") {

@@ -106,14 +106,61 @@ bool Editor::pick_light_under_cursor()
         return false;
     auto &doc = m_core.get_current_document();
     const auto cursor = get_canvas().get_cursor_pos_win();
+    const auto near_cursor = [this, &cursor](const glm::dvec3 &pos) {
+        return glm::length(get_canvas().project_to_window(pos) - glm::dvec2(cursor)) < 14;
+    };
     for (const auto &light : doc.m_lights) {
-        const auto p = get_canvas().project_to_window(light.m_position);
-        if (glm::length(p - glm::dvec2(cursor)) < 14) {
-            show_light_editor(m_core.get_current_idocument_info().get_uuid(), light.m_uuid);
-            return true;
-        }
+        const bool lamp = near_cursor(light.m_position);
+        if (!lamp && !(light.m_type != Light::Type::POINT && near_cursor(light.m_target)))
+            continue;
+        const auto doc_uu = m_core.get_current_idocument_info().get_uuid();
+        show_light_editor(doc_uu, light.m_uuid);
+        // grabbed: it follows the pointer on a plane facing the camera
+        LightDrag drag;
+        drag.doc = doc_uu;
+        drag.light = light.m_uuid;
+        drag.target = !lamp;
+        drag.origin = lamp ? light.m_position : light.m_target;
+        drag.normal = glm::dquat(get_canvas().get_cam_quat()) * glm::dvec3(0, 0, 1);
+        drag.offset = drag.origin - get_canvas().get_cursor_pos_for_plane(drag.origin, drag.normal);
+        m_light_drag = drag;
+        get_canvas().inhibit_drag_selection();
+        return true;
     }
     return false;
+}
+
+void Editor::update_light_drag()
+{
+    if (!m_light_drag)
+        return;
+    auto &drag = *m_light_drag;
+    auto &doc = m_core.get_idocument_info(drag.doc).get_document();
+    auto light = find_light(doc, drag.light);
+    if (!light) {
+        m_light_drag.reset();
+        return;
+    }
+    const auto pos = glm::round(get_canvas().get_cursor_pos_for_plane(drag.origin, drag.normal) + drag.offset);
+    auto &point = drag.target ? light->m_target : light->m_position;
+    if (point == pos)
+        return;
+    point = pos;
+    drag.moved = true;
+    canvas_update_keep_selection();
+}
+
+void Editor::end_light_drag()
+{
+    if (!m_light_drag)
+        return;
+    const auto drag = *m_light_drag;
+    m_light_drag.reset();
+    if (!drag.moved)
+        return;
+    m_core.set_needs_save();
+    m_core.rebuild(drag.target ? "aim light" : "move light"); // the panel's fields refresh on rebuild
+    canvas_update_keep_selection();
 }
 
 void Editor::delete_light(const UUID &doc_uu, const UUID &light_uu)
