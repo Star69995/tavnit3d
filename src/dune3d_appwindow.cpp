@@ -198,8 +198,46 @@ Dune3DAppWindow::Dune3DAppWindow(BaseObjectType *cobject, const Glib::RefPtr<Gtk
         sg->add_widget(*refBuilder->get_widget<Gtk::Label>("welcome_recent_label"));
     }
 
-    m_action_bar_box = refBuilder->get_widget<Gtk::Box>("action_bar_box");
     m_action_bar_revealer = refBuilder->get_widget<Gtk::Revealer>("action_bar_revealer");
+    {
+        // the palette folds up into a small "Tools" button; the sections go into m_action_bar_box
+        auto outer = refBuilder->get_widget<Gtk::Box>("action_bar_box");
+        auto toggle = Gtk::make_managed<Gtk::ToggleButton>();
+        toggle->set_has_frame(false);
+        toggle->add_css_class("action-bar-fold");
+        auto box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 4);
+        box->set_halign(Gtk::Align::CENTER);
+        auto img = Gtk::make_managed<Gtk::Image>();
+        auto label = Gtk::make_managed<Gtk::Label>();
+        box->append(*img);
+        box->append(*label);
+        toggle->set_child(*box);
+        outer->append(*toggle);
+        auto content_revealer = Gtk::make_managed<Gtk::Revealer>();
+        content_revealer->set_transition_type(Gtk::RevealerTransitionType::SLIDE_UP);
+        m_action_bar_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 5);
+        content_revealer->set_child(*m_action_bar_box);
+        outer->append(*content_revealer);
+        auto update = [this, toggle, img, label, content_revealer] {
+            const bool folded = toggle->get_active();
+            m_app.m_user_config.palette_folded = folded;
+            if (!folded)
+                content_revealer->set_visible(true);
+            content_revealer->set_reveal_child(!folded);
+            img->set_from_icon_name(folded ? "pan-down-symbolic" : "pan-up-symbolic");
+            label->set_text(folded ? "Tools" : "Hide");
+            toggle->set_tooltip_text(folded ? "Show the tool palette" : "Fold the tool palette away");
+        };
+        // once folded away, drop it entirely so the palette shrinks to the button's width
+        content_revealer->property_child_revealed().signal_changed().connect([content_revealer] {
+            if (!content_revealer->get_reveal_child() && !content_revealer->get_child_revealed())
+                content_revealer->set_visible(false);
+        });
+        toggle->set_active(m_app.m_user_config.palette_folded);
+        content_revealer->set_visible(!m_app.m_user_config.palette_folded);
+        toggle->signal_toggled().connect(update);
+        update();
+    }
 
     m_view_options_button = refBuilder->get_widget<Gtk::MenuButton>("view_options_button");
     m_view_hints_label = refBuilder->get_widget<Gtk::Label>("view_hints_label");

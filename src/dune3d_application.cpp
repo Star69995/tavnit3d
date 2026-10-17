@@ -207,6 +207,7 @@ void Dune3DApplication::UserConfig::load(const std::filesystem::path &filename)
         ai.keys["claude"] = old_key;
     typing_threshold_ms = std::clamp(j.value("typing_threshold_ms", 350u), 50u, 2000u);
     autosave_minutes = std::min(j.value("autosave_minutes", 3u), 120u);
+    palette_folded = j.value("palette_folded", false);
     documents_dir = path_from_string(j.value("documents_dir", ""));
     if (j.count("export_paths")) {
         const json &o = j.at("export_paths");
@@ -233,6 +234,7 @@ void Dune3DApplication::UserConfig::save(const std::filesystem::path &filename)
     j["ai"] = {{"provider", ai.provider}, {"keys", ai.keys}, {"models", ai.models}, {"urls", ai.urls}};
     j["typing_threshold_ms"] = typing_threshold_ms;
     j["autosave_minutes"] = autosave_minutes;
+    j["palette_folded"] = palette_folded;
     if (!documents_dir.empty())
         j["documents_dir"] = path_to_string(documents_dir);
     for (const auto &[path, mod] : recent_items) {

@@ -50,6 +50,7 @@ public:
         unsigned int typing_threshold_ms = 350;
         // a backup of unsaved work is written this often (0 = off) ...
         unsigned int autosave_minutes = 3;
+        bool palette_folded = false; // the tool palette over the 3D view
         // ... into "Autosave" in here, which is also where saving starts; Documents/Tavnit 3D if empty
         std::filesystem::path documents_dir;
     };
