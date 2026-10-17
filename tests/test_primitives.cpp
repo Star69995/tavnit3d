@@ -31,6 +31,7 @@
 #include <GProp_GProps.hxx>
 #include <cmath>
 #include <iostream>
+#include <set>
 #include <sstream>
 #include <numbers>
 
@@ -496,6 +497,30 @@ static void test_deferred_solid_models()
     check(std::abs(body_volume(doc, *rounded) - full_volume) < 1e-6 * full_volume, "and gets the same bowl");
 }
 
+// joins named in an awkward order (a part joined to the object before its own parts) still make one object
+static void test_combine_order()
+{
+    std::cout << "combine order" << std::endl;
+    Document doc;
+    auto box = [](const std::string &id, double x, double z) {
+        return json{{"id", id}, {"shape", "box"}, {"width", 20}, {"depth", 20}, {"height", 10}, {"position", {x, 0, z}}};
+    };
+    json recipe = {{"objects", {box("base", 0, 0), box("mid", 0, 10), box("key1", -5, 20), box("key2", 5, 20)}},
+                   {"combine",
+                    {{{"op", "join"}, {"target", "base"}, {"tool", "mid"}},
+                     {{"op", "join"}, {"target", "mid"}, {"tool", "key1"}},
+                     {{"op", "join"}, {"target", "mid"}, {"tool", "key2"}}}}};
+    auto result = build_recipe(doc, doc.get_groups_sorted().back()->m_uuid, recipe);
+    doc.update_pending();
+    std::set<UUID> hidden(result.hidden.begin(), result.hidden.end());
+    int shown = 0;
+    for (const auto &b : result.bodies)
+        if (!hidden.contains(b))
+            shown++;
+    check(shown == 1, "one object is left (" + std::to_string(shown) + ")");
+    check(result.warnings.empty(), "no warnings");
+}
+
 // a joined object made by a recipe, like a table, changed through its parts
 static void test_object_parts()
 {
@@ -645,6 +670,7 @@ int main()
     test_save_load();
     test_round_edges();
     test_deferred_solid_models();
+    test_combine_order();
     test_object_parts();
     test_limits();
     std::cout << (failures ? "FAILED" : "PASSED") << " (" << failures << " failures)" << std::endl;

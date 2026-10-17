@@ -54,7 +54,7 @@ static const char *schema_text = R"JSON({
     },
     "combine": {
       "type": "array",
-      "description": "Applied in order after making the objects; the result keeps the target's id",
+      "description": "Applied in order after making the objects; the result keeps the target's id. A joined tool becomes part of the target. Parts that are joined must touch or overlap the target, not lie completely inside it (that adds nothing)",
       "items": {
         "type": "object",
         "properties": {
@@ -186,8 +186,11 @@ RecipeResult build_recipe(Document &doc, const UUID &after, const json &recipe, 
         auto &b = *doc.get_group(body).m_body;
         if (o.contains("name") && o.at("name").is_string())
             b.m_name = o.at("name").get<std::string>();
-        if (o.contains("color") && o.at("color").is_string())
+        if (o.contains("color") && o.at("color").is_string()) {
             b.m_color = parse_color(o.at("color").get<std::string>());
+            if (!b.m_color)
+                result.warnings.push_back(id + ": colour \"" + o.at("color").get<std::string>() + "\" isn't #rrggbb");
+        }
         if (o.contains("material") && o.at("material").is_string()) {
             for (const auto m : get_all_materials()) {
                 std::string label = get_material_label(m);
@@ -231,6 +234,8 @@ RecipeResult build_recipe(Document &doc, const UUID &after, const json &recipe, 
             else if (op_str == "intersect")
                 op = IGroupSolidModel::Operation::INTERSECTION;
             const auto a = ids.at(target), b = ids.at(tool);
+            if (a == b) // already one object (the tool was joined into the target earlier)
+                continue;
             auto &group = add_combination(doc, a, b, op);
             doc.update_pending();
             const auto combined = body_of(doc, group);
@@ -240,6 +245,10 @@ RecipeResult build_recipe(Document &doc, const UUID &after, const json &recipe, 
             result.hidden.push_back(b);
             result.bodies.push_back(combined);
             ids[target] = combined;
+            // a joined tool is part of the result now, so later steps naming it (a part joined to
+            // it after it was joined itself) reach the whole object instead of a used-up copy
+            if (op == IGroupSolidModel::Operation::UNION)
+                ids[tool] = combined;
         }
     }
     return result;
