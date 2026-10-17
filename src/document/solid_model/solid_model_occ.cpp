@@ -52,7 +52,8 @@ namespace dune3d {
 class Triangulator {
 public:
     Triangulator(const TopoDS_Shape &shape, const Color &color, face::Faces &faces,
-                 const std::map<const TopoDS_TShape *, Color> &face_colors);
+                 const std::map<const TopoDS_TShape *, Color> &face_colors,
+                 const std::map<const TopoDS_TShape *, Body::Material> &face_materials);
 
 
 private:
@@ -66,6 +67,13 @@ private:
     face::Faces &m_faces;
     face::Color m_color;
     const std::map<const TopoDS_TShape *, Color> &m_face_colors;
+    const std::map<const TopoDS_TShape *, Body::Material> &m_face_materials;
+    unsigned char get_material(const TopoDS_Face &face) const
+    {
+        if (auto it = m_face_materials.find(face.TShape().get()); it != m_face_materials.end())
+            return static_cast<unsigned char>(it->second);
+        return face::Face::no_material;
+    }
     face::Color get_color(const TopoDS_Face &face) const
     {
         if (auto it = m_face_colors.find(face.TShape().get()); it != m_face_colors.end())
@@ -75,8 +83,9 @@ private:
 };
 
 Triangulator::Triangulator(const TopoDS_Shape &shape, const Color &color, face::Faces &faces,
-                           const std::map<const TopoDS_TShape *, Color> &face_colors)
-    : m_faces(faces), m_face_colors(face_colors)
+                           const std::map<const TopoDS_TShape *, Color> &face_colors,
+                           const std::map<const TopoDS_TShape *, Body::Material> &face_materials)
+    : m_faces(faces), m_face_colors(face_colors), m_face_materials(face_materials)
 {
     m_color.r = color.r;
     m_color.b = color.b;
@@ -130,6 +139,7 @@ bool Triangulator::processFace(const TopoDS_Face &face, const glm::dmat4 &mat_in
 
     if (BRep_Tool::Surface(face).IsNull()) {
         add_mesh(*triangulation, mat, face.Orientation() == TopAbs_REVERSED, get_color(face));
+        m_faces.back().material = get_material(face);
         return true;
     }
 
@@ -145,6 +155,7 @@ bool Triangulator::processFace(const TopoDS_Face &face, const glm::dmat4 &mat_in
     m_faces.emplace_back();
     auto &face_out = m_faces.back();
     face_out.color = get_color(face);
+    face_out.material = get_material(face);
     face_out.vertices.reserve(triangulation->NbNodes());
 
     std::map<face::Vertex, std::vector<size_t>> pts_map;
@@ -401,7 +412,7 @@ bool Triangulator::processNode(const TopoDS_Shape &shape)
 void SolidModelOcc::triangulate()
 {
     m_faces.clear();
-    Triangulator tri{m_shape_acc, m_color, m_faces, m_face_colors};
+    Triangulator tri{m_shape_acc, m_color, m_faces, m_face_colors, m_face_materials};
 }
 
 inline double defaultAngularDeflection(double linearTolerance)
@@ -436,7 +447,12 @@ void SolidModelOcc::export_stl(const std::filesystem::path &path) const
 
 void SolidModelOcc::add_to_step_exporter(STEPExporter &exporter, const char *name) const
 {
-    exporter.add_model(name, m_shape_acc, m_color);
+    std::vector<std::pair<TopoDS_Shape, Color>> face_colors;
+    for (TopExp_Explorer ex(m_shape_acc, TopAbs_FACE); ex.More(); ex.Next()) {
+        if (auto it = m_face_colors.find(ex.Current().TShape().get()); it != m_face_colors.end())
+            face_colors.emplace_back(ex.Current(), it->second);
+    }
+    exporter.add_model(name, m_shape_acc, m_color, face_colors);
 }
 
 void SolidModelOcc::find_edges()
@@ -532,6 +548,8 @@ void SolidModelOcc::finish(const Document &doc, const Group &group)
     else {
         m_color = Preferences::get().canvas.appearance.get_color(ColorP::SOLID_MODEL);
     }
+
+    m_material = body.m_material;
 
     triangulate();
     find_edges();

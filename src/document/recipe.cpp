@@ -244,11 +244,12 @@ RecipeResult build_recipe(Document &doc, const UUID &after, const json &recipe, 
             result.hidden.push_back(a);
             result.hidden.push_back(b);
             result.bodies.push_back(combined);
-            ids[target] = combined;
-            // a joined tool is part of the result now, so later steps naming it (a part joined to
-            // it after it was joined itself) reach the whole object instead of a used-up copy
-            if (op == IGroupSolidModel::Operation::UNION)
-                ids[tool] = combined;
+            // everything that was the target is the result now; so is a joined tool (it is part of it), so
+            // later steps naming either reach the whole object instead of a used-up copy
+            for (auto &[name, body_id] : ids) {
+                if (body_id == a || (op == IGroupSolidModel::Operation::UNION && body_id == b))
+                    body_id = combined;
+            }
         }
     }
     return result;

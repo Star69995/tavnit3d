@@ -150,17 +150,35 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
             if (body_groups.body.m_color.has_value())
                 color = ICanvas::FaceColor::AS_IS;
             set_chunk_from_group(*last_solid_model_group);
-            const auto vref =
-                    m_ca.add_face_group(last_solid_model->m_faces, {0, 0, 0},
-                                        glm::quat_identity<float, glm::defaultp>(), color,
-                                        static_cast<unsigned int>(body_groups.body.m_hole
-                                                                          ? Body::Material::GLASS
-                                                                          : body_groups.body.m_material)
-                                                | (body_groups.get_group().m_uuid == m_highlight_body
-                                                           ? ICanvas::face_material_highlight
-                                                           : 0));
-            if (sr)
-                m_ca.add_selectable(vref, *sr);
+            const unsigned int body_material =
+                    static_cast<unsigned int>(body_groups.body.m_hole ? Body::Material::GLASS
+                                                                      : body_groups.body.m_material);
+            const unsigned int highlight =
+                    body_groups.get_group().m_uuid == m_highlight_body ? ICanvas::face_material_highlight : 0;
+            // parts joined from objects of other materials keep theirs: a face group per material
+            const auto &faces = last_solid_model->m_faces;
+            const bool mixed = !body_groups.body.m_hole
+                               && std::ranges::any_of(faces, [](const auto &f) {
+                                      return f.material != face::Face::no_material;
+                                  });
+            if (!mixed) {
+                const auto vref = m_ca.add_face_group(faces, {0, 0, 0}, glm::quat_identity<float, glm::defaultp>(),
+                                                      color, body_material | highlight);
+                if (sr)
+                    m_ca.add_selectable(vref, *sr);
+            }
+            else {
+                std::map<unsigned int, face::Faces> by_material;
+                for (const auto &f : faces)
+                    by_material[f.material == face::Face::no_material ? body_material : f.material].push_back(f);
+                for (const auto &[material, group_faces] : by_material) {
+                    const auto vref = m_ca.add_face_group(group_faces, {0, 0, 0},
+                                                          glm::quat_identity<float, glm::defaultp>(), color,
+                                                          material | highlight);
+                    if (sr)
+                        m_ca.add_selectable(vref, *sr);
+                }
+            }
             for (const auto &decal : body_groups.body.m_decals)
                 m_ca.add_decal(make_decal_mesh(decal, last_solid_model->m_faces), decal.m_data,
                                decal.m_repeat);

@@ -10,6 +10,8 @@
 #include "document/duplicate.hpp"
 #include "document/round_edges.hpp"
 #include "document/recipe.hpp"
+#include "document/export_gltf.hpp"
+#include "util/step_exporter.hpp"
 #include "document/hollow.hpp"
 #include "document/object_parts.hpp"
 #include "document/object_dimensions.hpp"
@@ -30,6 +32,7 @@
 #include "document/entity/entity.hpp"
 #include <GProp_GProps.hxx>
 #include <cmath>
+#include <cstring>
 #include <iostream>
 #include <set>
 #include <sstream>
@@ -505,11 +508,12 @@ static void test_combine_order()
     auto box = [](const std::string &id, double x, double z) {
         return json{{"id", id}, {"shape", "box"}, {"width", 20}, {"depth", 20}, {"height", 10}, {"position", {x, 0, z}}};
     };
-    json recipe = {{"objects", {box("base", 0, 0), box("mid", 0, 10), box("key1", -5, 20), box("key2", 5, 20)}},
+    json recipe = {{"objects", {box("base", 0, 0), box("mid", 0, 10), box("key1", -5, 20), box("key2", 5, 20), box("pad", 0, 10)}},
                    {"combine",
                     {{{"op", "join"}, {"target", "base"}, {"tool", "mid"}},
                      {{"op", "join"}, {"target", "mid"}, {"tool", "key1"}},
-                     {{"op", "join"}, {"target", "mid"}, {"tool", "key2"}}}}};
+                     {{"op", "join"}, {"target", "mid"}, {"tool", "key2"}},
+                     {{"op", "join"}, {"target", "base"}, {"tool", "pad"}}}}};
     auto result = build_recipe(doc, doc.get_groups_sorted().back()->m_uuid, recipe);
     doc.update_pending();
     std::set<UUID> hidden(result.hidden.begin(), result.hidden.end());
@@ -521,28 +525,69 @@ static void test_combine_order()
     check(result.warnings.empty(), "no warnings");
 }
 
-// a joined part keeps its own colour on the faces that stay visible
-static void test_combine_colors()
+// a joined part keeps its own colour and material on the faces that stay visible, in the view and when exported
+static void test_combine_looks()
 {
-    std::cout << "combine colours" << std::endl;
+    std::cout << "combine looks" << std::endl;
     Document doc;
     json recipe = {{"objects",
-                    {{{"id", "a"}, {"shape", "box"}, {"width", 20}, {"depth", 20}, {"height", 10}, {"color", "#c0c0c0"}},
+                    {{{"id", "a"}, {"shape", "box"}, {"width", 20}, {"depth", 20}, {"height", 10}, {"color", "#c0c0c0"},
+                      {"material", "metal"}},
                      {{"id", "b"}, {"shape", "box"}, {"width", 10}, {"depth", 10}, {"height", 5},
-                      {"position", {0, 0, 10}}, {"color", "#ff0000"}}}},
+                      {"position", {0, 0, 10}}, {"color", "#ff0000"}, {"material", "glossy"}}}},
                    {"combine", {{{"op", "join"}, {"target", "a"}, {"tool", "b"}}}}};
     auto result = build_recipe(doc, doc.get_groups_sorted().back()->m_uuid, recipe);
     doc.update_pending();
     const auto &group = doc.get_group(result.bodies.back());
-    const auto model = dynamic_cast<const SolidModelOcc *>(dynamic_cast<const IGroupSolidModel &>(group).get_solid_model());
+    const auto model =
+            dynamic_cast<const SolidModelOcc *>(dynamic_cast<const IGroupSolidModel &>(group).get_solid_model());
     check(model != nullptr, "the join has a solid");
     if (!model)
         return;
-    int red = 0;
-    for (const auto &[face, c] : model->m_face_colors)
-        if (c.r > .9 && c.g < .1)
+    int red = 0, glossy = 0, plain = 0;
+    for (const auto &face : model->m_faces) {
+        if (face.color.r > .9 && face.color.g < .1)
             red++;
+        if (face.material == static_cast<unsigned char>(Body::Material::GLOSSY))
+            glossy++;
+        else if (face.material == face::Face::no_material)
+            plain++;
+    }
     check(red == 5, "the red box shows 5 faces (" + std::to_string(red) + ")");
+    check(glossy == 5, "and they are glossy (" + std::to_string(glossy) + ")");
+    check(plain > 0 && group.m_body->m_material == Body::Material::METAL, "the rest has the body's metal");
+
+    const auto dir = std::filesystem::temp_directory_path() / "dune3d_looks";
+    std::filesystem::create_directories(dir);
+    export_gltf(doc, dir / "looks.glb", {});
+    std::ifstream ifs(dir / "looks.glb", std::ios::binary);
+    std::string data((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+    uint32_t json_len = 0;
+    if (data.size() > 20)
+        std::memcpy(&json_len, data.data() + 12, 4);
+    const auto j = json::parse(data.substr(20, json_len), nullptr, false);
+    int metals = 0, glosses = 0;
+    if (j.is_object() && j.contains("materials")) {
+        for (const auto &m : j.at("materials")) {
+            const auto &pbr = m.at("pbrMetallicRoughness");
+            const double metallic = pbr.at("metallicFactor");
+            const auto &base = pbr.at("baseColorFactor");
+            if (metallic > .9)
+                metals++;
+            else if (base.at(0).get<double>() > .9)
+                glosses++;
+        }
+    }
+    check(metals >= 1 && glosses >= 1, "glTF has the metal and the glossy red material");
+
+    STEPExporter step("test");
+    model->add_to_step_exporter(step, "joined");
+    step.write(dir / "looks.step");
+    std::ifstream sfs(dir / "looks.step");
+    std::string step_text((std::istreambuf_iterator<char>(sfs)), std::istreambuf_iterator<char>());
+    check(step_text.find("COLOUR_RGB") != std::string::npos
+                  && step_text.find("1.,0.,0.") != std::string::npos,
+          "STEP has the red colour of the joined box");
 }
 
 // a joined object made by a recipe, like a table, changed through its parts
@@ -695,7 +740,7 @@ int main()
     test_round_edges();
     test_deferred_solid_models();
     test_combine_order();
-    test_combine_colors();
+    test_combine_looks();
     test_object_parts();
     test_limits();
     std::cout << (failures ? "FAILED" : "PASSED") << " (" << failures << " failures)" << std::endl;

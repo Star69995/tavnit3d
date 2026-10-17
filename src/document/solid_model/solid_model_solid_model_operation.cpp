@@ -17,11 +17,12 @@ bool same_color(const Color &a, const Color &b)
     return a.r == b.r && a.g == b.g && a.b == b.b;
 }
 
-// The boolean of two solids. Faces keep the colour of the solid they came from (a screen stays black on
+// The boolean of two solids. Faces keep the colour and material of the solid they came from (a screen stays black on
 // a silver body): the result's faces are looked up in the history of the operation and get a colour of
 // their own where it differs from the argument's, which is also what the combined body is coloured with.
 TopoDS_Shape calc_keep_colors(IGroupSolidModel::Operation op, const SolidModelOcc &argument,
-                              const SolidModelOcc &tool, std::map<const TopoDS_TShape *, Color> &colors)
+                              const SolidModelOcc &tool, std::map<const TopoDS_TShape *, Color> &colors,
+                              std::map<const TopoDS_TShape *, Body::Material> &materials)
 {
     std::unique_ptr<BRepAlgoAPI_BooleanOperation> algo;
     switch (op) {
@@ -43,22 +44,33 @@ TopoDS_Shape calc_keep_colors(IGroupSolidModel::Operation op, const SolidModelOc
     auto collect = [&](const SolidModelOcc &source, bool is_argument) {
         for (TopExp_Explorer ex(source.m_shape_acc, TopAbs_FACE); ex.More(); ex.Next()) {
             const auto &face = ex.Current();
-            std::optional<Color> own;
-            if (auto it = source.m_face_colors.find(face.TShape().get()); it != source.m_face_colors.end())
-                own = it->second;
-            // the argument's plain faces get the body's colour anyway
-            if (!own && (is_argument || same_color(source.m_color, argument.m_color)))
+            const auto own_color = source.m_face_colors.find(face.TShape().get());
+            const auto own_material = source.m_face_materials.find(face.TShape().get());
+            // the argument's plain faces look like the combined body anyway
+            const bool color_differs = own_color != source.m_face_colors.end()
+                                       || (!is_argument && !same_color(source.m_color, argument.m_color));
+            const bool material_differs = own_material != source.m_face_materials.end()
+                                          || (!is_argument && source.m_material != argument.m_material);
+            if (!color_differs && !material_differs)
                 continue;
             if (algo->IsDeleted(face))
                 continue;
-            const auto &color = own ? *own : source.m_color;
+            const auto color = own_color != source.m_face_colors.end() ? own_color->second : source.m_color;
+            const auto material =
+                    own_material != source.m_face_materials.end() ? own_material->second : source.m_material;
+            auto apply = [&](const TopoDS_Shape &f) {
+                if (color_differs)
+                    colors[f.TShape().get()] = color;
+                if (material_differs)
+                    materials[f.TShape().get()] = material;
+            };
             const auto &modified = algo->Modified(face);
             if (modified.IsEmpty()) {
-                colors[face.TShape().get()] = color;
+                apply(face);
             }
             else {
                 for (const auto &f : modified)
-                    colors[f.TShape().get()] = color;
+                    apply(f);
             }
         }
     };
@@ -113,7 +125,8 @@ std::shared_ptr<const SolidModel> SolidModel::create(const Document &doc, GroupS
     auto mod = std::make_shared<SolidModelOcc>();
 
     mod->m_shape_acc =
-            calc_keep_colors(group.m_operation, solid_model_argument, solid_model_tool, mod->m_face_colors);
+            calc_keep_colors(group.m_operation, solid_model_argument, solid_model_tool, mod->m_face_colors,
+                             mod->m_face_materials);
 
     if (mod->m_shape_acc.IsNull()) {
         group.m_solid_model_messages.emplace_back(GroupStatusMessage::Status::ERR, "didn't generate a shape");

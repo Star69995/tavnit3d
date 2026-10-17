@@ -201,14 +201,14 @@ bool export_gltf(const Document &doc, const std::filesystem::path &path, const G
     for (const auto &bs : solids) {
         const auto &body = *doc.get_group(bs.body).m_body;
         const auto &faces = bs.solid->m_faces;
-        // faces may have colours of their own (imported ones): a primitive per colour
+        // faces may have a colour or material of their own (imported or joined ones): a primitive per look
         struct Prim {
             std::vector<glm::vec3> positions, normals;
             std::vector<uint32_t> indices;
         };
-        std::map<std::tuple<float, float, float>, Prim> prims;
+        std::map<std::tuple<float, float, float, unsigned char>, Prim> prims;
         for (const auto &face : faces) {
-            auto &prim = prims[{face.color.r, face.color.g, face.color.b}];
+            auto &prim = prims[{face.color.r, face.color.g, face.color.b, face.material}];
             const auto base = prim.positions.size();
             for (size_t i = 0; i < face.vertices.size(); i++) {
                 const auto &v = face.vertices.at(i);
@@ -226,8 +226,12 @@ bool export_gltf(const Document &doc, const std::filesystem::path &path, const G
         for (const auto &[col, prim] : prims) {
             if (prim.indices.empty())
                 continue;
-            const auto &[r, g, b] = col;
-            const auto material = w.add("materials", pbr_material(body.m_name, Color(r, g, b), body.m_material, w));
+            const auto &[r, g, b, face_material] = col;
+            const auto material = w.add("materials", pbr_material(body.m_name, Color(r, g, b),
+                                                                 face_material == face::Face::no_material
+                                                                         ? body.m_material
+                                                                         : static_cast<Body::Material>(face_material),
+                                                                 w));
             primitives.push_back({
                     {"attributes",
                      {{"POSITION", w.add_accessor(prim.positions, true)},
