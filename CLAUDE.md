@@ -110,6 +110,8 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   (`Renderer::render`, View > Sketch lines of other objects).
 - Combine (object panel, `src/document/combine.*`): solid model operation
   group in a new body after everything; the sources get hidden, not removed.
+  Faces keep their source's colour through a join/cut (`calc_keep_colors` in
+  `solid_model_solid_model_operation.cpp`: boolean history -> `SolidModelOcc::m_face_colors`; materials stay per body).
   It points at a source's last solid group: rounding/hollowing a source calls
   `repoint_combinations` (else removing the step would delete the join).
 - Parts of joined objects (`src/document/object_parts.*`, panel in

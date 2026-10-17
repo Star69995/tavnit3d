@@ -521,6 +521,30 @@ static void test_combine_order()
     check(result.warnings.empty(), "no warnings");
 }
 
+// a joined part keeps its own colour on the faces that stay visible
+static void test_combine_colors()
+{
+    std::cout << "combine colours" << std::endl;
+    Document doc;
+    json recipe = {{"objects",
+                    {{{"id", "a"}, {"shape", "box"}, {"width", 20}, {"depth", 20}, {"height", 10}, {"color", "#c0c0c0"}},
+                     {{"id", "b"}, {"shape", "box"}, {"width", 10}, {"depth", 10}, {"height", 5},
+                      {"position", {0, 0, 10}}, {"color", "#ff0000"}}}},
+                   {"combine", {{{"op", "join"}, {"target", "a"}, {"tool", "b"}}}}};
+    auto result = build_recipe(doc, doc.get_groups_sorted().back()->m_uuid, recipe);
+    doc.update_pending();
+    const auto &group = doc.get_group(result.bodies.back());
+    const auto model = dynamic_cast<const SolidModelOcc *>(dynamic_cast<const IGroupSolidModel &>(group).get_solid_model());
+    check(model != nullptr, "the join has a solid");
+    if (!model)
+        return;
+    int red = 0;
+    for (const auto &[face, c] : model->m_face_colors)
+        if (c.r > .9 && c.g < .1)
+            red++;
+    check(red == 5, "the red box shows 5 faces (" + std::to_string(red) + ")");
+}
+
 // a joined object made by a recipe, like a table, changed through its parts
 static void test_object_parts()
 {
@@ -671,6 +695,7 @@ int main()
     test_round_edges();
     test_deferred_solid_models();
     test_combine_order();
+    test_combine_colors();
     test_object_parts();
     test_limits();
     std::cout << (failures ? "FAILED" : "PASSED") << " (" << failures << " failures)" << std::endl;
