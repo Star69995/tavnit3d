@@ -3,6 +3,7 @@
 #include "describe_window.hpp"
 #include "action_search.hpp"
 #include "util/branding.hpp"
+#include "util/gtk_util.hpp"
 #include "dune3d_appwindow.hpp"
 #include "core/tool_id.hpp"
 #include "widgets/constraints_box.hpp"
@@ -1374,6 +1375,7 @@ void Editor::update_group_editor()
     m_group_editor->signal_changed().connect(sigc::mem_fun(*this, &Editor::handle_commit_from_editor));
     m_group_editor->signal_trigger_action().connect([this](auto act) { trigger_action(act); });
     m_group_editor_box->append(*m_group_editor);
+    wheel_scrolls_past_spinbuttons(*m_group_editor);
 }
 
 void Editor::handle_commit_from_editor(CommitMode mode)
@@ -1751,7 +1753,7 @@ void Editor::handle_click(unsigned int button, unsigned int n)
         if (pick_light_under_cursor())
             return;
         auto hover_sel = get_canvas().get_hover_selection();
-        if (!hover_sel) {
+        if (!hover_sel || ready_made_object_under_cursor()) {
             select_object_under_cursor();
             return;
         }

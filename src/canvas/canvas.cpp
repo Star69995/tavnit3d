@@ -815,6 +815,12 @@ unsigned int Canvas::get_hover_pick(const std::vector<pick_buf_t> &pick_buf) con
     return pick;
 }
 
+bool Canvas::is_face_under_cursor() const
+{
+    const auto pick = read_pick_buf(m_pick_buf, m_last_x, m_last_y);
+    return pick && get_vertex_ref_for_pick(pick).type == VertexType::FACE_GROUP;
+}
+
 unsigned int Canvas::get_hover_pick() const
 {
     return get_hover_pick(m_pick_buf);

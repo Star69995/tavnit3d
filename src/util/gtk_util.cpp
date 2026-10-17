@@ -1,4 +1,5 @@
 #include "gtk_util.hpp"
+#include <cmath>
 
 namespace dune3d {
 void install_esc_to_close(Gtk::Window &win)
@@ -60,6 +61,41 @@ void spinbutton_connect_activate_immediate(Gtk::SpinButton &sp, std::function<vo
                 false);
         sp.add_controller(controller);
     }
+}
+
+void wheel_scrolls_past_spinbuttons(Gtk::Widget &root)
+{
+    if (auto sp = dynamic_cast<Gtk::SpinButton *>(&root); sp && !sp->get_data("wheel-scrolls-past")) {
+        sp->set_data("wheel-scrolls-past", sp);
+        auto controller = Gtk::EventControllerScroll::create();
+        controller->set_flags(Gtk::EventControllerScroll::Flags::VERTICAL);
+        // before the spin button's own handler
+        controller->set_propagation_phase(Gtk::PropagationPhase::CAPTURE);
+        controller->signal_scroll().connect(
+                [sp, controller = controller.get()](double, double dy) {
+                    if (auto r = sp->get_root()) {
+                        for (auto focus = r->get_focus(); focus; focus = focus->get_parent()) {
+                            if (focus == sp)
+                                return false;
+                        }
+                    }
+                    auto scrolled = dynamic_cast<Gtk::ScrolledWindow *>(sp->get_ancestor(GTK_TYPE_SCROLLED_WINDOW));
+                    if (scrolled) {
+                        auto adj = scrolled->get_vadjustment();
+                        // what GtkScrolledWindow itself does for one notch
+                        const double step = controller->get_unit() == Gdk::ScrollUnit::WHEEL
+                                                    ? std::pow(adj->get_page_size(), 2. / 3.)
+                                                    : 1;
+                        adj->set_value(adj->get_value() + dy * step);
+                    }
+                    return true;
+                },
+                false);
+        sp->add_controller(controller);
+        return;
+    }
+    for (auto ch = root.get_first_child(); ch; ch = ch->get_next_sibling())
+        wheel_scrolls_past_spinbuttons(*ch);
 }
 
 Gtk::Label &grid_attach_label_and_widget(Gtk::Grid &gr, const std::string &label, Gtk::Widget &w, int &top)

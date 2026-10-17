@@ -115,6 +115,9 @@ public:
     }
 
     void set_hover_selection(const std::optional<SelectableRef> &sr);
+    // the pixel under the pointer is a face, i.e. the hover selection (if any) is a line or
+    // point found near the pointer rather than right under it
+    bool is_face_under_cursor() const;
 
     void set_selection_invisible(bool selection_invisible) override
     {

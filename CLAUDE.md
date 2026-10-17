@@ -75,7 +75,14 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 - Clicking a solid picks its body (`Editor::select_object_under_cursor`,
   `pick_body` in face_sketch.cpp, hidden bodies excluded via
   `Editor::body_is_shown`); dragging moves objects that have X/Y position
-  dimensions (`src/editor/editor_object_drag.cpp`).
+  dimensions (`src/editor/editor_object_drag.cpp`). On a face of such an
+  object a click picks the object even with a line within the 10 px hover
+  radius (`Editor::ready_made_object_under_cursor`); only right on a line
+  picks the line.
+- Side panels: the mouse wheel over a number field scrolls the panel unless
+  the field has focus (`wheel_scrolls_past_spinbuttons` in gtk_util, applied
+  to the object panel and group editors). Keep the object panel's minimum
+  width under the 300 px sidebar, or the whole sidebar widens.
 - Duplicate (object panel / Ctrl+D, `src/document/duplicate.*`): copies a
   body's groups/entities/constraints with new UUIDs; constraints on
   generated entities are re-pointed by matching geometry after generating.

@@ -126,6 +126,7 @@ private:
     void show_object_editor(const UUID &doc_uu, const UUID &body_uu);
     void delete_body(const UUID &doc_uu, const UUID &body_uu);
     void select_object_under_cursor();
+    bool ready_made_object_under_cursor();
     void duplicate_object(const UUID &doc_uu, const UUID &body_uu);
     void cut_with_hole(const UUID &doc_uu, const UUID &hole);
     void copy_in_a_row(const UUID &doc_uu, const UUID &body_uu, unsigned int count, double gap);

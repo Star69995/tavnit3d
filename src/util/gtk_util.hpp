@@ -8,6 +8,9 @@ void install_esc_to_close(Gtk::Window &win);
 void spinbutton_connect_activate(Gtk::SpinButton &sp, std::function<void()> cb);
 void spinbutton_connect_activate_immediate(Gtk::SpinButton &sp, std::function<void()> cb);
 Gtk::Label &grid_attach_label_and_widget(Gtk::Grid &gr, const std::string &label, Gtk::Widget &w, int &top);
+// the mouse wheel over a number field inside root scrolls the panel around it, unless the
+// field has the keyboard focus (GTK's spin buttons would change their value and take the focus)
+void wheel_scrolls_past_spinbuttons(Gtk::Widget &root);
 void header_func_separator(Gtk::ListBoxRow *row, Gtk::ListBoxRow *before);
 
 template <typename T>

@@ -41,6 +41,12 @@ namespace dune3d {
  */
 
 namespace {
+// the ready-made shapes: placed by X/Y distances from the workplane origin
+bool has_xy_position(const Document &doc, const UUID &body)
+{
+    return std::ranges::any_of(get_object_dimensions(doc, body), [](const auto &d) { return d.label == "X"; });
+}
+
 // friendlier names for the dimensions the ready-made shapes use
 struct DatumInfo {
     std::string label;
@@ -443,19 +449,17 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
     // hollowing out, like a cup or a box without its lid
     if (std::ranges::any_of(get_body_solids(doc, UUID()), [&body_uu](const auto &bs) { return bs.body == body_uu; })) {
         auto hollow = find_hollow(doc, body_uu);
-        auto box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 5);
+        // two rows: side by side they'd make the panel wider than the sidebar
         auto sp = Gtk::make_managed<SpinButtonDim>();
         sp->set_range(0, 1000);
         sp->set_increments(.5, 1);
         sp->set_hexpand(true);
         sp->set_value(hollow ? hollow->m_thickness : 0);
         sp->set_tooltip_text("Wall thickness; 0 for a solid object");
-        box->append(*sp);
         auto items = Gtk::StringList::create({"Open top", "Open bottom", "Closed"});
         auto dd = Gtk::make_managed<Gtk::DropDown>(items);
         dd->set_selected(static_cast<guint>(hollow ? hollow->m_open : GroupShell::Open::TOP));
         dd->set_tooltip_text("Which side stays open");
-        box->append(*dd);
         auto apply = [this, sp, dd, doc_uu, body_uu] {
             auto &d = m_core.get_idocument_info(doc_uu).get_document();
             const auto t = sp->get_value();
@@ -487,7 +491,8 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         };
         sp->signal_value_changed().connect(apply);
         dd->property_selected().signal_changed().connect(apply);
-        grid_attach_label_and_widget(*grid, "Hollow", *box, top).add_css_class("tnum");
+        grid_attach_label_and_widget(*grid, "Hollow", *sp, top).add_css_class("tnum");
+        grid_attach_label_and_widget(*grid, "Open side", *dd, top);
         if (hollow && !hollow->get_solid_model()) {
             auto status = Gtk::make_managed<Gtk::Label>("Can't hollow it out like this - try a thinner wall");
             status->add_css_class("dim-label");
@@ -616,7 +621,7 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
     }
 
     // a row of copies along X (objects with an X/Y position, i.e. the ready-made shapes)
-    if (std::ranges::any_of(get_object_dimensions(doc, body_uu), [](const auto &d) { return d.label == "X"; })) {
+    if (has_xy_position(doc, body_uu)) {
         heading("Copies in a row");
         auto count = Gtk::make_managed<Gtk::SpinButton>();
         count->set_range(2, 50);
@@ -678,6 +683,7 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
     }
 
     m_group_editor_box->append(*grid);
+    wheel_scrolls_past_spinbuttons(*grid);
     if (focus_label.size()) {
         for (auto ch = grid->get_first_child(); ch; ch = ch->get_next_sibling()) {
             auto la = dynamic_cast<Gtk::Label *>(ch);
@@ -828,6 +834,23 @@ void Editor::cut_with_hole(const UUID &doc_uu, const UUID &hole)
     if (!m_workspace_browser->select_body(doc_uu, last))
         show_object_editor(doc_uu, last);
     canvas_update_keep_selection();
+}
+
+/*
+ * On the face of a ready-made shape (one with an X/Y position), a click picks
+ * the object unless the pointer is right on a line: otherwise the hover search,
+ * which snaps to lines and points up to 10 px away, makes small objects like a
+ * 6 mm hole almost impossible to pick or drag.
+ */
+bool Editor::ready_made_object_under_cursor()
+{
+    if (!m_core.has_documents() || !get_canvas().is_face_under_cursor())
+        return false;
+    const auto [origin, dir] = get_canvas().get_cursor_ray();
+    auto &doc = m_core.get_current_document();
+    const auto body = pick_body(doc, m_core.get_current_group(), origin, dir,
+                                [this](const UUID &b) { return body_is_shown(b); });
+    return body && has_xy_position(doc, *body);
 }
 
 void Editor::select_object_under_cursor()
