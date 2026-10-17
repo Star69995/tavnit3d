@@ -31,7 +31,7 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 
 - Preferred: `tools/ui.sh script.txt` - in-app UI automation (also commands for
   stickers, import, export-gltf, save, recipe, describe, find, handles,
-  groups, render-window, zoom - see the top of editor_automation.cpp)
+  groups, render-window, zoom, close - see the top of editor_automation.cpp)
   (`src/editor/editor_automation.cpp`, enabled by `DUNE3D_AUTOMATION`):
   actions by catalog name, pointer on the 3D view, buttons/fields by label,
   `shot PATH` renders the window to PNG. Never touches the real mouse or
@@ -101,6 +101,15 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 - Combine (object panel, `src/document/combine.*`): solid model operation
   group in a new body after everything; the sources get hidden, not removed.
 - Tool palette: `Editor::create_action_bar_button` / `add_action_bar_section`.
+  A "Hide"/"Tools" button on top folds the whole palette away
+  (`Dune3DAppWindow` constructor, remembered in `UserConfig::palette_folded`).
+- Smooth dragging: `Document::update_pending(..., interactive=true)` (used by
+  `Core::solve_current`, object and handle drags) skips solid models whose last
+  build (`Group::m_solid_model_ms`) would blow a 40 ms budget, and everything
+  after; waiting ones after a fresh one in the same body get
+  `m_solid_model_deferred` and the renderer skips them, so the object shows its
+  live outer shape. `Editor::schedule_deferred_solid_models` builds them when
+  the pointer rests 150 ms; a commit/rebuild builds them anyway.
 - Grid on the active workplane (XY when none): `Renderer::visit(const EntityWorkplane &)`;
   spacing from `get_grid_step()` in `src/util/util.cpp`, user choice stored per
   workspace view (`WorkspaceView::m_grid_step`, View menu > Grid size), shown
