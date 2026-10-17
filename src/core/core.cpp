@@ -355,7 +355,7 @@ void Core::solve_current(const DraggedList &dragged)
     if (!tool_is_active())
         throw std::runtime_error("to be called in tools only");
     auto &doc = get_current_document();
-    doc.update_pending(get_current_group(), dragged);
+    doc.update_pending(get_current_group(), dragged, true);
 }
 
 Core::ToolStateSetter::ToolStateSetter(ToolState &s, ToolState target) : m_state(s)

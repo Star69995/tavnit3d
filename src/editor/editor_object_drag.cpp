@@ -86,8 +86,35 @@ void Editor::update_object_drag()
     cy.m_distance = pos.y;
     drag.moved = true;
     doc.set_group_solve_pending(drag.group);
-    doc.update_pending();
+    doc.update_pending({}, {}, true);
     canvas_update_keep_selection();
+    schedule_deferred_solid_models();
+}
+
+void Editor::schedule_deferred_solid_models()
+{
+    m_deferred_solid_models_connection.disconnect();
+    if (!m_core.has_documents() || !m_core.get_current_document().has_deferred_solid_models())
+        return;
+    m_deferred_solid_models_connection = Glib::signal_timeout().connect(
+            [this] {
+                if (!m_core.has_documents())
+                    return false;
+                auto &doc = m_core.get_current_document();
+                if (!doc.has_deferred_solid_models())
+                    return false;
+                // a tool only updates up to the current group, like Core::solve_current
+                if (m_core.tool_is_active()) {
+                    doc.update_pending(m_core.get_current_group());
+                    canvas_update_from_tool();
+                }
+                else {
+                    doc.update_pending();
+                    canvas_update_keep_selection();
+                }
+                return false;
+            },
+            150);
 }
 
 void Editor::end_object_drag()

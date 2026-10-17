@@ -9,6 +9,7 @@
 #include "document/combine.hpp"
 #include "document/duplicate.hpp"
 #include "document/round_edges.hpp"
+#include "document/recipe.hpp"
 #include "document/group/group_fillet.hpp"
 #include <filesystem>
 #include <fstream>
@@ -456,6 +457,41 @@ static void test_combine()
     }
 }
 
+// while dragging, slow steps (hollow, rounded edges) wait and aren't shown; a normal update builds them
+static void test_deferred_solid_models()
+{
+    std::cout << "deferred solid models" << std::endl;
+    Document doc;
+    build_recipe(doc, doc.get_groups_sorted().back()->m_uuid,
+                 json::parse(R"({"objects": [{"id": "bowl", "name": "Bowl", "shape": "revolve", "smooth": true,
+        "profile": [[0, 0], [22, 0], [30, 6], [38, 18], [42, 30], [0, 30]],
+        "hollow": {"thickness": 2.5, "open": "top"}, "round_edges": 1}]})"));
+    doc.update_pending();
+    const Group *sketch = nullptr, *hollow = nullptr, *rounded = nullptr;
+    for (auto gr : doc.get_groups_sorted()) {
+        if (gr->get_type() == Group::Type::SKETCH)
+            sketch = gr;
+        if (gr->get_type() == Group::Type::SHELL)
+            hollow = gr;
+        if (gr->get_type() == Group::Type::FILLET)
+            rounded = gr;
+    }
+    check(sketch && hollow && rounded, "bowl has a sketch, hollow and rounding");
+    if (!(sketch && hollow && rounded))
+        return;
+    const auto full_volume = body_volume(doc, *rounded);
+    // as if the last builds took long
+    const_cast<Group *>(hollow)->m_solid_model_ms = 1000;
+    doc.set_group_solve_pending(sketch->m_uuid);
+    doc.update_pending({}, {}, true);
+    check(doc.has_deferred_solid_models(), "interactive update leaves the hollow for later");
+    check(hollow->m_solid_model_deferred && rounded->m_solid_model_deferred, "waiting steps aren't shown");
+    doc.update_pending();
+    check(!doc.has_deferred_solid_models() && !hollow->m_solid_model_deferred && !rounded->m_solid_model_deferred,
+          "a normal update builds them");
+    check(std::abs(body_volume(doc, *rounded) - full_volume) < 1e-6 * full_volume, "and gets the same bowl");
+}
+
 int main()
 {
     constexpr double pi = std::numbers::pi;
@@ -471,6 +507,7 @@ int main()
     test_duplicate();
     test_save_load();
     test_round_edges();
+    test_deferred_solid_models();
     std::cout << (failures ? "FAILED" : "PASSED") << " (" << failures << " failures)" << std::endl;
     return failures ? 1 : 0;
 }

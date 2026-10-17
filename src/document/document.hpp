@@ -188,7 +188,14 @@ public:
     UUID get_group_rel(const UUID &group, int delta) const;
 
     void erase_invalid();
-    void update_pending(const UUID &last_group = UUID(), const std::vector<EntityAndPoint> &dragged = {});
+    // interactive (while dragging): solid models that took long to build last time are left for a later
+    // update_pending without it, so the drag stays smooth; has_deferred_solid_models() says if any are
+    void update_pending(const UUID &last_group = UUID(), const std::vector<EntityAndPoint> &dragged = {},
+                        bool interactive = false);
+    bool has_deferred_solid_models() const
+    {
+        return m_solid_models_deferred;
+    }
 
     void set_group_generate_pending(const UUID &group);
     void set_group_solve_pending(const UUID &group);
@@ -226,6 +233,7 @@ private:
     void generate_group(Group &group);
     void solve_group(Group &group, const std::vector<EntityAndPoint> &dragged);
     void update_solid_model(Group &group);
+    bool m_solid_models_deferred = false;
 
     void update_group_if_less(UUID &uu, const UUID &new_group);
 

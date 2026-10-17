@@ -1692,6 +1692,7 @@ void Editor::handle_cursor_move()
         args.type = ToolEventType::MOVE;
         ToolResponse r = m_core.tool_update(args);
         tool_process(r);
+        schedule_deferred_solid_models();
     }
     else {
         if (m_object_drag) {

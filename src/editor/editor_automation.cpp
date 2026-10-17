@@ -54,6 +54,7 @@ namespace dune3d {
  *   import PATH              import objects from a model file
  *   export-gltf PATH         export the shown objects as glTF, from the current view
  *   update-check             check for updates as from the menu (feed: DUNE3D_UPDATE_FEED)
+ *   close TITLE              close the window with this title as with its X button
  *   windows                  print the visible windows and their texts (dialogs aren't in shots)
  *   quit                     close the app
  */
@@ -426,6 +427,13 @@ void Editor::run_automation(const std::filesystem::path &script)
                     collect(*win, texts);
                     std::cerr << "automation: window '" << win->get_title() << "' " << G_OBJECT_TYPE_NAME(win->gobj())
                               << texts.substr(0, 600) << std::endl;
+                }
+            }
+            else if (cmd == "close") {
+                // close a window as with its X button
+                for (auto w : Gtk::Window::list_toplevels()) {
+                    if (w->get_visible() && w->get_title().raw() == rest)
+                        w->close();
                 }
             }
             else if (cmd == "quit") {

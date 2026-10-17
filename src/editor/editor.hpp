@@ -142,6 +142,10 @@ private:
     std::optional<ObjectDrag> m_object_drag;
     bool begin_object_drag(const UUID &doc_uu, const UUID &body_uu);
     void update_object_drag();
+    // while dragging, slow solid models wait (Document::update_pending interactive);
+    // they're built once the pointer rests for a moment
+    void schedule_deferred_solid_models();
+    sigc::connection m_deferred_solid_models_connection;
     void end_object_drag();
     void close_object_editor();
 

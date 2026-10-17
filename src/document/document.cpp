@@ -1,4 +1,5 @@
 #include "document.hpp"
+#include <chrono>
 #include "nlohmann/json.hpp"
 #include "entity/entity.hpp"
 #include "constraint/constraint.hpp"
@@ -214,7 +215,8 @@ std::vector<Document::BodyGroups> Document::get_groups_by_body() const
     return r;
 }
 
-void Document::update_pending(const UUID &last_group_to_update_i, const std::vector<EntityAndPoint> &dragged)
+void Document::update_pending(const UUID &last_group_to_update_i, const std::vector<EntityAndPoint> &dragged,
+                              bool interactive)
 {
     try {
         auto groups_sorted = get_groups_sorted();
@@ -255,14 +257,26 @@ void Document::update_pending(const UUID &last_group_to_update_i, const std::vec
             m_first_group_generate = UUID();
 
 
+        // while dragging, a solid model that took long to build last time (a shell or rounded edges, say)
+        // and everything after it waits; those that come after a fresh one in the same body aren't shown
+        // meanwhile, so the object shows its fresh shape rather than the old one
+        double budget_ms = interactive ? 40 : std::numeric_limits<double>::infinity();
+        UUID first_deferred;
+        std::set<UUID> bodies_rebuilt;
+        UUID body; // the group starting the body of the group at hand
         last_group = nullptr;
         for (auto group : groups_sorted) {
+            if (group->m_body)
+                body = group->m_uuid;
             if (last_group && last_group->m_uuid == last_group_to_update) {
                 // we've seen all groups we needed to see, update to the rest
                 if (m_first_group_solve)
                     m_first_group_solve = group->m_uuid;
-                if (m_first_group_update_solid_model)
+                if (first_deferred)
+                    m_first_group_update_solid_model = first_deferred;
+                else if (m_first_group_update_solid_model)
                     m_first_group_update_solid_model = group->m_uuid;
+                m_solid_models_deferred = static_cast<bool>(first_deferred);
                 return;
             }
             const auto index = group->get_index();
@@ -270,14 +284,29 @@ void Document::update_pending(const UUID &last_group_to_update_i, const std::vec
                 solve_group(*group, dragged);
             }
             if (index >= first_update_solid_model_index) {
-                update_solid_model(*group);
+                if (!first_deferred && group->m_solid_model_ms <= budget_ms) {
+                    const auto t0 = std::chrono::steady_clock::now();
+                    update_solid_model(*group);
+                    group->m_solid_model_ms =
+                            std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+                    group->m_solid_model_deferred = false;
+                    budget_ms -= group->m_solid_model_ms;
+                    if (dynamic_cast<const IGroupSolidModel *>(group))
+                        bodies_rebuilt.insert(body);
+                }
+                else {
+                    if (!first_deferred)
+                        first_deferred = group->m_uuid;
+                    group->m_solid_model_deferred = bodies_rebuilt.contains(body);
+                }
             }
 
             last_group = group;
         }
         // we've seen all groups, reset all pendings
         m_first_group_solve = UUID();
-        m_first_group_update_solid_model = UUID();
+        m_first_group_update_solid_model = first_deferred;
+        m_solid_models_deferred = static_cast<bool>(first_deferred);
     }
     CATCH_LOG(Logger::Level::CRITICAL, "error updating document", Logger::Domain::DOCUMENT)
 }

@@ -80,6 +80,10 @@ public:
     int m_dof = -1;
     SolveResult m_solve_result = SolveResult::OKAY;
     std::optional<std::vector<UUID>> m_bad_constraints;
+    // how long the solid model took to build the last time, in ms (not saved)
+    double m_solid_model_ms = 0;
+    // left for later while dragging and older than what comes before it in the body, so not shown
+    bool m_solid_model_deferred = false;
 
     std::set<UUID> find_redundant_constraints(Document &doc);
 

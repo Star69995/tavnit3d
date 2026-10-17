@@ -270,8 +270,12 @@ void Editor::update_handle_drag()
     char buf[64];
     snprintf(buf, sizeof(buf), "%s: %.1f mm", drag.handle.label.c_str(), value);
     m_win.set_key_hint_label_text(buf);
-    doc.update_pending();
+    // a size waits for slow steps after it; a wall or rounding is what the drag is about, so it's built
+    const bool interactive =
+            drag.handle.kind != ObjectHandle::Kind::WALL && drag.handle.kind != ObjectHandle::Kind::ROUNDING;
+    doc.update_pending({}, {}, interactive);
     canvas_update_keep_selection();
+    schedule_deferred_solid_models();
 }
 
 void Editor::end_handle_drag()

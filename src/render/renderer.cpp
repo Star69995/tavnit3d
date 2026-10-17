@@ -134,7 +134,7 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
             if (!group_is_visible(group->m_uuid))
                 continue;
             if (auto gr = dynamic_cast<const IGroupSolidModel *>(group)) {
-                if (gr->get_solid_model()) {
+                if (gr->get_solid_model() && !group->m_solid_model_deferred) {
                     last_solid_model = gr->get_solid_model();
                     last_solid_model_group = group;
                 }
