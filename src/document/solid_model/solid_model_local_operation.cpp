@@ -90,6 +90,7 @@ template <typename TGroup> std::shared_ptr<const SolidModel> create_local_operat
         }
 
         mod->m_shape_acc = mf.Shape();
+        mod->inherit_looks(*last_solid_model, mf);
     }
     catch (const Standard_Failure &e) {
         std::ostringstream os;

@@ -12,6 +12,11 @@
 #include <BRep_Tool.hxx>
 
 #include <TopExp_Explorer.hxx>
+#include <TopExp.hxx>
+#include <TopTools_ShapeMapHasher.hxx>
+#include <NCollection_IndexedDataMap.hxx>
+#include <BRepGProp.hxx>
+#include <GProp_GProps.hxx>
 #include <TopoDS.hxx>
 #include <TopoDS_Compound.hxx>
 #include <TopoDS_Face.hxx>
@@ -453,6 +458,57 @@ void SolidModelOcc::add_to_step_exporter(STEPExporter &exporter, const char *nam
             face_colors.emplace_back(ex.Current(), it->second);
     }
     exporter.add_model(name, m_shape_acc, m_color, face_colors);
+}
+
+void SolidModelOcc::inherit_looks(const SolidModelOcc &from, BRepBuilderAPI_MakeShape &algo)
+{
+    if (from.m_face_colors.empty() && from.m_face_materials.empty())
+        return;
+    auto copy_look = [&](const TopoDS_TShape *src, const TopoDS_Shape &to) {
+        const auto *dst = to.TShape().get();
+        if (auto it = from.m_face_colors.find(src); it != from.m_face_colors.end())
+            m_face_colors.emplace(dst, it->second);
+        if (auto it = from.m_face_materials.find(src); it != from.m_face_materials.end())
+            m_face_materials.emplace(dst, it->second);
+    };
+    auto has_look = [&](const TopoDS_Shape &face) {
+        return from.m_face_colors.contains(face.TShape().get()) || from.m_face_materials.contains(face.TShape().get());
+    };
+    for (TopExp_Explorer ex(from.m_shape_acc, TopAbs_FACE); ex.More(); ex.Next()) {
+        const auto &face = ex.Current();
+        if (!has_look(face) || algo.IsDeleted(face))
+            continue;
+        const auto &modified = algo.Modified(face);
+        const auto &generated = algo.Generated(face);
+        // the face itself may stay in the result as it is, next to the faces made from it
+        copy_look(face.TShape().get(), face);
+        for (const auto &f : modified)
+            copy_look(face.TShape().get(), f);
+        for (const auto &f : generated)
+            copy_look(face.TShape().get(), f);
+    }
+
+    NCollection_IndexedDataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher> edge_faces;
+    TopExp::MapShapesAndAncestors(from.m_shape_acc, TopAbs_EDGE, TopAbs_FACE, edge_faces);
+    for (int i = 1; i <= edge_faces.Extent(); i++) {
+        const auto &generated = algo.Generated(edge_faces.FindKey(i));
+        if (generated.IsEmpty())
+            continue;
+        const TopoDS_Shape *largest = nullptr;
+        double largest_area = -1;
+        for (const auto &face : edge_faces.FindFromIndex(i)) {
+            GProp_GProps props;
+            BRepGProp::SurfaceProperties(face, props);
+            if (props.Mass() > largest_area) {
+                largest_area = props.Mass();
+                largest = &face;
+            }
+        }
+        if (largest && has_look(*largest)) {
+            for (const auto &f : generated)
+                copy_look(largest->TShape().get(), f);
+        }
+    }
 }
 
 void SolidModelOcc::find_edges()

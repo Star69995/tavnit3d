@@ -31,6 +31,7 @@
 #include "document/constraint/constraint_diameter_radius.hpp"
 #include "document/entity/entity.hpp"
 #include <GProp_GProps.hxx>
+#include <array>
 #include <cmath>
 #include <cstring>
 #include <iostream>
@@ -590,6 +591,63 @@ static void test_combine_looks()
           "STEP has the red colour of the joined box");
 }
 
+// rounding and hollowing a joined object keep the look of its parts
+static void test_looks_survive_rounding_and_hollow()
+{
+    std::cout << "looks after rounding and hollowing" << std::endl;
+    auto count = [](const Document &doc, const UUID &body_uu, const char *what) {
+        // the last solid of the body
+        const SolidModel *last = nullptr;
+        for (auto gr : doc.get_groups_sorted())
+            if (gr->find_body(doc).group.m_uuid == body_uu)
+                if (auto sm = dynamic_cast<const IGroupSolidModel *>(gr); sm && sm->get_solid_model())
+                    last = sm->get_solid_model();
+        int red = 0, glossy = 0, silver = 0;
+        if (last) {
+            for (const auto &face : last->m_faces) {
+                if (face.color.r > .9 && face.color.g < .1)
+                    red++;
+                else
+                    silver++;
+                if (face.material == static_cast<unsigned char>(Body::Material::GLOSSY))
+                    glossy++;
+            }
+        }
+        std::cout << "  " << what << ": " << red << " red, " << glossy << " glossy, " << silver << " other" << std::endl;
+        return std::array<int, 3>{red, glossy, silver};
+    };
+    json recipe = {{"objects",
+                    {{{"id", "a"}, {"shape", "box"}, {"width", 40}, {"depth", 40}, {"height", 20}, {"color", "#c0c0c0"},
+                      {"material", "metal"}},
+                     {{"id", "b"}, {"shape", "box"}, {"width", 20}, {"depth", 20}, {"height", 10},
+                      {"position", {0, 0, 20}}, {"color", "#ff0000"}, {"material", "glossy"}}}},
+                   {"combine", {{{"op", "join"}, {"target", "a"}, {"tool", "b"}}}}};
+    {
+        Document doc;
+        auto result = build_recipe(doc, doc.get_groups_sorted().back()->m_uuid, recipe);
+        doc.update_pending();
+        const auto body = result.bodies.back();
+        const auto before = count(doc, body, "joined");
+        check(before[0] == 5, "5 red faces to begin with");
+        check(set_round_edges(doc, body, 1), "rounded");
+        doc.update_pending();
+        const auto after = count(doc, body, "rounded");
+        check(after[0] >= before[0] && after[0] == after[1], "the red part is still red and glossy after rounding");
+        check(after[2] > before[2], "and the rounding of the silver part is silver");
+    }
+    {
+        Document doc;
+        auto result = build_recipe(doc, doc.get_groups_sorted().back()->m_uuid, recipe);
+        doc.update_pending();
+        const auto body = result.bodies.back();
+        check(set_hollow(doc, body, 2, GroupShell::Open::BOTTOM), "hollowed");
+        doc.update_pending();
+        const auto after = count(doc, body, "hollow");
+        check(after[0] == after[1], "the red faces are still glossy when hollow");
+        check(after[0] >= 10, "and the red part is red inside too (" + std::to_string(after[0]) + " red faces)");
+    }
+}
+
 // a joined object made by a recipe, like a table, changed through its parts
 static void test_object_parts()
 {
@@ -741,6 +799,7 @@ int main()
     test_deferred_solid_models();
     test_combine_order();
     test_combine_looks();
+    test_looks_survive_rounding_and_hollow();
     test_object_parts();
     test_limits();
     std::cout << (failures ? "FAILED" : "PASSED") << " (" << failures << " failures)" << std::endl;
