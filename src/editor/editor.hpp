@@ -5,6 +5,7 @@
 #include "document/primitives.hpp"
 #include "document/light.hpp"
 #include "document/group/group_shell.hpp"
+#include "document/object_parts.hpp"
 #include "document/group/igroup_solid_model.hpp"
 #include "action/action.hpp"
 #include "preferences/preferences.hpp"
@@ -138,6 +139,8 @@ private:
         double x0, y0;   // their values when the drag began
         glm::dvec2 start; // cursor in workplane coordinates then
         bool moved = false;
+        std::vector<PartPosition> parts; // a joined object: all its parts move instead
+        glm::dvec2 last = {0, 0};          // how far they've moved
     };
     std::optional<ObjectDrag> m_object_drag;
     bool begin_object_drag(const UUID &doc_uu, const UUID &body_uu);
@@ -171,6 +174,10 @@ private:
         double last_value = -1;
         GroupShell::Open open = GroupShell::Open::TOP;
         bool moved = false;
+        // a part of a joined object: it and the parts like it change, the others follow
+        std::vector<UUID> parts;
+        std::optional<PartsFollow> follow;
+        size_t dim_index = 0;
     };
     std::optional<HandleDrag> m_handle_drag;
     std::optional<ObjectHandle> get_handle_under_cursor();
@@ -226,6 +233,15 @@ private:
     bool m_object_editor_keep = false; // skip the next refresh, the change came from the panel
     UUID m_object_editor_doc;
     UUID m_object_editor_body;
+    // parts of joined objects (editor_object_parts.cpp)
+    UUID m_object_editor_part;  // its handles are shown, not the whole object's
+    std::set<UUID> m_split_parts; // parts edited one by one, not with the ones like them
+    void append_object_parts(Gtk::Grid &grid, int &top, const UUID &doc_uu, const UUID &body_uu);
+    std::vector<UUID> get_part_set(const Document &doc, const UUID &object, const UUID &part) const;
+    bool can_move_object(const Document &doc, const UUID &body) const;
+    void finish_parts_change(const UUID &doc_uu, const std::string &what);
+    sigc::connection m_parts_refresh_connection;
+    static Gtk::SpinButton &make_dimension_spin(const class IConstraintDatum &datum, const ObjectDimension &dim);
 
 public:
     void run_automation(const std::filesystem::path &script);

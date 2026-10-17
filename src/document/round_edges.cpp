@@ -1,5 +1,6 @@
 #include "round_edges.hpp"
 #include "document/document.hpp"
+#include "document/combine.hpp"
 #include "document/group/group_fillet.hpp"
 #include "document/solid_model/solid_model_occ.hpp"
 #include <BRep_Tool.hxx>
@@ -70,6 +71,7 @@ GroupFillet *set_round_edges(Document &doc, const UUID &body, double radius)
         if (existing) {
             ItemsToDelete items;
             items.groups.insert(existing->m_uuid);
+            repoint_combinations(doc, existing->m_uuid, doc.get_group_rel(existing->m_uuid, -1));
             doc.set_group_generate_pending(doc.get_group_rel(existing->m_uuid, -1));
             items.append(doc.get_additional_items_to_delete(items));
             doc.delete_items(items);
@@ -97,6 +99,7 @@ GroupFillet *set_round_edges(Document &doc, const UUID &body, double radius)
     fillet.m_edges = std::move(edges);
     fillet.m_all_edges = true; // found again whenever the shape changes, e.g. when hollowed
     doc.set_group_generate_pending(fillet.m_uuid);
+    repoint_combinations(doc, last.m_uuid, fillet.m_uuid);
     return &fillet;
 }
 

@@ -52,4 +52,21 @@ Group &add_combination(Document &doc, const UUID &body_a, const UUID &body_b, IG
     return group;
 }
 
+void repoint_combinations(Document &doc, const UUID &from, const UUID &to)
+{
+    if (from == to)
+        return;
+    for (auto gr : doc.get_groups_sorted()) {
+        auto op = dynamic_cast<const GroupSolidModelOperation *>(gr);
+        if (!op || (op->m_source_group_argument != from && op->m_source_group_tool != from))
+            continue;
+        auto &g = doc.get_group<GroupSolidModelOperation>(gr->m_uuid);
+        if (g.m_source_group_argument == from)
+            g.m_source_group_argument = to;
+        if (g.m_source_group_tool == from)
+            g.m_source_group_tool = to;
+        doc.set_group_generate_pending(g.m_uuid);
+    }
+}
+
 } // namespace dune3d

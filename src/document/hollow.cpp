@@ -3,6 +3,7 @@
 #include "document/solid_model/solid_model.hpp"
 #include "document/round_edges.hpp"
 #include "document/group/group_fillet.hpp"
+#include "combine.hpp"
 
 namespace dune3d {
 
@@ -39,6 +40,8 @@ GroupShell *set_hollow(Document &doc, const UUID &body, double thickness, GroupS
         if (existing) {
             ItemsToDelete items;
             items.groups.insert(existing->m_uuid);
+            // with nothing after it in the body, combinations may be using it
+            repoint_combinations(doc, existing->m_uuid, doc.get_group_rel(existing->m_uuid, -1));
             doc.set_group_generate_pending(doc.get_group_rel(existing->m_uuid, -1));
             items.append(doc.get_additional_items_to_delete(items));
             doc.delete_items(items);
@@ -62,6 +65,7 @@ GroupShell *set_hollow(Document &doc, const UUID &body, double thickness, GroupS
     shell.m_thickness = thickness;
     shell.m_open = open;
     doc.set_group_generate_pending(shell.m_uuid);
+    repoint_combinations(doc, last.m_uuid, shell.m_uuid); // when not rounded, it's the new last step
     return &shell;
 }
 

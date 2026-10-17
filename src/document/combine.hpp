@@ -12,4 +12,10 @@ class Group;
 // hide them. The caller is responsible for rebuilding.
 Group &add_combination(Document &doc, const UUID &body_a, const UUID &body_b, IGroupSolidModel::Operation op);
 
+// A combination takes a source body's solid from a given group, its last one when combined.
+// When a step is added to or removed from the end of that body (rounding, hollowing), the
+// combinations using group `from` are pointed at `to` instead, so they see the change
+// (and deleting the step doesn't delete them).
+void repoint_combinations(Document &doc, const UUID &from, const UUID &to);
+
 } // namespace dune3d

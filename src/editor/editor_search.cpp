@@ -27,7 +27,10 @@ void Editor::focus_object_panel_field(const std::string &label)
         if (la && la->get_text().raw() == label) {
             int col, row, w, h;
             gtk_grid_query_child(grid->gobj(), GTK_WIDGET(la->gobj()), &col, &row, &w, &h);
-            if (auto field = grid->get_child_at(col + 1, row))
+            auto field = grid->get_child_at(col + 1, row);
+            if (field == la) // a heading across the panel: what's under it
+                field = grid->get_child_at(0, row + 1);
+            if (field)
                 field->child_focus(Gtk::DirectionType::TAB_FORWARD);
             return;
         }
@@ -122,6 +125,8 @@ std::vector<SearchItem> Editor::get_search_items()
     items.push_back({"Join, subtract, intersect", in_panel("Combine"), "boolean איחוד חיסור חיתוך", field("With")});
     items.push_back({"Size and position", in_panel("Dimensions") + " - or drag the handles on the object",
                      "dimensions width height diameter move מידות גודל גובה רוחב מיקום", field("Width")});
+    items.push_back({"Change a part of a joined object", in_panel("Parts") + " - alike parts change together",
+                     "parts legs table component חלקים רגליים שולחן חלק", field("Parts")});
     items.push_back({"Rename an object", in_panel("Name"), "name שם", field("Name")});
     items.push_back({"Hide or show an object", in_panel("Visible") + " - or its tick in the tree on the left",
                      "visible hide הסתר הצג", field("Visible")});

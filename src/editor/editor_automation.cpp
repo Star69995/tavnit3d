@@ -54,6 +54,7 @@ namespace dune3d {
  *   import PATH              import objects from a model file
  *   export-gltf PATH         export the shown objects as glTF, from the current view
  *   update-check             check for updates as from the menu (feed: DUNE3D_UPDATE_FEED)
+ *   panel-scroll F           scroll the side panel to F (0 top ... 1 bottom)
  *   close TITLE              close the window with this title as with its X button
  *   windows                  print the visible windows and their texts (dialogs aren't in shots)
  *   quit                     close the app
@@ -158,6 +159,9 @@ void Editor::run_automation(const std::filesystem::path &script)
                             [this, p] {
                                 handle_click(1, 1);
                                 get_canvas().inject_click(p.x, p.y);
+                                // the button's let go of, as a real click's release does
+                                end_object_drag();
+                                end_handle_drag();
                                 if (m_core.tool_is_active()) {
                                     ToolArgs args;
                                     args.type = ToolEventType::ACTION;
@@ -427,6 +431,18 @@ void Editor::run_automation(const std::filesystem::path &script)
                     collect(*win, texts);
                     std::cerr << "automation: window '" << win->get_title() << "' " << G_OBJECT_TYPE_NAME(win->gobj())
                               << texts.substr(0, 600) << std::endl;
+                }
+            }
+            else if (cmd == "panel-scroll") {
+                // scroll the side panel (object panel, group editor) to a fraction of its length
+                double f = 1;
+                std::istringstream(rest) >> f;
+                for (Gtk::Widget *w = m_group_editor_box; w; w = w->get_parent()) {
+                    if (auto sc = dynamic_cast<Gtk::ScrolledWindow *>(w)) {
+                        auto adj = sc->get_vadjustment();
+                        adj->set_value(adj->get_lower() + f * (adj->get_upper() - adj->get_page_size() - adj->get_lower()));
+                        break;
+                    }
                 }
             }
             else if (cmd == "close") {

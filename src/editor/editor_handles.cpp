@@ -1,5 +1,5 @@
 #include "editor.hpp"
-#include "object_dimensions.hpp"
+#include "document/object_dimensions.hpp"
 #include "dune3d_appwindow.hpp"
 #include "workspace_browser.hpp"
 #include "canvas/canvas.hpp"
@@ -14,6 +14,7 @@
 #include "document/constraint/iconstraint_datum.hpp"
 #include "document/solid_model/solid_model_occ.hpp"
 #include <algorithm>
+#include <ranges>
 #include <limits>
 
 namespace dune3d {
@@ -37,7 +38,10 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
     auto &doc = m_core.get_current_idocument_info().get_document();
     if (!doc.get_groups().contains(m_object_editor_body))
         return handles;
-    const auto dims = get_object_dimensions(doc, m_object_editor_body);
+    // a part of a joined object, when one is picked in the panel
+    const auto body = m_object_editor_part && doc.get_groups().contains(m_object_editor_part) ? m_object_editor_part
+                                                                                              : m_object_editor_body;
+    const auto dims = get_object_dimensions(doc, body);
     auto find = [&dims](const char *label) -> const ObjectDimension * {
         for (const auto &d : dims) {
             if (d.label == label)
@@ -47,7 +51,7 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
     };
 
     // the frame the object stands in: its sketch's workplane
-    const auto &body_group = doc.get_group(m_object_editor_body);
+    const auto &body_group = doc.get_group(body);
     auto wrkpl = doc.get_entity_ptr<EntityWorkplane>(body_group.m_active_wrkpl);
     if (!wrkpl)
         return handles;
@@ -58,7 +62,7 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
 
     const SolidModelOcc *solid = nullptr;
     for (const auto &bs : get_body_solids(doc, m_core.get_current_group(),
-                                          [this](const UUID &b) { return b == m_object_editor_body; }))
+                                          [&body](const UUID &b) { return b == body; }))
         solid = bs.solid;
     if (!solid)
         return handles;
@@ -139,7 +143,7 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
         // dragged inwards, the walls get thicker
         ObjectHandle h;
         h.kind = ObjectHandle::Kind::WALL;
-        auto shell = find_hollow(doc, m_object_editor_body);
+        auto shell = find_hollow(doc, body);
         const double t = shell ? shell->m_thickness : 0;
         h.face = edge - dx * t;
         h.dir = -dx;
@@ -198,20 +202,33 @@ bool Editor::begin_handle_drag()
     auto &doc = m_core.get_current_document();
     HandleDrag drag;
     drag.handle = *h;
+    const bool part = m_object_editor_part && doc.get_groups().contains(m_object_editor_part);
+    const auto body = part ? m_object_editor_part : m_object_editor_body;
+    // a part changes with the ones like it
+    drag.parts = part ? get_part_set(doc, m_object_editor_body, body) : std::vector<UUID>{body};
     switch (h->kind) {
     case ObjectHandle::Kind::DIMENSION: {
         auto datum = dynamic_cast<IConstraintDatum *>(doc.m_constraints.at(h->constraint).get());
         if (!datum)
             return false;
         drag.start_value = datum->get_datum() * h->scale;
+        if (part) {
+            drag.follow = begin_parts_follow(doc, get_object_parts(doc, m_object_editor_body), drag.parts);
+            const auto &dims = drag.follow->dims;
+            auto it = std::ranges::find_if(dims, [&h](const auto &d) { return d.constraint == h->constraint; });
+            if (it == dims.end())
+                drag.follow.reset();
+            else
+                drag.dim_index = it - dims.begin();
+        }
     } break;
     case ObjectHandle::Kind::WALL: {
-        auto shell = find_hollow(doc, m_object_editor_body);
+        auto shell = find_hollow(doc, body);
         drag.start_value = shell ? shell->m_thickness : 0;
         drag.open = shell ? shell->m_open : GroupShell::Open::TOP;
     } break;
     case ObjectHandle::Kind::ROUNDING: {
-        auto fillet = find_round_edges(doc, m_object_editor_body);
+        auto fillet = find_round_edges(doc, body);
         drag.start_value = fillet ? fillet->m_radius : 0;
     } break;
     }
@@ -244,23 +261,30 @@ void Editor::update_handle_drag()
         value = std::clamp(value, lo * drag.handle.scale, hi * drag.handle.scale);
         if (value / drag.handle.scale == datum->get_datum())
             return;
-        datum->set_datum(value / drag.handle.scale);
-        doc.set_group_solve_pending(drag.handle.group);
+        if (drag.follow) {
+            set_parts_dimension(doc, *drag.follow, drag.dim_index, value);
+        }
+        else {
+            datum->set_datum(value / drag.handle.scale);
+            doc.set_group_solve_pending(drag.handle.group);
+        }
     }
     else {
         // tenths of a millimetre; back to nothing at the start
         value = std::max(0., std::round(value * 10) / 10);
         if (drag.handle.kind == ObjectHandle::Kind::ROUNDING) {
             // two roundings meet on a wall's rim: each can take a bit less than half of it
-            if (auto shell = find_hollow(doc, m_object_editor_body))
+            if (auto shell = find_hollow(doc, drag.parts.front()))
                 value = std::min(value, std::floor(shell->m_thickness * 4.5) / 10);
         }
         if (value == drag.last_value)
             return;
-        if (drag.handle.kind == ObjectHandle::Kind::WALL)
-            set_hollow(doc, m_object_editor_body, value, drag.open);
-        else
-            set_round_edges(doc, m_object_editor_body, value);
+        for (const auto &p : drag.parts) {
+            if (drag.handle.kind == ObjectHandle::Kind::WALL)
+                set_hollow(doc, p, value, drag.open);
+            else
+                set_round_edges(doc, p, value);
+        }
         // new steps show only once the view goes up to them
         get_current_document_view().m_current_group = doc.get_groups_sorted().back()->m_uuid;
         m_core.set_current_group(doc.get_groups_sorted().back()->m_uuid);

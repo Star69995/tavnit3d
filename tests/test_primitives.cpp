@@ -10,6 +10,9 @@
 #include "document/duplicate.hpp"
 #include "document/round_edges.hpp"
 #include "document/recipe.hpp"
+#include "document/object_parts.hpp"
+#include "document/object_dimensions.hpp"
+#include "document/constraint/iconstraint_datum.hpp"
 #include "document/group/group_fillet.hpp"
 #include <filesystem>
 #include <fstream>
@@ -492,6 +495,102 @@ static void test_deferred_solid_models()
     check(std::abs(body_volume(doc, *rounded) - full_volume) < 1e-6 * full_volume, "and gets the same bowl");
 }
 
+// a joined object made by a recipe, like a table, changed through its parts
+static void test_object_parts()
+{
+    std::cout << "object parts" << std::endl;
+    Document doc;
+    auto leg = [](int i, double x, double y) {
+        return json{{"id", "leg" + std::to_string(i)}, {"name", "Leg " + std::to_string(i)}, {"shape", "cylinder"},
+                    {"diameter", 6}, {"height", 70}, {"position", {x, y, 0}}};
+    };
+    json recipe = {{"objects",
+                    {{{"id", "top"}, {"name", "Top"}, {"shape", "box"}, {"width", 100}, {"depth", 60}, {"height", 5},
+                      {"position", {0, 0, 70}}},
+                     leg(1, -42, -24), leg(2, 42, -24), leg(3, -42, 24), leg(4, 42, 24)}},
+                   {"combine",
+                    {{{"op", "join"}, {"target", "top"}, {"tool", "leg1"}},
+                     {{"op", "join"}, {"target", "top"}, {"tool", "leg2"}},
+                     {{"op", "join"}, {"target", "top"}, {"tool", "leg3"}},
+                     {{"op", "join"}, {"target", "top"}, {"tool", "leg4"}}}}};
+    auto result = build_recipe(doc, doc.get_groups_sorted().back()->m_uuid, recipe);
+    doc.update_pending();
+    const auto table = result.bodies.back();
+    const auto parts = get_object_parts(doc, table);
+    check(parts.size() == 5, "a table has 5 parts (" + std::to_string(parts.size()) + ")");
+    const auto sets = group_alike_parts(doc, parts);
+    check(sets.size() == 2, "top and legs (" + std::to_string(sets.size()) + " sets)");
+    if (sets.size() != 2)
+        return;
+    const auto &top_set = sets.at(0).parts.size() == 1 ? sets.at(0) : sets.at(1);
+    const auto &legs = sets.at(0).parts.size() == 4 ? sets.at(0) : sets.at(1);
+    check(legs.parts.size() == 4 && legs.name == "Leg", "the legs go together as \"" + legs.name + "\"");
+    const auto top = top_set.parts.front();
+
+    auto set_dim = [&doc](const UUID &part, const std::string &label, double value) {
+        for (const auto &d : get_object_dimensions(doc, part)) {
+            if (d.label != label)
+                continue;
+            dynamic_cast<IConstraintDatum &>(*doc.m_constraints.at(d.constraint)).set_datum(value / d.scale);
+            doc.set_group_solve_pending(d.group);
+            return d.value;
+        }
+        return 0.;
+    };
+
+    // taller legs: the top goes up with them
+    {
+        auto follow = begin_parts_follow(doc, parts, legs.parts);
+        double old = 0;
+        for (const auto &p : legs.parts)
+            old = set_dim(p, "Height", 80);
+        follow_size_change(doc, follow, get_side_change("Height", old, 80, follow.bounds.at(legs.parts.front())));
+        doc.update_pending();
+        auto b = get_body_bounds(doc, top);
+        check(b && std::abs(b->lo.z - 80) < 1e-3, "the top rests on the taller legs (z " +
+                                                           std::to_string(b ? b->lo.z : -1) + ")");
+        auto tb = get_body_bounds(doc, table);
+        check(tb && std::abs(tb->hi.z - 85) < 1e-3, "the table is taller");
+    }
+    // a wider top: the legs stay in its corners
+    {
+        auto follow = begin_parts_follow(doc, parts, {top});
+        const auto old = set_dim(top, "Width", 140);
+        follow_size_change(doc, follow, get_side_change("Width", old, 140, follow.bounds.at(top)));
+        doc.update_pending();
+        double max_x = -1e9;
+        for (const auto &p : legs.parts)
+            max_x = std::max(max_x, get_body_bounds(doc, p)->hi.x);
+        check(std::abs(max_x - 65) < 1e-3, "legs moved out with the top's sides (" + std::to_string(max_x) + ")");
+    }
+    // the whole thing moves
+    {
+        const auto before = *get_body_bounds(doc, table);
+        std::vector<PartPosition> positions;
+        for (const auto &p : parts)
+            positions.push_back(*get_part_position(doc, p));
+        for (const auto &pos : positions)
+            set_part_position(doc, pos, {10, -5, 0});
+        doc.update_pending();
+        const auto after = *get_body_bounds(doc, table);
+        check(glm::length(after.lo - before.lo - glm::dvec3(10, -5, 0)) < 1e-3, "the table moved as a whole");
+    }
+    // rounding a part shows in the joined object, and taking it off again keeps the table
+    {
+        const auto plain = body_volume(doc, doc.get_group(doc.get_groups_sorted().back()->m_uuid));
+        set_round_edges(doc, top, 2);
+        doc.update_pending();
+        const auto rounded = body_volume(doc, doc.get_group(doc.get_groups_sorted().back()->m_uuid));
+        check(rounded < plain - 1, "a rounded top makes the table smaller (" + std::to_string(plain) + " -> " +
+                                           std::to_string(rounded) + ")");
+        set_round_edges(doc, top, 0);
+        doc.update_pending();
+        check(doc.get_groups().contains(table), "taking the rounding off keeps the table");
+        const auto again = body_volume(doc, doc.get_group(doc.get_groups_sorted().back()->m_uuid));
+        check(std::abs(again - plain) < 1e-3 * plain, "and it's back to sharp");
+    }
+}
+
 int main()
 {
     constexpr double pi = std::numbers::pi;
@@ -508,6 +607,7 @@ int main()
     test_save_load();
     test_round_edges();
     test_deferred_solid_models();
+    test_object_parts();
     std::cout << (failures ? "FAILED" : "PASSED") << " (" << failures << " failures)" << std::endl;
     return failures ? 1 : 0;
 }

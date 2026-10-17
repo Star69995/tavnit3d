@@ -6,6 +6,8 @@
 #include "document/entity/entity.hpp"
 #include "document/entity/entity_workplane.hpp"
 #include "document/constraint/constraint_point_distance_hv.hpp"
+#include "document/object_parts.hpp"
+#include "document/group/group_reference.hpp"
 #include <ranges>
 
 namespace dune3d {
@@ -49,13 +51,31 @@ bool Editor::begin_object_drag(const UUID &doc_uu, const UUID &body_uu)
                 drag.cy = uu;
         }
     }
-    if (!drag.cx || !drag.cy || !doc.get_entity_ptr<EntityWorkplane>(drag.wrkpl))
+    if (!drag.cx || !drag.cy) {
+        // a joined object: all of its parts move, on the floor
+        drag.cx = drag.cy = UUID();
+        for (const auto &p : get_object_parts(doc, body_uu)) {
+            auto pos = get_part_position(doc, p);
+            if (!pos)
+                return false;
+            drag.parts.push_back(*pos);
+        }
+        if (drag.parts.empty())
+            return false;
+        drag.wrkpl = doc.get_reference_group().get_workplane_xy_uuid();
+    }
+    if (!doc.get_entity_ptr<EntityWorkplane>(drag.wrkpl))
         return false;
 
     auto &wrkpl = doc.get_entity<EntityWorkplane>(drag.wrkpl);
     drag.start = wrkpl.project(get_canvas().get_cursor_pos_for_plane(wrkpl.m_origin, wrkpl.get_normal_vector()));
-    drag.x0 = dynamic_cast<const ConstraintPointDistanceHV &>(*doc.m_constraints.at(drag.cx)).m_distance;
-    drag.y0 = dynamic_cast<const ConstraintPointDistanceHV &>(*doc.m_constraints.at(drag.cy)).m_distance;
+    if (drag.parts.size()) {
+        drag.x0 = drag.y0 = 0; // how far they've moved
+    }
+    else {
+        drag.x0 = dynamic_cast<const ConstraintPointDistanceHV &>(*doc.m_constraints.at(drag.cx)).m_distance;
+        drag.y0 = dynamic_cast<const ConstraintPointDistanceHV &>(*doc.m_constraints.at(drag.cy)).m_distance;
+    }
     m_object_drag = drag;
     get_canvas().inhibit_drag_selection();
     return true;
@@ -67,7 +87,7 @@ void Editor::update_object_drag()
         return;
     auto &drag = *m_object_drag;
     auto &doc = m_core.get_idocument_info(drag.doc).get_document();
-    if (!doc.m_constraints.contains(drag.cx) || !doc.m_constraints.contains(drag.cy)) {
+    if (drag.parts.empty() && (!doc.m_constraints.contains(drag.cx) || !doc.m_constraints.contains(drag.cy))) {
         m_object_drag.reset();
         return;
     }
@@ -76,16 +96,25 @@ void Editor::update_object_drag()
     glm::dvec2 pos = glm::dvec2(drag.x0, drag.y0) + (p - drag.start);
     if (const auto step = get_grid_snap(wrkpl); step > 0)
         pos = glm::round(pos / step) * step;
-    auto &cx = dynamic_cast<ConstraintPointDistanceHV &>(*doc.m_constraints.at(drag.cx));
-    auto &cy = dynamic_cast<ConstraintPointDistanceHV &>(*doc.m_constraints.at(drag.cy));
-    if (cx.m_distance == pos.x && cy.m_distance == pos.y)
-        return;
     if (!drag.moved && glm::length(p - drag.start) < 1e-9)
         return;
-    cx.m_distance = pos.x;
-    cy.m_distance = pos.y;
+    if (drag.parts.size()) {
+        if (drag.moved && pos == drag.last)
+            return;
+        drag.last = pos;
+        for (const auto &part : drag.parts)
+            set_part_position(doc, part, wrkpl.transform_relative(pos));
+    }
+    else {
+        auto &cx = dynamic_cast<ConstraintPointDistanceHV &>(*doc.m_constraints.at(drag.cx));
+        auto &cy = dynamic_cast<ConstraintPointDistanceHV &>(*doc.m_constraints.at(drag.cy));
+        if (cx.m_distance == pos.x && cy.m_distance == pos.y)
+            return;
+        cx.m_distance = pos.x;
+        cy.m_distance = pos.y;
+        doc.set_group_solve_pending(drag.group);
+    }
     drag.moved = true;
-    doc.set_group_solve_pending(drag.group);
     doc.update_pending({}, {}, true);
     canvas_update_keep_selection();
     schedule_deferred_solid_models();

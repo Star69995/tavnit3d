@@ -31,7 +31,7 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 
 - Preferred: `tools/ui.sh script.txt` - in-app UI automation (also commands for
   stickers, import, export-gltf, save, recipe, describe, find, handles,
-  groups, render-window, zoom, close - see the top of editor_automation.cpp)
+  groups, render-window, zoom, close, panel-scroll - see the top of editor_automation.cpp)
   (`src/editor/editor_automation.cpp`, enabled by `DUNE3D_AUTOMATION`):
   actions by catalog name, pointer on the 3D view, buttons/fields by label,
   `shot PATH` renders the window to PNG. Never touches the real mouse or
@@ -100,6 +100,17 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   (`Renderer::render`, View > Sketch lines of other objects).
 - Combine (object panel, `src/document/combine.*`): solid model operation
   group in a new body after everything; the sources get hidden, not removed.
+  It points at a source's last solid group: rounding/hollowing a source calls
+  `repoint_combinations` (else removing the step would delete the join).
+- Parts of joined objects (`src/document/object_parts.*`, panel in
+  `src/editor/editor_object_parts.cpp`): the leaves of the combinations,
+  grouped into alike sets (same shape/sizes/rounding, e.g. a table's legs)
+  that change together unless split (`Editor::m_split_parts`, not saved).
+  `PartsFollow`/`set_parts_dimension`: touching parts follow a size change
+  (on top: goes up; under/beside: keeps to the nearest side). Positions:
+  a raised part's own workplane origin (moving it needs generate pending, or
+  the extrusion flips) or X/Y dims. Picking a part in the panel shows its
+  handles (`m_object_editor_part`); a joined object drags as a whole.
 - Tool palette: `Editor::create_action_bar_button` / `add_action_bar_section`.
   A "Hide"/"Tools" button on top folds the whole palette away
   (`Dune3DAppWindow` constructor, remembered in `UserConfig::palette_folded`).
@@ -149,7 +160,7 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   in primitives.cpp), so the X/Y moves them whole. A full 360 degree revolve
   keeps its angle pinned in the solver (`System::add(const GroupRevolve &)`);
   without that, moving a smooth profile shrank the turn. Joined objects
-  (Combine, the screw) have no X/Y of their own yet, so they can't be moved.
+  are moved through their parts (see Parts above).
 - Links (`website_url`, `source_url`, `issues_url` in branding.hpp): about
   dialog credits and main menu (Website, Source code on GitHub, Report a problem).
 - Recipes (`src/document/recipe.*`): JSON descriptions of objects built from
@@ -165,7 +176,8 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   tolerated). `DUNE3D_CLAUDE_URL` overrides the Claude endpoint for tests; tests in
   `tests/test_recipe_ai.cpp`. HTTP: `src/util/http.*` (WinHTTP/libcurl).
 - Resize handles (`src/editor/editor_handles.cpp`) use the object panel's
-  dimension list (`src/editor/object_dimensions.hpp`).
+  dimension list (`src/document/object_dimensions.*`; labels like Width/Depth/
+  Height come from the constraint type and the plane it's on).
 - Autosave (`src/editor/editor_autosave.cpp`, `Core::write_backup`): every
   `UserConfig::autosave_minutes` (menu: Back up unsaved work, 0 = off) each
   document with unsaved changes is copied to `<documents dir>/Autosave/<uuid>.d3ddoc`

@@ -1,5 +1,5 @@
 #include "editor.hpp"
-#include "object_dimensions.hpp"
+#include "document/object_dimensions.hpp"
 #include "group_editor/group_editor.hpp"
 #include "canvas/color_palette.hpp"
 #include "preferences/preferences.hpp"
@@ -48,106 +48,6 @@ bool has_xy_position(const Document &doc, const UUID &body)
 {
     return std::ranges::any_of(get_object_dimensions(doc, body), [](const auto &d) { return d.label == "X"; });
 }
-
-// friendlier names for the dimensions the ready-made shapes use
-struct DatumInfo {
-    std::string label;
-    double scale = 1; // shown value = datum * scale
-};
-
-int label_order(const std::string &label);
-
-DatumInfo datum_info(const Document &doc, const Constraint &co, const IConstraintDatum &datum, const Group &group,
-                     bool body_is_revolved)
-{
-    using T = Constraint::Type;
-    bool from_origin = false;   // horizontal/vertical distance from a workplane's origin: a position
-    bool on_own_plane = false;  // on a plane made in the same group: an upright profile
-    if (auto pd = dynamic_cast<const ConstraintPointDistanceBase *>(&co)) {
-        auto en = doc.get_entity_ptr(pd->m_entity1.entity);
-        from_origin = en && en->get_type() == Entity::Type::WORKPLANE;
-        if (auto wp = doc.get_entity_ptr(pd->m_wrkpl))
-            on_own_plane = wp->m_group == co.m_group;
-    }
-    switch (co.get_type()) {
-    case T::POINT_DISTANCE_HORIZONTAL:
-        if (from_origin)
-            return {"X"};
-        if (on_own_plane)
-            return {body_is_revolved ? "Radius" : "Width"};
-        return {"Width"};
-    case T::POINT_DISTANCE_VERTICAL:
-        if (from_origin)
-            return {"Y"};
-        if (on_own_plane)
-            return {"Height"};
-        return {"Depth"};
-    case T::DIAMETER:
-        return {"Diameter"};
-    case T::RADIUS:
-        return {"Radius"};
-    case T::POINT_DISTANCE:
-        if (auto ex = dynamic_cast<const GroupExtrude *>(&group)) {
-            // a symmetric extrusion goes both ways: show the whole thickness
-            if (ex->m_mode == GroupExtrude::Mode::OFFSET_SYMMETRIC)
-                return {"Depth", 2};
-            return {"Height"};
-        }
-        break;
-    default:;
-    }
-    return {datum.get_datum_name()};
-}
-
-} // namespace
-
-std::vector<ObjectDimension> get_object_dimensions(const Document &doc, const UUID &body_uu)
-{
-    const auto body_groups = doc.get_groups_by_body();
-    auto it = std::ranges::find_if(body_groups, [&body_uu](const auto &bg) { return bg.get_group().m_uuid == body_uu; });
-    if (it == body_groups.end())
-        return {};
-    const auto &groups = it->groups;
-    const bool revolved = std::ranges::any_of(groups, [](auto gr) { return gr->get_type() == Group::Type::REVOLVE; });
-    std::vector<ObjectDimension> dims;
-    for (auto gr : groups) {
-        for (auto &[uu, co] : doc.m_constraints) {
-            if (co->m_group != gr->m_uuid)
-                continue;
-            auto datum = dynamic_cast<const IConstraintDatum *>(co.get());
-            if (!datum || datum->is_measurement())
-                continue;
-            const auto info = datum_info(doc, *co, *datum, *gr, revolved);
-            dims.push_back({info.label, uu, gr->m_uuid, info.scale, datum->get_datum() * info.scale});
-        }
-    }
-    // two diameters (a tube): outer and inner
-    {
-        std::vector<ObjectDimension *> diameters;
-        for (auto &d : dims) {
-            if (d.label == "Diameter")
-                diameters.push_back(&d);
-        }
-        if (diameters.size() == 2) {
-            std::ranges::sort(diameters, {}, [](auto d) { return -d->value; });
-            diameters.at(0)->label = "Outer diameter";
-            diameters.at(1)->label = "Inner diameter";
-        }
-    }
-    std::ranges::stable_sort(dims, {}, [](const ObjectDimension &d) { return label_order(d.label); });
-    return dims;
-}
-
-namespace {
-
-int label_order(const std::string &label)
-{
-    static const std::vector<std::string> order = {"Width",          "Depth",          "Height", "Diameter",
-                                                   "Outer diameter", "Inner diameter", "Radius", "X",
-                                                   "Y"};
-    auto it = std::ranges::find(order, label);
-    return it - order.begin();
-}
 } // namespace
 
 void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
@@ -159,12 +59,15 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         m_group_editor = nullptr;
     }
     // the panel is rebuilt after every change: keep the focus on the same field
-    std::string focus_label;
+    std::string focus_label, focus_name;
     if (m_object_editor && m_object_editor_doc == doc_uu && m_object_editor_body == body_uu) {
         if (auto grid = dynamic_cast<Gtk::Grid *>(m_object_editor)) {
             for (auto focus = m_win.get_focus(); focus && !focus_label.size(); focus = focus->get_parent()) {
                 if (focus->get_parent() != grid)
                     continue;
+                // fields of parts are named: their labels repeat
+                if (focus->get_name().size() && focus->get_name() != G_OBJECT_TYPE_NAME(focus->gobj()))
+                    focus_name = focus->get_name();
                 int col, row, w, h;
                 gtk_grid_query_child(grid->gobj(), focus->gobj(), &col, &row, &w, &h);
                 if (auto la = dynamic_cast<Gtk::Label *>(grid->get_child_at(col - 1, row)))
@@ -184,6 +87,8 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
     if (!body_group.m_body)
         return;
     m_object_editor_doc = doc_uu;
+    if (m_object_editor_body != body_uu)
+        m_object_editor_part = UUID();
     m_object_editor_body = body_uu;
     m_object_combine_dropdown = nullptr;
 
@@ -362,22 +267,7 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         heading("Dimensions");
     for (const auto &dim : dims) {
         auto datum = dynamic_cast<IConstraintDatum *>(doc.m_constraints.at(dim.constraint).get());
-        Gtk::SpinButton *sp = nullptr;
-        if (datum->get_datum_unit() == DatumUnit::MM) {
-            auto spd = Gtk::make_managed<SpinButtonDim>();
-            spd->set_show_plus(dim.label == "X" || dim.label == "Y");
-            sp = spd;
-            sp->set_increments(1, 10); // +/- by whole millimetres; any value can be typed
-        }
-        else {
-            sp = Gtk::make_managed<Gtk::SpinButton>();
-            sp->set_digits(datum->get_datum_unit() == DatumUnit::INTEGER ? 0 : 3);
-            sp->set_increments(1, 10);
-        }
-        const auto [lo, hi] = datum->get_datum_range();
-        sp->set_range(lo * dim.scale, hi * dim.scale);
-        sp->set_value(dim.value);
-        sp->set_hexpand(true);
+        auto sp = &make_dimension_spin(*datum, dim);
         const UUID co_uu = dim.constraint;
         const UUID group_uu = dim.group;
         const double scale = dim.scale;
@@ -503,6 +393,8 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
             grid->attach(*status, 1, top++, 1, 1);
         }
     }
+
+    append_object_parts(*grid, top, doc_uu, body_uu);
 
     // stickers: a picture on the surface
     if (std::ranges::any_of(get_body_solids(doc, UUID()), [&body_uu](const auto &bs) { return bs.body == body_uu; })) {
@@ -710,7 +602,13 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
 
     m_group_editor_box->append(*grid);
     wheel_scrolls_past_spinbuttons(*grid);
-    if (focus_label.size()) {
+    if (focus_name.size()) {
+        for (auto ch = grid->get_first_child(); ch; ch = ch->get_next_sibling()) {
+            if (ch->get_name() == focus_name)
+                ch->grab_focus();
+        }
+    }
+    else if (focus_label.size()) {
         for (auto ch = grid->get_first_child(); ch; ch = ch->get_next_sibling()) {
             auto la = dynamic_cast<Gtk::Label *>(ch);
             if (!la || la->get_text().raw() != focus_label)
@@ -876,7 +774,7 @@ bool Editor::ready_made_object_under_cursor()
     auto &doc = m_core.get_current_document();
     const auto body = pick_body(doc, m_core.get_current_group(), origin, dir,
                                 [this](const UUID &b) { return body_is_shown(b); });
-    return body && has_xy_position(doc, *body);
+    return body && can_move_object(doc, *body);
 }
 
 void Editor::select_object_under_cursor()
