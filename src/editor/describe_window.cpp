@@ -9,6 +9,8 @@ DescribeWindow::DescribeWindow(Gtk::Window &parent, AiSettings &settings, OnReci
     set_title("Make from a description");
     add_css_class("studio-dialog");
     set_transient_for(parent);
+    // the editor keeps this window and shows it again; closing must not destroy it
+    set_hide_on_close(true);
     set_default_size(540, 480);
 
     auto box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 10);
