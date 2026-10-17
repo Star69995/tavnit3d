@@ -337,6 +337,16 @@ Apply only in projects with a browser-based user interface.
 Inlined here so they also apply when working from another machine. Keep in
 sync with the global file when it changes.
 
+### Testing is mandatory (also in cloud sessions)
+
+Every change must be tested before it is reported done or pushed: run the
+repo's own tests/checks (`meson test`, UI scripts via `tools/ui.sh`, etc.) and,
+for anything visible, check it in the running app. If a test can't run, say so
+and why - never claim "done" without a test result. You may install any tool
+needed for testing and development (packages via apt/pip/npm, xvfb, a browser,
+linters, build deps) on your own initiative, including in cloud/remote
+sessions. See "Linux checks without Windows" above for the cloud setup.
+
 ### Dev/test servers
 
 If a task would benefit from a running dev/test server (`npm run dev`,
