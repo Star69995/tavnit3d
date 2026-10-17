@@ -139,7 +139,7 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   is also where open/save dialogs start.
 - More shapes: hexagon, triangle prism, star, heart, half sphere are recipes
   (`src/editor/editor_recipe.cpp`, like Bowl/Vase). No pyramid yet (needs a
-  tapered extrude or loft). No screws/threads.
+  tapered extrude or loft). No helical threads (see Screw).
 - Holes (`Body::m_hole`, object panel "Hole" switch + "Cut"): drawn as glass,
   left out of STL/glTF export; `Editor::cut_with_hole` subtracts it from every
   shown non-hole object whose bounds it touches (`add_combination`).
@@ -149,9 +149,6 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   head joined with a revolved shank whose ridges are rings, not a helix.
 - Copies in a row (object panel, `Editor::copy_in_a_row`): N x `duplicate_body`
   with an X offset of width + gap; only for objects that have an X position.
-- Holes (`Body::m_hole`, object panel "Hole" switch + "Cut"): drawn as glass,
-  left out of STL/glTF export; `Editor::cut_with_hole` subtracts it from every
-  shown non-hole object whose bounds it touches (`add_combination`).
 - Round hole (palette "Hole"): a 6 x 30 mm cylinder created as a hole body
   (`Editor::add_primitive(..., as_hole)`); move it into an object and press Cut.
 - Tool palette Shapes: the common shapes are always shown; Tube, Torus,

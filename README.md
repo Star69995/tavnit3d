@@ -15,15 +15,19 @@ one click.
 ## What it adds to Dune 3D
 
 - Labelled tool palette and a light "studio" theme
-- Ready-made Box, Cylinder, Sphere, Cone, Tube, Torus, Wedge, 3D Text, Bowl
-  and Vase, placed next to each other on a floor grid
+- Ready-made Box, Cylinder, Sphere, Cone, Tube, Torus, Wedge, 3D Text,
+  Hexagon, Triangle, Star, Heart, Dome, Screw, Bowl and Vase, placed next to
+  each other on a floor grid; a picture as a flat object
+- Holes (Tinkercad-style): turn any object into a hole, or add a round one,
+  move it into another object and press Cut
 - Make objects from a description ("a mug with a handle") with Claude (needs
   a Claude API key); they come out as ordinary, editable shapes
 - Click a solid to select it; an object panel shows its dimensions, X/Y
   position, colour, material (satin/matte/glossy/metal/glass) and visibility;
   handles on the object resize it by dragging
-- Drag to move, duplicate (Ctrl+D), round all edges, hollow out (cups, bowls,
-  boxes), join/subtract/intersect
+- Drag to move, duplicate (Ctrl+D), copies in a row, round all edges, hollow
+  out (cups, bowls, boxes), join/subtract/intersect
+- Automatic backups of unsaved work, offered back after a crash
 - Stickers: pictures on an object's surface, also on curved sides
 - Lights (lamp, spotlight, sun) that light the 3D view
 - Render photo-like pictures with Blender (free, installed separately) in the
