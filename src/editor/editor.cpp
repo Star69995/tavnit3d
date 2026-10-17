@@ -1101,6 +1101,11 @@ void Editor::init_header_bar()
         });
     }
 
+    for (const auto &[name, url] : std::vector<std::pair<std::string, std::string>>{
+                 {"open_website", website_url}, {"open_source", source_url}, {"report_problem", issues_url}}) {
+        m_win.add_action(name, [this, url] { Gtk::UriLauncher::create(url)->launch(m_win, [](auto &) {}); });
+    }
+
     {
         auto top = Gio::Menu::create();
 
@@ -1121,6 +1126,11 @@ void Editor::init_header_bar()
         saving->append_submenu("Back up unsaved work", backup);
         saving->append("Folder for documents...", "win.choose_documents_dir");
         top->append_section(saving);
+        auto links = Gio::Menu::create();
+        links->append("Website", "win.open_website");
+        links->append("Source code on GitHub", "win.open_source");
+        links->append("Report a problem", "win.report_problem");
+        top->append_section(links);
         top->append_item(Gio::MenuItem::create("Preferences", "app.preferences"));
         top->append_item(Gio::MenuItem::create("Logger", "app.logger"));
         top->append_item(Gio::MenuItem::create("About", "app.about"));

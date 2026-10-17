@@ -168,6 +168,12 @@ std::vector<SearchItem> Editor::get_search_items()
     items.push_back({"Preferences", std::string(menu) + " > Preferences", "settings keys colours הגדרות",
                      win_action("app.preferences")});
     items.push_back({"About", std::string(menu) + " > About", "version credits אודות", win_action("app.about")});
+    items.push_back({"Website", std::string(menu) + " > Website", "site help download אתר עזרה",
+                     win_action("win.open_website")});
+    items.push_back({"Source code on GitHub", std::string(menu) + " > Source code on GitHub", "github code קוד מקור",
+                     win_action("win.open_source")});
+    items.push_back({"Report a problem", std::string(menu) + " > Report a problem", "bug issue feedback באג בעיה דיווח",
+                     win_action("win.report_problem")});
     return items;
 }
 
