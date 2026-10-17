@@ -34,7 +34,7 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 
 - Preferred: `tools/ui.sh script.txt` - in-app UI automation (also commands for
   stickers, import, export-gltf, save, recipe, describe, find, handles,
-  groups, render-window, zoom, close, panel-scroll - see the top of editor_automation.cpp)
+  groups, render-window, zoom, close, panel-scroll, crash - see the top of editor_automation.cpp)
   (`src/editor/editor_automation.cpp`, enabled by `DUNE3D_AUTOMATION`):
   actions by catalog name, pointer on the 3D view, buttons/fields by label,
   `shot PATH` renders the window to PNG. Never touches the real mouse or
@@ -213,6 +213,14 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   GL_REPEAT per decal, glTF export uses a repeating sampler. Panel: Stickers >
   Pattern + colour + "Add pattern..." (click on the object); automation:
   `pattern N [C]`. Tests: `tests/test_patterns.cpp`, `tests/ui/patterns.txt`.
+- Object panel refresh: `Editor::schedule_object_panel_refresh` (after a
+  rebuild, or a panel change that set `m_object_editor_keep`) makes the panel
+  again only once no mouse button is held. Never rebuild the panel straight
+  from a field's handler: GTK crashed when a +/- still getting clicks was gone.
+- Crash report (`src/util/crash_report.*`, Windows): unhandled exceptions and
+  uncaught C++ exceptions write `%LOCALAPPDATA%/dune3d/crashes/crash-*.txt`
+  (module+offset per call; resolve with `addr2line -e build-release/dune3d.exe`
+  or the debug build) and show a message box. Automation `crash` tries it.
 - Find (`src/editor/action_search.*`, items in `editor_search.cpp`): Ctrl+K
   both as the FIND action and a window-level capture shortcut. When a
   feature lands, add it there with where it lives.
