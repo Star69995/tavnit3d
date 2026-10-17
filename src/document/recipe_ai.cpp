@@ -15,6 +15,10 @@ How the program sees things:
 - Each object stands on its bottom middle, at "position". A revolve's axis runs straight up through it.
 - "rotation" turns an object around its bottom middle: degrees about x, then y, then z.
 - Combining makes a new object from two: join, or subtract the tool from the target (holes, cut-outs).
+  Name the main object as target in every join (never chain through a part that was joined already).
+  Everything joined takes the target's colour and material.
+- Stacking: a part sitting on another has z = the top of the one below (its z + its height). A part that lies
+  completely inside another adds nothing and vanishes, so a raised detail must stick out of the surface it is on.
 - "hollow" makes walls of the given thickness, inwards, open at the top by default: bowls, cups, vases,
   boxes, planters. A revolve is solid, so vessels need it.
 - "round_edges" rounds every edge; keep it below half the wall thickness of hollow objects.
@@ -24,8 +28,11 @@ Good habits:
   across and 60 mm tall) unless the user gives sizes.
 - Use the fewest objects that make it look right. Revolve with smooth = true for rounded vessels and turned
   shapes; extrude for flat outlines (letters, brackets, plates); the ready-made shapes for the rest.
-- Make parts that touch actually overlap a little, then join them, so the result is one solid.
-- Give the objects short names in the user's language and fitting colours (#rrggbb) and materials.
+- Make parts that touch actually overlap a little, then join them, so the result is one solid. Only join
+  parts of the same colour; leave contrasting parts (a screen, buttons) as separate objects sitting on it.
+- Don't model every tiny repeated detail (each key of a keyboard): a few slabs or one block read just as well.
+- Give the objects short names in the user's language and fitting colours and materials. Colours are always
+  "#rrggbb" hex, never names like "silver".
 - If the description is vague, pick a nice, typical version of it.)";
 
 // The recipe schema as structured outputs want it: every object closed, and
