@@ -585,6 +585,16 @@ test_performance = executable('test_performance',
 # not in parallel with the others: it measures time
 test('performance', test_performance, timeout: 300, is_parallel: false)
 
+test_import_names = executable('test_import_names',
+    'tests/test_import_names.cpp',
+    dependencies: [build_dependencies],
+    link_whole: [dune3d_common],
+    link_with: [solvespace_nopic, clipper_nopic, dxflib_nopic],
+    cpp_args: cpp_args,
+    include_directories: include_directories,
+)
+test('import_names', test_import_names, timeout: 60)
+
 test_recipe_ai = executable('test_recipe_ai',
     'tests/test_recipe_ai.cpp',
     dependencies: [build_dependencies],

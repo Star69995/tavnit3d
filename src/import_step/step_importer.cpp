@@ -747,7 +747,7 @@ static std::string get_label_name(const TDF_Label &label)
 {
     Handle(TDataStd_Name) name;
     if (!label.IsNull() && label.FindAttribute(TDataStd_Name::GetID(), name)) {
-        TCollection_AsciiString s(name->Get(), '?');
+        TCollection_AsciiString s(name->Get()); // UTF-8, keeps Hebrew names
         return s.ToCString();
     }
     return {};
