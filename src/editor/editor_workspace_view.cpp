@@ -98,6 +98,26 @@ void Editor::update_can_close_workspace_view_pages()
     }
 }
 
+std::string Editor::get_document_screens(const UUID &doc_uu)
+{
+    auto pages = m_win.get_workspace_notebook().get_pages();
+    if (pages->get_n_items() < 2)
+        return "";
+    std::string r;
+    unsigned int n = 0;
+    for (size_t i = 0; i < pages->get_n_items(); i++) {
+        auto &page = dynamic_cast<Gtk::NotebookPage &>(*pages->get_object(i).get());
+        auto &it = dynamic_cast<WorkspaceViewPage &>(*page.get_child());
+        if (!m_workspace_views.contains(it.m_uuid) || !m_workspace_views.at(it.m_uuid).document_is_visible(doc_uu))
+            continue;
+        r += (n ? ", " : "") + std::to_string(i + 1);
+        n++;
+    }
+    if (r.empty())
+        return "";
+    return (n > 1 ? "Screens " : "Screen ") + r;
+}
+
 void Editor::rename_workspace_view(const UUID &uu)
 {
     if (!m_workspace_views.contains(uu))

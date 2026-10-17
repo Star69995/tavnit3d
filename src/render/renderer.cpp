@@ -52,15 +52,13 @@ Renderer::Renderer(ICanvas &ca, IDocumentProvider &docprv) : m_ca(ca), m_doc_prv
 
 bool Renderer::group_is_visible(const UUID &uu) const
 {
-    if (m_current_group->m_uuid == uu)
-        return true;
     auto &group = m_doc->get_group(uu);
     if (group.get_index() > m_current_group->get_index())
         return false;
     if (!m_doc_view->group_is_visible(uu))
         return false;
     auto body = group.find_body(*m_doc);
-    if (m_current_body_group != &body.group && !m_doc_view->body_is_visible(body.group.m_uuid))
+    if (!m_doc_view->body_is_visible(body.group.m_uuid))
         return false;
     return true;
 }

@@ -94,6 +94,8 @@ void Editor::on_workspace_browser_group_selected(const UUID &uu_doc, const UUID 
     m_core.set_current_document(uu_doc);
     m_workspace_views.at(m_current_workspace_view).m_current_document = uu_doc;
     update_version_info();
+    // what you pick is what you see
+    get_current_document_views()[uu_doc].m_document_is_visible = true;
     get_current_document_view().m_current_group = uu_group;
     set_current_group(uu_group);
 }

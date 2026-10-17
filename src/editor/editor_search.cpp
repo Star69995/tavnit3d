@@ -164,6 +164,10 @@ std::vector<SearchItem> Editor::get_search_items()
                      "perspective orthographic פרספקטיבה", win_action("win.perspective")});
     items.push_back({"Show other objects' sketch lines", std::string(viewmenu) + " > Sketch lines of other objects",
                      "sketch lines קווי שרטוט", win_action("win.show_other_sketches")});
+    items.push_back({"One document per screen (no sharing between tabs)",
+                     std::string(viewmenu) + " > One document per screen",
+                     "documents screens tabs one per screen מסמך אחד מסך לשונית",
+                     win_action("win.one_document_per_screen")});
     items.push_back({"List documents hidden from the view",
                      std::string(viewmenu) + " > Hidden documents in the list",
                      "documents files open מסמכים קבצים פתוחים", win_action("win.show_other_documents")});

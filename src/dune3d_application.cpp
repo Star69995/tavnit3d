@@ -209,6 +209,7 @@ void Dune3DApplication::UserConfig::load(const std::filesystem::path &filename)
     autosave_minutes = std::min(j.value("autosave_minutes", 3u), 120u);
     palette_folded = j.value("palette_folded", false);
     show_other_documents = j.value("show_other_documents", false);
+    one_document_per_screen = j.value("one_document_per_screen", false);
     if (j.count("panels")) {
         for (const auto &[name, v] : j.at("panels").items())
             panels[name] = {v.value("floating", false), v.value("x", -1), v.value("y", -1)};
@@ -241,6 +242,7 @@ void Dune3DApplication::UserConfig::save(const std::filesystem::path &filename)
     j["autosave_minutes"] = autosave_minutes;
     j["palette_folded"] = palette_folded;
     j["show_other_documents"] = show_other_documents;
+    j["one_document_per_screen"] = one_document_per_screen;
     for (const auto &[name, it] : panels)
         j["panels"][name] = {{"floating", it.floating}, {"x", it.x}, {"y", it.y}};
     if (!documents_dir.empty())

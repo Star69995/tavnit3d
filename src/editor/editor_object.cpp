@@ -624,12 +624,6 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
     else {
         get_canvas().grab_focus(); // not the first entry of the new panel
     }
-    {
-        // give the panel room; the browser keeps enough to see a few objects
-        auto &left_bar = m_win.get_left_bar();
-        if (left_bar.get_position() > 240)
-            left_bar.set_position(240);
-    }
     restore_side_panel_scroll(scroll);
     canvas_update_keep_selection(); // highlight it
 }

@@ -322,12 +322,26 @@ void Editor::init_view_options()
     {
         auto &config = m_win.get_app().m_user_config;
         m_workspace_browser->set_show_other_documents(config.show_other_documents);
-        auto action = m_win.add_action_bool("show_other_documents", config.show_other_documents);
-        action->signal_change_state().connect([this, action](const Glib::VariantBase &v) {
+        m_workspace_browser->set_one_document_per_screen(config.one_document_per_screen);
+        m_workspace_browser->m_screens_text = [this](const UUID &doc) { return get_document_screens(doc); };
+        auto other = m_win.add_action_bool("show_other_documents", config.show_other_documents);
+        other->set_enabled(!config.one_document_per_screen);
+        other->signal_change_state().connect([this, other](const Glib::VariantBase &v) {
             const auto b = Glib::VariantBase::cast_dynamic<Glib::Variant<bool>>(v).get();
             m_win.get_app().m_user_config.show_other_documents = b;
-            action->set_state(Glib::Variant<bool>::create(b));
+            other->set_state(Glib::Variant<bool>::create(b));
             m_workspace_browser->set_show_other_documents(b);
+            if (m_core.has_documents())
+                m_workspace_browser->update_documents(get_current_document_views());
+        });
+        auto one = m_win.add_action_bool("one_document_per_screen", config.one_document_per_screen);
+        one->signal_change_state().connect([this, one, other](const Glib::VariantBase &v) {
+            const auto b = Glib::VariantBase::cast_dynamic<Glib::Variant<bool>>(v).get();
+            m_win.get_app().m_user_config.one_document_per_screen = b;
+            one->set_state(Glib::Variant<bool>::create(b));
+            other->set_enabled(!b);
+            m_workspace_browser->set_one_document_per_screen(b);
+            CanvasUpdater canvas_updater{*this};
             if (m_core.has_documents())
                 m_workspace_browser->update_documents(get_current_document_views());
         });
@@ -354,6 +368,7 @@ void Editor::init_view_options()
     m_view_options_menu->append("Perspective projection", "win.perspective");
     m_view_options_menu->append("Studio lighting", "win.studio_lighting");
     m_view_options_menu->append("Sketch lines of other objects", "win.show_other_sketches");
+    m_view_options_menu->append("One document per screen", "win.one_document_per_screen");
     m_view_options_menu->append("Hidden documents in the list", "win.show_other_documents");
     {
         auto grid_menu = Gio::Menu::create();
@@ -1568,10 +1583,13 @@ void Editor::update_error_overlay()
 void Editor::render_document(const IDocumentInfo &doc)
 {
     auto &doc_view = get_current_document_views()[doc.get_uuid()];
-    if (!doc_view.m_document_is_visible && (doc.get_uuid() != m_core.get_current_idocument_info().get_uuid()))
+    const bool is_current_doc = doc.get_uuid() == m_core.get_current_idocument_info().get_uuid();
+    if (!doc_view.m_document_is_visible)
+        return;
+    if (!is_current_doc && m_win.get_app().m_user_config.one_document_per_screen)
         return;
     std::optional<SelectableRef> sr;
-    if (doc.get_uuid() != m_core.get_current_idocument_info().get_uuid()) {
+    if (!is_current_doc) {
         sr = SelectableRef{SelectableRef::Type::DOCUMENT, doc.get_uuid()};
     }
     Renderer renderer(get_canvas(), m_core);

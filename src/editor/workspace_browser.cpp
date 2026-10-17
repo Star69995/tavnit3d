@@ -110,6 +110,7 @@ public:
 
     Glib::Property<Glib::ustring> m_name;
     Glib::Property<Glib::ustring> m_tooltip;
+    Glib::Property<Glib::ustring> m_screens; // "Screen 2": the tab(s) it is shown in
     Glib::Property<bool> m_active;
     Glib::Property<bool> m_check_active;
     Glib::Property<bool> m_check_sensitive;
@@ -131,7 +132,7 @@ public:
 private:
     DocumentItem()
         : Glib::ObjectBase("DocumentItem"), m_name(*this, "name"), m_tooltip(*this, "tooltip"),
-          m_active(*this, "active"), m_check_active(*this, "check_active", false),
+          m_screens(*this, "screens"), m_active(*this, "active"), m_check_active(*this, "check_active", false),
           m_check_sensitive(*this, "check_sensitive", true), m_close_sensitive(*this, "close_sensitive", true)
     {
         m_body_store = Gio::ListStore<BodyItem>::create();
@@ -155,13 +156,16 @@ void WorkspaceBrowser::update_documents(const std::map<UUID, DocumentView> &doc_
     block_signals();
     auto store = Gio::ListStore<DocumentItem>::create();
     for (auto doci : m_core.get_documents()) {
-        if (!m_show_other_documents && m_core.has_documents()
-            && doci->get_uuid() != m_core.get_current_idocument_info().get_uuid()) {
+        if (m_core.has_documents() && doci->get_uuid() != m_core.get_current_idocument_info().get_uuid()) {
+            if (m_one_document_per_screen)
+                continue;
             auto doc_view = doc_views.find(doci->get_uuid());
-            if (doc_view == doc_views.end() || !doc_view->second.document_is_visible())
+            if (!m_show_other_documents && (doc_view == doc_views.end() || !doc_view->second.document_is_visible()))
                 continue;
         }
         auto mi = DocumentItem::create();
+        if (m_screens_text)
+            mi->m_screens = m_screens_text(doci->get_uuid());
         mi->m_uuid = doci->get_uuid();
         mi->m_close_sensitive = doci->can_close();
         Glib::RefPtr<BodyItem> body_item = BodyItem::create();
@@ -263,8 +267,8 @@ void WorkspaceBrowser::update_current_group(const std::map<UUID, DocumentView> &
         auto &doci = m_core.get_idocument_info(it_doc.m_uuid);
         auto &doc_view = doc_views.at(doci.get_uuid());
         const auto is_current_doc = doci.get_uuid() == m_core.get_current_idocument_info().get_uuid();
-        it_doc.m_check_sensitive = !is_current_doc;
-        it_doc.m_check_active = is_current_doc || doc_view.document_is_visible();
+        it_doc.m_check_sensitive = true;
+        it_doc.m_check_active = doc_view.document_is_visible();
         it_doc.m_active = is_current_doc;
         update_name(it_doc, doci);
         const auto &doc = doci.get_document();
@@ -278,12 +282,8 @@ void WorkspaceBrowser::update_current_group(const std::map<UUID, DocumentView> &
         for (size_t i_body = 0; i_body < it_doc.m_body_store->get_n_items(); i_body++) {
             auto &it_body = *it_doc.m_body_store->get_item(i_body);
             const bool is_current_body = body_uu == it_body.m_uuid && is_current_doc;
-            it_body.m_check_sensitive = (body_uu != it_body.m_uuid) || !is_current_doc;
-
-            if (is_current_body)
-                it_body.m_check_active = true;
-            else
-                it_body.m_check_active = doc_view.body_is_visible(it_body.m_uuid);
+            it_body.m_check_sensitive = true;
+            it_body.m_check_active = doc_view.body_is_visible(it_body.m_uuid);
 
             it_body.m_solid_model_active = doc_view.body_solid_model_is_visible(it_body.m_uuid);
             it_body.m_expanded = doc_view.body_is_expanded(it_body.m_uuid) | is_current_body;
@@ -297,11 +297,7 @@ void WorkspaceBrowser::update_current_group(const std::map<UUID, DocumentView> &
                 it_group.m_dof = gr.m_dof;
                 it_group.m_name = gr.m_name;
                 it_group.m_source_group = source_groups.contains(it_group.m_uuid);
-                if (is_current && is_current_doc) {
-                    it_group.m_check_active = true;
-                    it_group.m_check_sensitive = false;
-                }
-                else if (after_active) {
+                if (after_active) { // not built yet at this point of the history
                     it_group.m_check_active = false;
                     it_group.m_check_sensitive = false;
                 }
@@ -448,6 +444,10 @@ public:
         m_label->set_halign(Gtk::Align::START);
         m_label->set_has_tooltip();
 
+        m_screens_label = Gtk::make_managed<Gtk::Label>();
+        m_screens_label->add_css_class("dim-label");
+        m_screens_label->add_css_class("document-screens");
+
         m_source_group_image = Gtk::make_managed<Gtk::Image>();
         m_source_group_image->set_hexpand(true);
         m_source_group_image->set_from_icon_name("action-link-symbolic");
@@ -509,6 +509,7 @@ public:
         box2->append(*m_source_group_image);
         box->append(*box2);
 
+        box->append(*m_screens_label);
         box->append(*m_status_button);
         box->append(*m_close_button);
         box->append(*m_dof_label);
@@ -550,11 +551,17 @@ public:
     {
         m_doc = &it;
         m_browser.block_signals();
-        m_checkbutton->set_visible(true);
+        m_checkbutton->set_visible(!m_browser.m_one_document_per_screen);
         m_solid_toggle->set_visible(false);
         m_dof_label->set_visible(false);
         m_status_button->set_visible(false);
         m_close_button->set_visible(true);
+        m_screens_label->set_visible(it.m_screens.get_value().size());
+        m_bindings.push_back(Glib::Binding::bind_property_value(it.m_screens.get_proxy(),
+                                                                m_screens_label->property_label(),
+                                                                Glib::Binding::Flags::SYNC_CREATE));
+        m_connections.push_back(it.m_screens.get_proxy().signal_changed().connect(
+                [this, &it] { m_screens_label->set_visible(it.m_screens.get_value().size()); }));
         m_source_group_image->set_visible(false);
         m_label->set_attributes(m_attrs_normal);
         m_bindings.push_back(Glib::Binding::bind_property_value(
@@ -585,6 +592,8 @@ public:
     {
         m_browser.block_signals();
         m_body = &it;
+        m_checkbutton->set_visible(true);
+        m_screens_label->set_visible(false);
         m_checkbutton->set_active(true);
         m_checkbutton->set_sensitive(true);
         m_solid_toggle->set_visible(true);
@@ -632,6 +641,8 @@ public:
     void bind(GroupItem &it)
     {
         m_browser.block_signals();
+        m_checkbutton->set_visible(true);
+        m_screens_label->set_visible(false);
         m_solid_toggle->set_visible(false);
         m_dof_label->set_visible(true);
         m_status_button->set_visible(true);
@@ -691,6 +702,7 @@ private:
     Gtk::CheckButton *m_checkbutton = nullptr;
     SolidModelToggleButton *m_solid_toggle = nullptr;
     Gtk::Label *m_label = nullptr;
+    Gtk::Label *m_screens_label = nullptr;
     Gtk::Image *m_source_group_image = nullptr;
     Gtk::Label *m_dof_label = nullptr;
     Gtk::MenuButton *m_status_button = nullptr;

@@ -1,5 +1,6 @@
 #pragma once
 #include <gtkmm.h>
+#include <functional>
 #include "util/uuid.hpp"
 #include "document/group/group.hpp"
 #include "document/document.hpp"
@@ -23,6 +24,13 @@ public:
     {
         m_show_other_documents = show;
     }
+    // on: just the current document is listed, without a checkbox
+    void set_one_document_per_screen(bool one)
+    {
+        m_one_document_per_screen = one;
+    }
+    // the screens (tabs) a document is shown in, for its row; empty = nothing to show
+    std::function<std::string(const UUID &)> m_screens_text;
 
 
     using type_signal_group_selected = sigc::signal<void(UUID, UUID)>;
@@ -183,6 +191,7 @@ private:
     void unblock_signals();
     unsigned int m_blocked_count = 0;
     bool m_show_other_documents = false;
+    bool m_one_document_per_screen = false;
 
     void select_group(const UUID &doc_uu, const UUID &uu);
 

@@ -52,6 +52,7 @@ public:
         unsigned int autosave_minutes = 3;
         bool palette_folded = false;        // the tool palette over the 3D view
         bool show_other_documents = false; // documents hidden from the 3D view still in the side list
+        bool one_document_per_screen = false; // each tab shows only its own document
         // where movable panels ("palette", "layers") were dragged to, in pixels from the 3D view's
         // top left; x < 0: where they start out. "layers" floats over the view or sits in the sidebar
         struct PanelPlace {
