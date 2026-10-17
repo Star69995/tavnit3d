@@ -2,7 +2,7 @@
 DISTDIR=dist/dune3d
 rm -rf dist
 mkdir -p $DISTDIR
-cp build/dune3d.exe $DISTDIR
+cp ${BUILD_DIR:-build}/dune3d.exe $DISTDIR
 strip $DISTDIR/dune3d.exe
 LIBS=(
 	libwinpthread-1.dll\

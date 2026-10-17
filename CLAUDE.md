@@ -24,6 +24,9 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 - `tools\build.cmd test` also runs `meson test` (tests live in `tests/`).
 - `tools\build.cmd dist` makes the portable folder `dist/dune3d/` (+ zip);
   `dist/dune3d/dune3d.exe` runs without MSYS2.
+- `build/` is a debug build (-O0, assertions) for development. `dist` and
+  `installer` build, test and package an optimised `build-release/`
+  (`--buildtype=release`) instead, so what's released isn't the debug one.
 - meson crashes with "Could not determine home directory" if `HOME` /
   `USERPROFILE` are unset; `tools/build.sh` sets them.
 
