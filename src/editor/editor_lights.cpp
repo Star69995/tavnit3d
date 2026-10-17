@@ -123,7 +123,7 @@ void Editor::delete_light(const UUID &doc_uu, const UUID &light_uu)
     m_core.rebuild("delete light");
     canvas_update_keep_selection();
     if (m_object_editor) {
-        m_group_editor_box->remove(*m_object_editor);
+        remove_from_side_panel(*m_object_editor);
         m_object_editor = nullptr;
     }
     m_object_editor_light = UUID();
@@ -135,11 +135,11 @@ void Editor::show_light_editor(const UUID &doc_uu, const UUID &light_uu)
     if (m_group_editor) {
         if (m_delayed_commit_connection.connected())
             commit_from_editor();
-        m_group_editor_box->remove(*m_group_editor);
+        remove_from_side_panel(*m_group_editor);
         m_group_editor = nullptr;
     }
     if (m_object_editor) {
-        m_group_editor_box->remove(*m_object_editor);
+        remove_from_side_panel(*m_object_editor);
         m_object_editor = nullptr;
     }
     auto &doc = m_core.get_idocument_info(doc_uu).get_document();

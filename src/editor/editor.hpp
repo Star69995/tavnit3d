@@ -244,6 +244,9 @@ private:
     // a +/- button that's still getting clicks crashed GTK. go_to_last: first make the last group
     // the current one, so a new step (rounding, hollow) is shown.
     void schedule_object_panel_refresh(unsigned int ms = 300, bool go_to_last = false);
+    // takes a panel (object panel, group editor) out of the side bar; the keyboard focus leaves
+    // it first, GTK's text input could otherwise go on using a field that's gone
+    void remove_from_side_panel(Gtk::Widget &panel);
     sigc::connection m_object_panel_refresh_connection;
     bool m_object_panel_go_to_last = false;
     static Gtk::SpinButton &make_dimension_spin(const class IConstraintDatum &datum, const ObjectDimension &dim);

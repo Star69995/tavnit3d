@@ -3,6 +3,8 @@
 #include "util/branding.hpp"
 #include "util/crash_report.hpp"
 #include "util/util.hpp"
+#include <string>
+#include <cstdlib>
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -28,6 +30,13 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef _WIN32
+    // GTK's Windows input method (for composing East Asian text) crashed on a text field that
+    // was gone; typing Hebrew, English ... works the same with GTK's own
+    if (!getenv("GTK_IM_MODULE"))
+        _putenv_s("GTK_IM_MODULE", "simple");
+    // the crash report's message, from a process of its own: see util/crash_report.cpp
+    if (argc == 2 && std::string(argv[1]) == "--crash-report")
+        return dune3d::show_crash_message(dune3d::get_config_dir() / "crashes");
     // lets the installer wait until running copies are closed before updating files
     CreateMutexA(nullptr, FALSE, dune3d::app_mutex);
 #endif

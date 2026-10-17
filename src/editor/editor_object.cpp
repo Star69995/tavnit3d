@@ -55,7 +55,7 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
     if (m_group_editor) {
         if (m_delayed_commit_connection.connected())
             commit_from_editor();
-        m_group_editor_box->remove(*m_group_editor);
+        remove_from_side_panel(*m_group_editor);
         m_group_editor = nullptr;
     }
     // the panel is rebuilt after every change: keep the focus on the same field
@@ -76,7 +76,7 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         }
     }
     if (m_object_editor) {
-        m_group_editor_box->remove(*m_object_editor);
+        remove_from_side_panel(*m_object_editor);
         m_object_editor = nullptr;
     }
     auto &doc = m_core.get_idocument_info(doc_uu).get_document();
@@ -571,7 +571,7 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         const UUID last_group = groups.size() ? groups.back()->m_uuid : body_uu;
         features->signal_clicked().connect([this, doc_uu, last_group] {
             if (m_object_editor) {
-                m_group_editor_box->remove(*m_object_editor);
+                remove_from_side_panel(*m_object_editor);
                 m_object_editor = nullptr;
             }
             on_workspace_browser_group_selected(doc_uu, last_group);
@@ -838,7 +838,7 @@ void Editor::delete_body(const UUID &doc_uu, const UUID &body_uu)
         return;
 
     if (m_object_editor) {
-        m_group_editor_box->remove(*m_object_editor);
+        remove_from_side_panel(*m_object_editor);
         m_object_editor = nullptr;
     }
     CanvasUpdater canvas_updater{*this};

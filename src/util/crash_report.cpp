@@ -82,20 +82,18 @@ void report(const std::string &what)
         saved = true;
     }
 
-    std::string text = std::string(app_name) + " ran into an error and has to close.\n\n" + what + "\n\n";
-    text += "Unsaved work is backed up every few minutes and offered again at the next start.\n\n";
-    if (saved) {
-        char path[MAX_PATH + 64];
-        WideCharToMultiByte(CP_UTF8, 0, file, -1, path, sizeof(path), nullptr, nullptr);
-        text += std::string("The details are in:\n") + path + "\n\n";
+    // the message comes from a new process, see show_crash_message
+    wchar_t exe[MAX_PATH];
+    GetModuleFileNameW(nullptr, exe, MAX_PATH);
+    std::wstring cmd = L"\"" + std::wstring(exe) + L"\" --crash-report";
+    STARTUPINFOW si = {};
+    si.cb = sizeof(si);
+    PROCESS_INFORMATION pi = {};
+    if (CreateProcessW(exe, cmd.data(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi)) {
+        CloseHandle(pi.hThread);
+        CloseHandle(pi.hProcess);
     }
-    text += "Open the problem report page, to tell us about it?";
-    wchar_t wtext[4096];
-    MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, wtext, 4096);
-    wchar_t wtitle[128];
-    MultiByteToWideChar(CP_UTF8, 0, app_name, -1, wtitle, 128);
-    if (MessageBoxW(nullptr, wtext, wtitle, MB_YESNO | MB_ICONERROR | MB_TOPMOST | MB_SETFOREGROUND) == IDYES)
-        ShellExecuteA(nullptr, "open", issues_url, nullptr, nullptr, SW_SHOWNORMAL);
+    (void)saved;
 }
 
 LONG WINAPI on_exception(EXCEPTION_POINTERS *ep)
@@ -129,6 +127,46 @@ void on_terminate()
 }
 } // namespace
 
+int show_crash_message(const std::filesystem::path &dir)
+{
+    // the newest report
+    std::filesystem::path newest;
+    std::filesystem::file_time_type newest_time;
+    std::error_code ec;
+    for (const auto &e : std::filesystem::directory_iterator(dir, ec)) {
+        if (e.path().extension() == ".txt" && (newest.empty() || e.last_write_time() > newest_time)) {
+            newest = e.path();
+            newest_time = e.last_write_time();
+        }
+    }
+    std::string what;
+    if (FILE *f = newest.empty() ? nullptr : _wfopen(newest.wstring().c_str(), L"rb")) {
+        char line[512];
+        // "... crashed", "", then what happened
+        for (int i = 0; i < 3 && fgets(line, sizeof(line), f); i++)
+            what = line;
+        fclose(f);
+        while (what.size() && (what.back() == '\n' || what.back() == '\r'))
+            what.pop_back();
+    }
+    std::string text = std::string(app_name) + " ran into an error and had to close.\n\n";
+    if (what.size())
+        text += what + "\n\n";
+    text += "Unsaved work is backed up every few minutes and offered again at the next start.\n\n";
+    if (!newest.empty()) {
+        const auto p = newest.u8string();
+        text += "The details are in:\n" + std::string(p.begin(), p.end()) + "\n\n";
+    }
+    text += "Open the problem report page, to tell us about it?";
+    wchar_t wtext[4096];
+    MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, wtext, 4096);
+    wchar_t wtitle[128];
+    MultiByteToWideChar(CP_UTF8, 0, app_name, -1, wtitle, 128);
+    if (MessageBoxW(nullptr, wtext, wtitle, MB_YESNO | MB_ICONERROR | MB_TOPMOST | MB_SETFOREGROUND) == IDYES)
+        ShellExecuteA(nullptr, "open", issues_url, nullptr, nullptr, SW_SHOWNORMAL);
+    return 0;
+}
+
 void install_crash_report(const std::filesystem::path &dir)
 {
     std::error_code ec;
@@ -140,6 +178,11 @@ void install_crash_report(const std::filesystem::path &dir)
 #else
 void install_crash_report(const std::filesystem::path &)
 {
+}
+
+int show_crash_message(const std::filesystem::path &)
+{
+    return 0;
 }
 #endif
 

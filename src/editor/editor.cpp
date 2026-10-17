@@ -1355,14 +1355,14 @@ void Editor::do_close_document(const UUID &doc_uu)
 void Editor::update_group_editor()
 {
     if (m_object_editor) {
-        m_group_editor_box->remove(*m_object_editor);
+        remove_from_side_panel(*m_object_editor);
         m_object_editor = nullptr;
     }
     if (m_group_editor) {
         if (m_delayed_commit_connection.connected()) {
             commit_from_editor();
         }
-        m_group_editor_box->remove(*m_group_editor);
+        remove_from_side_panel(*m_group_editor);
         m_group_editor = nullptr;
     }
     if (!m_core.has_documents())
@@ -2115,6 +2115,17 @@ void Editor::schedule_object_panel_refresh(unsigned int ms, bool go_to_last)
                 return false;
             },
             ms);
+}
+
+void Editor::remove_from_side_panel(Gtk::Widget &panel)
+{
+    for (auto w = m_win.get_focus(); w; w = w->get_parent()) {
+        if (w == &panel) {
+            get_canvas().grab_focus();
+            break;
+        }
+    }
+    m_group_editor_box->remove(panel);
 }
 
 } // namespace dune3d
