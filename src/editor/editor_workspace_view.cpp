@@ -1,5 +1,6 @@
 #include "editor.hpp"
 #include "dune3d_appwindow.hpp"
+#include "dune3d_application.hpp"
 #include "canvas/canvas.hpp"
 #include "workspace_browser.hpp"
 #include "nlohmann/json.hpp"
@@ -156,6 +157,14 @@ void Editor::auto_close_workspace_views()
 }
 
 
+void Editor::update_workspace_tabs_visible()
+{
+    auto &nb = m_win.get_workspace_notebook();
+    // simple: the tab bar only shows once a second tab exists, else it would be impossible to get back
+    // to the first one
+    nb.set_show_tabs(!m_win.get_app().m_user_config.simple_ui || nb.get_n_pages() > 1);
+}
+
 void Editor::update_workspace_view_names()
 {
     std::map<std::string, unsigned int> name_count;
@@ -182,6 +191,7 @@ void Editor::update_workspace_view_names()
         dynamic_cast<Dune3DAppWindow::WorkspaceTabLabel &>(*m_win.get_workspace_notebook().get_tab_label(it))
                 .set_label(name);
     }
+    update_workspace_tabs_visible();
 }
 
 void Editor::set_current_workspace_view(const UUID &uu)

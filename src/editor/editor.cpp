@@ -115,6 +115,7 @@ void Editor::init()
             }
         }
         m_win.get_workspace_notebook().set_visible(m_core.has_documents());
+        update_workspace_tabs_visible();
         CanvasUpdater canvas_updater{*this};
         m_workspace_browser->update_documents(get_current_document_views());
         update_group_editor();
@@ -323,6 +324,7 @@ void Editor::init_view_options()
         auto &config = m_win.get_app().m_user_config;
         m_workspace_browser->set_show_other_documents(config.show_other_documents);
         m_workspace_browser->set_one_document_per_screen(config.one_document_per_screen);
+        m_workspace_browser->set_simple(config.simple_ui);
         m_workspace_browser->m_screens_text = [this](const UUID &doc) { return get_document_screens(doc); };
         auto other = m_win.add_action_bool("show_other_documents", config.show_other_documents);
         other->set_enabled(!config.one_document_per_screen);
@@ -344,6 +346,17 @@ void Editor::init_view_options()
             CanvasUpdater canvas_updater{*this};
             if (m_core.has_documents())
                 m_workspace_browser->update_documents(get_current_document_views());
+        });
+        auto simple = m_win.add_action_bool("simple_ui", config.simple_ui);
+        simple->signal_change_state().connect([this, simple](const Glib::VariantBase &v) {
+            const auto b = Glib::VariantBase::cast_dynamic<Glib::Variant<bool>>(v).get();
+            m_win.get_app().m_user_config.simple_ui = b;
+            simple->set_state(Glib::Variant<bool>::create(b));
+            m_workspace_browser->set_simple(b);
+            CanvasUpdater canvas_updater{*this};
+            if (m_core.has_documents())
+                m_workspace_browser->update_documents(get_current_document_views());
+            update_workspace_tabs_visible();
         });
     }
     m_snap_to_grid_action = m_win.add_action_bool("snap_to_grid", true);
@@ -368,6 +381,7 @@ void Editor::init_view_options()
     m_view_options_menu->append("Perspective projection", "win.perspective");
     m_view_options_menu->append("Studio lighting", "win.studio_lighting");
     m_view_options_menu->append("Sketch lines of other objects", "win.show_other_sketches");
+    m_view_options_menu->append("Simple toolbars (no documents)", "win.simple_ui");
     m_view_options_menu->append("One document per screen", "win.one_document_per_screen");
     m_view_options_menu->append("Hidden documents in the list", "win.show_other_documents");
     {
@@ -1586,7 +1600,8 @@ void Editor::render_document(const IDocumentInfo &doc)
     const bool is_current_doc = doc.get_uuid() == m_core.get_current_idocument_info().get_uuid();
     if (!doc_view.m_document_is_visible)
         return;
-    if (!is_current_doc && m_win.get_app().m_user_config.one_document_per_screen)
+    if (!is_current_doc
+        && (m_win.get_app().m_user_config.one_document_per_screen || m_win.get_app().m_user_config.simple_ui))
         return;
     std::optional<SelectableRef> sr;
     if (!is_current_doc) {

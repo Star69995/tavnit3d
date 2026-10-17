@@ -157,7 +157,7 @@ void WorkspaceBrowser::update_documents(const std::map<UUID, DocumentView> &doc_
     auto store = Gio::ListStore<DocumentItem>::create();
     for (auto doci : m_core.get_documents()) {
         if (m_core.has_documents() && doci->get_uuid() != m_core.get_current_idocument_info().get_uuid()) {
-            if (m_one_document_per_screen)
+            if (m_one_document_per_screen || m_simple)
                 continue;
             auto doc_view = doc_views.find(doci->get_uuid());
             if (!m_show_other_documents && (doc_view == doc_views.end() || !doc_view->second.document_is_visible()))
@@ -192,7 +192,18 @@ void WorkspaceBrowser::update_documents(const std::map<UUID, DocumentView> &doc_
         store->append(mi);
     }
     m_document_store = store;
-    m_model = Gtk::TreeListModel::create(m_document_store, sigc::mem_fun(*this, &WorkspaceBrowser::create_model),
+    Glib::RefPtr<Gio::ListModel> root = m_document_store;
+    if (m_simple) {
+        // no document rows: the objects of the document are the top of the list
+        auto flat = Gio::ListStore<BodyItem>::create();
+        for (size_t i_doc = 0; i_doc < m_document_store->get_n_items(); i_doc++) {
+            auto &bodies = *m_document_store->get_item(i_doc)->m_body_store;
+            for (size_t i_body = 0; i_body < bodies.get_n_items(); i_body++)
+                flat->append(bodies.get_item(i_body));
+        }
+        root = flat;
+    }
+    m_model = Gtk::TreeListModel::create(root, sigc::mem_fun(*this, &WorkspaceBrowser::create_model),
                                          /* passthrough */ false, /* autoexpand */ true);
     m_selection_model->set_model(m_model);
     unblock_signals();
@@ -427,14 +438,95 @@ private:
     std::optional<Gdk::RGBA> m_body_color;
 };
 
+// the "shown / hidden" switch of a row: an eye, crossed out when hidden. The tooltip says what the
+// row's eye does and what state it is in, since it means something a little different for a
+// document, an object and a step.
+class EyeToggleButton : public Gtk::ToggleButton {
+public:
+    EyeToggleButton()
+    {
+        add_css_class("eye-toggle-button");
+        set_has_frame(false);
+        set_valign(Gtk::Align::CENTER);
+        m_area = Gtk::make_managed<Gtk::DrawingArea>();
+        m_area->set_content_height(16);
+        m_area->set_content_width(18);
+        m_area->set_valign(Gtk::Align::CENTER);
+        m_area->set_draw_func(sigc::mem_fun(*this, &EyeToggleButton::render_icon));
+        set_child(*m_area);
+        signal_toggled().connect(sigc::mem_fun(*this, &EyeToggleButton::update));
+        property_sensitive().signal_changed().connect(sigc::mem_fun(*this, &EyeToggleButton::update));
+    }
+
+    // what showing/hiding does for this kind of row
+    void set_what(const Glib::ustring &what)
+    {
+        m_what = what;
+        update();
+    }
+
+    // greyed-out rows say why
+    void set_insensitive_reason(const Glib::ustring &reason)
+    {
+        m_reason = reason;
+        update();
+    }
+
+private:
+    void update()
+    {
+        m_area->queue_draw();
+        if (m_what.empty())
+            return;
+        if (!get_sensitive() && !m_reason.empty())
+            set_tooltip_text(m_reason);
+        else
+            set_tooltip_text(m_what + (get_active() ? "\nNow: shown. Click to hide." : "\nNow: hidden. Click to show."));
+    }
+
+    void render_icon(const Cairo::RefPtr<Cairo::Context> &cr, int w, int h)
+    {
+        auto color = get_color();
+        if (!get_active())
+            color.set_alpha(color.get_alpha() * .55);
+        Gdk::Cairo::set_source_rgba(cr, color);
+        cr->set_line_width(1.3);
+        cr->set_line_cap(Cairo::Context::LineCap::ROUND);
+        cr->set_line_join(Cairo::Context::LineJoin::ROUND);
+        const double cx = w / 2., cy = h / 2.;
+        // the almond shape of the eye
+        cr->move_to(1, cy);
+        cr->curve_to(5, cy - 6, w - 5, cy - 6, w - 1, cy);
+        cr->curve_to(w - 5, cy + 6, 5, cy + 6, 1, cy);
+        cr->close_path();
+        cr->stroke();
+        if (get_active()) {
+            cr->arc(cx, cy, 2.4, 0, 2 * M_PI);
+            cr->fill();
+        }
+        else {
+            // crossed out
+            cr->move_to(3, h - 2);
+            cr->line_to(w - 3, 2);
+            cr->stroke();
+        }
+    }
+
+    Gtk::DrawingArea *m_area = nullptr;
+    Glib::ustring m_what;
+    Glib::ustring m_reason;
+};
+
 class WorkspaceBrowser::WorkspaceRow : public Gtk::TreeExpander {
 public:
     WorkspaceRow(WorkspaceBrowser &browser) : m_browser(browser)
     {
-        m_checkbutton = Gtk::make_managed<Gtk::CheckButton>();
+        m_checkbutton = Gtk::make_managed<EyeToggleButton>();
         m_checkbutton->set_active(true);
 
         m_solid_toggle = Gtk::make_managed<SolidModelToggleButton>();
+        m_solid_toggle->set_tooltip_text(
+                "Show or hide only the solid shape of this object.\nIts sketch lines stay visible, so you can still see and edit them.");
         m_solid_toggle->signal_toggled().connect([this] {
             m_browser.signal_body_solid_model_checked().emit(m_body->m_doc, m_body->m_uuid,
                                                              m_solid_toggle->get_active());
@@ -551,6 +643,8 @@ public:
     {
         m_doc = &it;
         m_browser.block_signals();
+        m_checkbutton->set_what("Show or hide this whole document in the 3D view.");
+        m_checkbutton->set_insensitive_reason("");
         m_checkbutton->set_visible(!m_browser.m_one_document_per_screen);
         m_solid_toggle->set_visible(false);
         m_dof_label->set_visible(false);
@@ -592,6 +686,10 @@ public:
     {
         m_browser.block_signals();
         m_body = &it;
+        m_checkbutton->set_what(
+                "Show or hide this object: its shape and its sketch lines.\nA hidden object has no resize handles and isn't exported.");
+        m_checkbutton->set_insensitive_reason("");
+        set_tooltip_text("Click to select this object and change it in the panel.\nRight-click for more (rename, colour, move, delete).");
         m_checkbutton->set_visible(true);
         m_screens_label->set_visible(false);
         m_checkbutton->set_active(true);
@@ -641,6 +739,12 @@ public:
     void bind(GroupItem &it)
     {
         m_browser.block_signals();
+        m_checkbutton->set_what(
+                "Show or hide this step in the 3D view.\nHiding the step that makes the shape shows the object as it was before it.");
+        m_checkbutton->set_insensitive_reason(
+                "This step comes after the one you are on, so it isn't built yet.\nClick the step to go forward to it.");
+        set_tooltip_text(
+                "Click to go to this step. The steps after it wait (greyed out) until you pick them again.\nNothing is deleted. The number on the right is the degrees of freedom the sketch still has.");
         m_checkbutton->set_visible(true);
         m_screens_label->set_visible(false);
         m_solid_toggle->set_visible(false);
@@ -689,6 +793,7 @@ public:
         m_doc = nullptr;
         remove_css_class("document-row");
         remove_css_class("document-row-current");
+        set_tooltip_text("");
         set_hide_expander(false);
     }
 
@@ -699,7 +804,7 @@ private:
     const GroupItem *m_group = nullptr;
     const BodyItem *m_body = nullptr;
 
-    Gtk::CheckButton *m_checkbutton = nullptr;
+    EyeToggleButton *m_checkbutton = nullptr;
     SolidModelToggleButton *m_solid_toggle = nullptr;
     Gtk::Label *m_label = nullptr;
     Gtk::Label *m_screens_label = nullptr;

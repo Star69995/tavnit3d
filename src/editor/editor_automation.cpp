@@ -48,6 +48,8 @@ namespace dune3d {
  *   render-window            open the render window (then "button Render", "shotwin Render picture PATH")
  *   layout PATH              write where the picked object and the panel's number fields are
  *   handles                  print where the picked object's resize handles are, in window pixels
+ *   hide NAME / show NAME    the eye of the object called NAME in the list
+ *   handles-count N          fail unless the picked object has N resize handles (0 when it is hidden)
  *   check-solids             fail if a step that makes a solid has none ("not done")
  *   groups                   print the current document's groups, their solids and messages
  *   find TEXT                open Find with this typed in (then "shotwin Find PATH", "key Return")
@@ -265,6 +267,24 @@ void Editor::run_automation(const std::filesystem::path &script)
                         out = in;
                     std::cerr << "automation: handle " << h.label << " " << (int)out.x << " " << (int)out.y << std::endl;
                 }
+            }
+            else if (cmd == "handles-count") {
+                const auto n = get_object_handles().size();
+                if (n != std::stoul(rest))
+                    throw std::runtime_error("expected " + rest + " handles, there are " + std::to_string(n));
+            }
+            else if (cmd == "hide" || cmd == "show") {
+                bool found = false;
+                for (auto gr : m_core.get_current_document().get_groups_sorted()) {
+                    if (gr->m_body.has_value() && gr->m_body->m_name == rest) {
+                        on_workspace_browser_body_checked(m_core.get_current_idocument_info().get_uuid(), gr->m_uuid,
+                                                          cmd == "show");
+                        found = true;
+                    }
+                }
+                if (!found)
+                    throw std::runtime_error("no object " + rest);
+                delay = 400;
             }
             else if (cmd == "groups") {
                 auto &doc = m_core.get_current_document();

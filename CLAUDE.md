@@ -127,6 +127,17 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   a raised part's own workplane origin (moving it needs generate pending, or
   the extrusion flips) or X/Y dims. Picking a part in the panel shows its
   handles (`m_object_editor_part`); a joined object drags as a whole.
+- Eye switches and simple view (`EyeToggleButton` in `workspace_browser.cpp`, `UserConfig::simple_ui`,
+  View > Simple toolbars): the list's show/hide switch is an eye (a cairo-drawn toggle, crossed out when
+  hidden) with a tooltip per row kind (document / object / step) and a reason when greyed out; the cube
+  next to an object's eye hides only the solid, the sketch lines stay. Rows have hover texts too (an
+  object: select + right-click; a step: click goes back to it, later steps wait greyed). A hidden object
+  (eye or cube off, `Editor::body_is_shown`) has no resize handles. Simple view: no document rows (the
+  tree's root is the current document's objects, `WorkspaceBrowser::set_simple`), other documents not
+  drawn, tab bar shown only while there are 2+ tabs (`Editor::update_workspace_tabs_visible`). The
+  installer's toolbars page writes `%APPDATA%/dune3d/install_options.json` (`{"simple_ui": bool}`),
+  which the app takes over once at start and deletes. Automation: `hide NAME`, `show NAME`,
+  `handles-count N`; test `tests/ui/simple.txt`.
 - Movable panels (`src/dune3d_appwindow_panels.cpp`): the tool palette and the layers list
   (workspace browser, `Dune3DAppWindow::set_layers_panel`) have a grip you drag. One capture
   `GestureDrag` on the window handles all of them (`m_panels`); dragging the layers header out of

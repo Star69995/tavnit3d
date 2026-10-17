@@ -38,6 +38,9 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
     auto &doc = m_core.get_current_idocument_info().get_document();
     if (!doc.get_groups().contains(m_object_editor_body))
         return handles;
+    // nothing to grab on an object that is hidden (eye / solid switch in the list)
+    if (!body_is_shown(m_object_editor_body))
+        return handles;
     // a part of a joined object, when one is picked in the panel
     const auto body = m_object_editor_part && doc.get_groups().contains(m_object_editor_part) ? m_object_editor_part
                                                                                               : m_object_editor_body;

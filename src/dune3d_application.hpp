@@ -53,6 +53,9 @@ public:
         bool palette_folded = false;        // the tool palette over the 3D view
         bool show_other_documents = false; // documents hidden from the 3D view still in the side list
         bool one_document_per_screen = false; // each tab shows only its own document
+        // for beginners: no documents in the side list, and no tab bar while there is one tab. The
+        // installer's choice (install_options.json in the config folder) is taken over once.
+        bool simple_ui = false;
         // where movable panels ("palette", "layers") were dragged to, in pixels from the 3D view's
         // top left; x < 0: where they start out. "layers" floats over the view or sits in the sidebar
         struct PanelPlace {

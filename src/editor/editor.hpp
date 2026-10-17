@@ -453,6 +453,7 @@ private:
     UUID create_workspace_view_from_current();
     void set_current_workspace_view(const UUID &uu);
     void update_workspace_view_names();
+    void update_workspace_tabs_visible();
     void update_can_close_workspace_view_pages();
     // "Screen 2" / "Screens 1, 2": the tabs (counted from the left) a document is shown in; empty with one tab
     std::string get_document_screens(const UUID &doc_uu);

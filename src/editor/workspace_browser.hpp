@@ -29,6 +29,11 @@ public:
     {
         m_one_document_per_screen = one;
     }
+    // on: no document rows, the objects of the current document are the top of the list
+    void set_simple(bool simple)
+    {
+        m_simple = simple;
+    }
     // the screens (tabs) a document is shown in, for its row; empty = nothing to show
     std::function<std::string(const UUID &)> m_screens_text;
 
@@ -192,6 +197,7 @@ private:
     unsigned int m_blocked_count = 0;
     bool m_show_other_documents = false;
     bool m_one_document_per_screen = false;
+    bool m_simple = false;
 
     void select_group(const UUID &doc_uu, const UUID &uu);
 

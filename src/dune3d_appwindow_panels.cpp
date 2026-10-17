@@ -251,7 +251,7 @@ void Dune3DAppWindow::set_panel_floating(MovablePanel &panel, bool floating)
     auto &w = *panel.widget;
     g_object_ref(w.gobj()); // keep it alive between the two parents
     if (floating) {
-        m_left_bar->unset_start_child();
+        gtk_paned_set_start_child(m_left_bar->gobj(), nullptr); // gtkmm < 4.12 has no unset_start_child
         w.set_halign(Gtk::Align::START);
         w.set_valign(Gtk::Align::START);
         w.set_size_request(floating_layers_width, floating_layers_height);

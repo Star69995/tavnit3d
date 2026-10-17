@@ -1,0 +1,26 @@
+# Eye switches and the simple view: hiding an object takes its resize handles away,
+# showing it brings them back; the simple view (no document rows, no tab bar) works with objects.
+action NEW_DOCUMENT
+wait 800
+button Box
+wait 800
+tree Box
+handles-count 5
+hide Box
+handles-count 0
+show Box
+handles-count 5
+winaction simple_ui
+wait 600
+tree Box
+handles-count 5
+hide Box
+handles-count 0
+show Box
+button Cylinder
+wait 800
+tree Cylinder
+winaction simple_ui
+wait 600
+tree Cylinder
+quit

@@ -100,6 +100,21 @@ void Dune3DApplication::on_startup()
     if (std::filesystem::is_regular_file(get_user_config_filename())) {
         m_user_config.load(get_user_config_filename());
     }
+    // the installer asks "all toolbars or simple ones?" and leaves the answer in a small file here;
+    // it is applied once, so the menu choice made later in the app wins
+    {
+        const auto options = get_config_dir() / "install_options.json";
+        std::error_code ec;
+        if (std::filesystem::is_regular_file(options, ec)) {
+            try {
+                m_user_config.simple_ui = load_json_from_file(options).value("simple_ui", m_user_config.simple_ui);
+            }
+            catch (...) {
+                // a broken file is just ignored
+            }
+            std::filesystem::remove(options, ec);
+        }
+    }
 
     m_log_window = new LogWindow();
     m_log_window->set_hide_on_close(true);
@@ -210,6 +225,7 @@ void Dune3DApplication::UserConfig::load(const std::filesystem::path &filename)
     palette_folded = j.value("palette_folded", false);
     show_other_documents = j.value("show_other_documents", false);
     one_document_per_screen = j.value("one_document_per_screen", false);
+    simple_ui = j.value("simple_ui", false);
     if (j.count("panels")) {
         for (const auto &[name, v] : j.at("panels").items())
             panels[name] = {v.value("floating", false), v.value("x", -1), v.value("y", -1)};
@@ -243,6 +259,7 @@ void Dune3DApplication::UserConfig::save(const std::filesystem::path &filename)
     j["palette_folded"] = palette_folded;
     j["show_other_documents"] = show_other_documents;
     j["one_document_per_screen"] = one_document_per_screen;
+    j["simple_ui"] = simple_ui;
     for (const auto &[name, it] : panels)
         j["panels"][name] = {{"floating", it.floating}, {"x", it.x}, {"y", it.y}};
     if (!documents_dir.empty())

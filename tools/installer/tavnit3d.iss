@@ -1,4 +1,4 @@
-; Tavnit 3D installer (Inno Setup 6). Packs the portable build in dist\dune3d.
+﻿; Tavnit 3D installer (Inno Setup 6). Packs the portable build in dist\dune3d.
 ; Build: tools\build.cmd installer   (or: ISCC tools\installer\tavnit3d.iss)
 ; Silent update: Tavnit3D-<ver>-setup.exe /SILENT /SUPPRESSMSGBOXES /NORESTART [/RELAUNCH=1]
 
@@ -67,8 +67,50 @@ Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags
 ; the in-app updater passes /RELAUNCH=1 to get the new version started again
 Filename: "{app}\{#AppExe}"; Flags: nowait; Check: RelaunchRequested
 
+[CustomMessages]
+english.UiPageTitle=Toolbars
+english.UiPageSubtitle=Which toolbars should {#AppName} show?
+english.UiPageText=You can change this later in the View menu (Simple toolbars).
+english.UiAll=Show all toolbars (for people who already know what documents and tabs are)
+english.UiSimple=Show simple toolbars (for complete beginners: no documents list and no tab bar)
+hebrew.UiPageTitle=סרגלי כלים
+hebrew.UiPageSubtitle=אילו סרגלי כלים להציג ב-{#AppName}?
+hebrew.UiPageText=אפשר לשנות את זה אחר כך בתפריט תצוגה (Simple toolbars).
+hebrew.UiAll=להציג את כל הסרגלים (למי שכבר יודע מה זה מסמכים ולשוניות)
+hebrew.UiSimple=להציג סרגלי כלים פשוטים (למתחילים גמורים: בלי רשימת מסמכים ובלי סרגל לשוניות)
+
 [Code]
+var
+  UiPage: TInputOptionWizardPage;
+
 function RelaunchRequested: Boolean;
 begin
   Result := WizardSilent and (ExpandConstant('{param:RELAUNCH|0}') = '1');
+end;
+
+procedure InitializeWizard;
+begin
+  // all toolbars is the default; the simple ones are an opt-in
+  UiPage := CreateInputOptionPage(wpSelectTasks, CustomMessage('UiPageTitle'), CustomMessage('UiPageSubtitle'),
+    CustomMessage('UiPageText'), True, False);
+  UiPage.Add(CustomMessage('UiAll'));
+  UiPage.Add(CustomMessage('UiSimple'));
+  UiPage.SelectedValueIndex := 0;
+end;
+
+// the app picks this file up at its next start, once (see Dune3DApplication::on_startup)
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  Dir, Value: String;
+begin
+  if (CurStep = ssPostInstall) and not WizardSilent then
+  begin
+    Dir := ExpandConstant('{userappdata}\dune3d');
+    ForceDirectories(Dir);
+    if UiPage.SelectedValueIndex = 1 then
+      Value := 'true'
+    else
+      Value := 'false';
+    SaveStringToFile(Dir + '\install_options.json', '{"simple_ui": ' + Value + '}', False);
+  end;
 end;
