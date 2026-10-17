@@ -4,6 +4,12 @@
 #include "document/round_edges.hpp"
 #include "document/group/group_fillet.hpp"
 #include "combine.hpp"
+#include "document/solid_model/solid_model_occ.hpp"
+#include <BRepCheck_Analyzer.hxx>
+#include <BRepGProp.hxx>
+#include <GProp_GProps.hxx>
+#include <cmath>
+#include <algorithm>
 
 namespace dune3d {
 
@@ -67,6 +73,66 @@ GroupShell *set_hollow(Document &doc, const UUID &body, double thickness, GroupS
     doc.set_group_generate_pending(shell.m_uuid);
     repoint_combinations(doc, last.m_uuid, shell.m_uuid); // when not rounded, it's the new last step
     return &shell;
+}
+
+// the step worked: there's a solid, and a valid one (OCCT can make broken ones without saying so)
+static bool works(const SolidModel *sm)
+{
+    auto occ = dynamic_cast<const SolidModelOcc *>(sm);
+    if (!occ || occ->m_shape_acc.IsNull())
+        return false;
+    return BRepCheck_Analyzer(occ->m_shape_acc).IsValid();
+}
+
+static double volume(const SolidModel *sm)
+{
+    auto occ = dynamic_cast<const SolidModelOcc *>(sm);
+    if (!occ || occ->m_shape_acc.IsNull())
+        return 0;
+    GProp_GProps props;
+    BRepGProp::VolumeProperties(occ->m_shape_acc, props);
+    return props.Mass();
+}
+
+double get_max_round_edges(Document &doc, const UUID &body)
+{
+    if (auto shell = find_hollow(doc, body))
+        return std::floor(shell->m_thickness * 4.5) / 10;
+    return 1e9;
+}
+
+bool try_round_edges(Document &doc, const UUID &body, double radius, double fallback)
+{
+    radius = std::min(radius, get_max_round_edges(doc, body));
+    auto fillet = set_round_edges(doc, body, radius);
+    doc.update_pending();
+    if (radius <= 0 || (fillet && works(fillet->get_solid_model())))
+        return true;
+    set_round_edges(doc, body, std::min(fallback, radius));
+    doc.update_pending();
+    return false;
+}
+
+bool try_hollow(Document &doc, const UUID &body, double thickness, GroupShell::Open open, double fallback)
+{
+    auto shell = set_hollow(doc, body, thickness, open);
+    // thinner walls take less rounding
+    if (auto fillet = find_round_edges(doc, body); fillet && thickness > 0)
+        fillet->m_radius = std::min(fillet->m_radius, std::floor(thickness * 4.5) / 10);
+    doc.update_pending();
+    if (thickness <= 0)
+        return true;
+    if (shell && works(shell->get_solid_model())) {
+        // and it took something away: walls that meet in the middle can leave it as it was, or worse
+        const auto before = SolidModel::get_last_solid_model(doc, doc.get_group(doc.get_group_rel(shell->m_uuid, -1)),
+                                                             SolidModel::IncludeGroup::YES);
+        const auto v = volume(shell->get_solid_model()), v0 = volume(before);
+        if (v > 0 && (v0 <= 0 || v < v0 * .999))
+            return true;
+    }
+    set_hollow(doc, body, fallback, open);
+    doc.update_pending();
+    return false;
 }
 
 } // namespace dune3d

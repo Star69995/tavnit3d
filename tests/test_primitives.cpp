@@ -10,6 +10,7 @@
 #include "document/duplicate.hpp"
 #include "document/round_edges.hpp"
 #include "document/recipe.hpp"
+#include "document/hollow.hpp"
 #include "document/object_parts.hpp"
 #include "document/object_dimensions.hpp"
 #include "document/constraint/iconstraint_datum.hpp"
@@ -591,6 +592,43 @@ static void test_object_parts()
     }
 }
 
+// rounding and walls that don't fit go back to what worked, rather than leaving a broken object
+static void test_limits()
+{
+    std::cout << "limits" << std::endl;
+    {
+        Document doc;
+        auto &box = add_primitive(doc, doc.get_groups_sorted().back()->m_uuid, Primitive::BOX, {0, 0});
+        doc.update_pending();
+        const auto body = box.find_body(doc).group.m_uuid;
+        check(try_round_edges(doc, body, 2, 0), "a 20 mm box takes 2 mm rounding");
+        check(!try_round_edges(doc, body, 15, 2), "but not 15 mm");
+        auto f = find_round_edges(doc, body);
+        check(f && f->m_radius == 2 && f->get_solid_model(), "and keeps the 2 mm");
+        check(!try_hollow(doc, body, 15, GroupShell::Open::TOP, 0), "15 mm walls don't fit it");
+        check(!find_hollow(doc, body), "and it stays solid");
+    }
+    {
+        Document doc;
+        build_recipe(doc, doc.get_groups_sorted().back()->m_uuid,
+                     json::parse(R"({"objects": [{"id": "bowl", "name": "Bowl", "shape": "revolve", "smooth": true,
+            "profile": [[0, 0], [22, 0], [30, 6], [38, 18], [42, 30], [0, 30]],
+            "hollow": {"thickness": 2.5, "open": "top"}, "round_edges": 1}]})"));
+        doc.update_pending();
+        UUID body;
+        for (auto gr : doc.get_groups_sorted())
+            if (gr->m_body && gr->get_index() > 1)
+                body = gr->m_uuid;
+        check(get_max_round_edges(doc, body) == 1.1, "2.5 mm walls take up to 1.1 mm rounding");
+        try_round_edges(doc, body, 2.1, 1);
+        auto f = find_round_edges(doc, body);
+        check(f && std::abs(f->m_radius - 1.1) < 1e-9 && f->get_solid_model(), "asking for 2.1 gives 1.1");
+        try_hollow(doc, body, 1, GroupShell::Open::TOP, 2.5);
+        f = find_round_edges(doc, body);
+        check(f && f->m_radius <= .4 + 1e-9 && f->get_solid_model(), "thinner walls make it less round");
+    }
+}
+
 int main()
 {
     constexpr double pi = std::numbers::pi;
@@ -608,6 +646,7 @@ int main()
     test_round_edges();
     test_deferred_solid_models();
     test_object_parts();
+    test_limits();
     std::cout << (failures ? "FAILED" : "PASSED") << " (" << failures << " failures)" << std::endl;
     return failures ? 1 : 0;
 }

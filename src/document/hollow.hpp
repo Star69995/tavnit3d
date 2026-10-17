@@ -14,4 +14,14 @@ GroupShell *find_hollow(Document &doc, const UUID &body);
 // group, or nullptr. The caller rebuilds.
 GroupShell *set_hollow(Document &doc, const UUID &body, double thickness, GroupShell::Open open);
 
+// How round the edges can be: with walls, two roundings meet on a rim, so each a bit less
+// than half the wall; otherwise no limit known beforehand.
+double get_max_round_edges(Document &doc, const UUID &body);
+
+// Like set_round_edges / set_hollow, but they rebuild, and when the new value doesn't work
+// (too round for the object, walls too thick) they go back to `fallback` and return false.
+// Making the walls thinner than the rounding allows makes the rounding smaller too.
+bool try_round_edges(Document &doc, const UUID &body, double radius, double fallback);
+bool try_hollow(Document &doc, const UUID &body, double thickness, GroupShell::Open open, double fallback);
+
 } // namespace dune3d

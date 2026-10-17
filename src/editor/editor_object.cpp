@@ -285,7 +285,8 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
     // rounding all edges, like a rounded box
     if (std::ranges::any_of(get_body_solids(doc, UUID()), [&body_uu](const auto &bs) { return bs.body == body_uu; })) {
         auto sp = Gtk::make_managed<SpinButtonDim>();
-        sp->set_range(0, 1000);
+        // with walls, it can't go past what they allow
+        sp->set_range(0, std::min(1000., get_max_round_edges(doc, body_uu)));
         sp->set_hexpand(true);
         auto fillet = find_round_edges(doc, body_uu);
         sp->set_value(fillet ? fillet->m_radius : 0);
@@ -301,13 +302,19 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
             auto &d = m_core.get_idocument_info(doc_uu).get_document();
             const auto r = sp->get_value();
             const auto existing = find_round_edges(d, body_uu);
-            if ((existing ? existing->m_radius : 0) == r)
+            const double was = existing ? existing->m_radius : 0;
+            if (was == r)
                 return;
-            auto rounded = set_round_edges(d, body_uu, r);
-            if (!rounded && r > 0) {
-                m_workspace_browser->show_toast("This object has no edges to round");
+            // too round for it: back to what worked, rather than a broken object
+            if (!try_round_edges(d, body_uu, r, was)) {
+                if (!find_round_edges(d, body_uu) && was == 0)
+                    m_workspace_browser->show_toast("This object has no edges to round");
+                else
+                    m_workspace_browser->show_toast("That's as round as this object gets");
+                sp->set_value(was);
                 return;
             }
+            auto rounded = find_round_edges(d, body_uu);
             m_core.set_needs_save();
             // the panel is made again once the clicks are over, see schedule_object_panel_refresh
             m_object_editor_keep = true;
@@ -349,9 +356,16 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
             const auto t = sp->get_value();
             const auto open = static_cast<GroupShell::Open>(dd->get_selected());
             const auto existing = find_hollow(d, body_uu);
-            if ((existing ? existing->m_thickness : 0) == t && (!existing || existing->m_open == open))
+            const double was = existing ? existing->m_thickness : 0;
+            if (was == t && (!existing || existing->m_open == open))
                 return;
-            auto shell = set_hollow(d, body_uu, t, open);
+            // walls too thick for it: back to what worked
+            if (!try_hollow(d, body_uu, t, open, was)) {
+                m_workspace_browser->show_toast("Walls that thick don't fit this object");
+                sp->set_value(was);
+                return;
+            }
+            auto shell = find_hollow(d, body_uu);
             m_core.set_needs_save();
             m_object_editor_keep = true; // made again once the clicks are over
             m_core.rebuild("hollow");

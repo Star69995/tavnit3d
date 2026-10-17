@@ -6,6 +6,7 @@
 #include "document/object_parts.hpp"
 #include "document/object_dimensions.hpp"
 #include "document/round_edges.hpp"
+#include "document/hollow.hpp"
 #include "document/group/group_fillet.hpp"
 #include "document/constraint/constraint.hpp"
 #include "document/constraint/iconstraint_datum.hpp"
@@ -227,7 +228,7 @@ void Editor::append_object_parts(Gtk::Grid &grid, int &top, const UUID &doc_uu, 
         }
         {
             auto sp = Gtk::make_managed<SpinButtonDim>();
-            sp->set_range(0, 1000);
+            sp->set_range(0, std::min(1000., get_max_round_edges(doc, first)));
             sp->set_hexpand(true);
             auto fillet = find_round_edges(doc, first);
             sp->set_value(fillet ? fillet->m_radius : 0);
@@ -235,13 +236,23 @@ void Editor::append_object_parts(Gtk::Grid &grid, int &top, const UUID &doc_uu, 
             sp->set_name("part-round-" + (std::string)first);
             sp->signal_value_changed().connect([this, sp, set, doc_uu] {
                 auto &d = m_core.get_idocument_info(doc_uu).get_document();
-                bool any = false;
+                bool any = false, too_round = false;
+                double was = 0;
                 for (const auto &p : set) {
                     auto existing = find_round_edges(d, p);
-                    if ((existing ? existing->m_radius : 0) == sp->get_value())
+                    was = existing ? existing->m_radius : 0;
+                    if (was == sp->get_value())
                         continue;
-                    set_round_edges(d, p, sp->get_value());
+                    if (!try_round_edges(d, p, sp->get_value(), was))
+                        too_round = true;
                     any = true;
+                }
+                if (too_round) {
+                    // back to what worked for all of them
+                    for (const auto &p : set)
+                        try_round_edges(d, p, was, 0);
+                    m_workspace_browser->show_toast("That's as round as this part gets");
+                    sp->set_value(was);
                 }
                 if (any)
                     finish_parts_change(doc_uu, "round edges");

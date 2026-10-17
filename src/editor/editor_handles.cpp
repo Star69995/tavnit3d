@@ -274,8 +274,7 @@ void Editor::update_handle_drag()
         value = std::max(0., std::round(value * 10) / 10);
         if (drag.handle.kind == ObjectHandle::Kind::ROUNDING) {
             // two roundings meet on a wall's rim: each can take a bit less than half of it
-            if (auto shell = find_hollow(doc, drag.parts.front()))
-                value = std::min(value, std::floor(shell->m_thickness * 4.5) / 10);
+            value = std::min(value, get_max_round_edges(doc, drag.parts.front()));
         }
         if (value == drag.last_value)
             return;
@@ -311,6 +310,27 @@ void Editor::end_handle_drag()
     reset_key_hint_label();
     if (!drag.moved)
         return;
+    // too round or walls too thick for it: back to how it was, rather than a broken object
+    auto &doc = m_core.get_current_document();
+    bool undone = false;
+    for (const auto &p : drag.parts) {
+        if (drag.handle.kind == ObjectHandle::Kind::ROUNDING) {
+            if (auto f = find_round_edges(doc, p); f && !f->get_solid_model()) {
+                try_round_edges(doc, p, drag.start_value, 0);
+                undone = true;
+            }
+        }
+        else if (drag.handle.kind == ObjectHandle::Kind::WALL) {
+            if (auto h = find_hollow(doc, p); h && !h->get_solid_model()) {
+                try_hollow(doc, p, drag.start_value, drag.open, 0);
+                undone = true;
+            }
+        }
+    }
+    if (undone)
+        m_workspace_browser->show_toast(drag.handle.kind == ObjectHandle::Kind::ROUNDING
+                                                ? "That was rounder than this object can be"
+                                                : "Walls that thick don't fit this object");
     m_core.set_needs_save();
     m_core.rebuild("change " + drag.handle.label); // the object panel refreshes on rebuild
     m_workspace_browser->update_documents(get_current_document_views());
