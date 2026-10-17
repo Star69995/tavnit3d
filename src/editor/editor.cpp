@@ -1,6 +1,7 @@
 #include "editor.hpp"
 #include "render_window.hpp"
 #include "describe_window.hpp"
+#include "screw_window.hpp"
 #include "panel_hints.hpp"
 #include "action_search.hpp"
 #include "util/branding.hpp"

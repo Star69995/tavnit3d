@@ -208,6 +208,7 @@ private:
     void focus_object_panel_field(const std::string &label);
     std::unique_ptr<class ActionSearchWindow> m_search_window;
     std::unique_ptr<class DescribeWindow> m_describe_window;
+    std::unique_ptr<class ScrewWindow> m_screw_window;
     void add_bowl();
     void add_hexagon();
     void add_triangle();
@@ -215,6 +216,7 @@ private:
     void add_heart();
     void add_half_sphere();
     void add_screw();
+    void add_screw(const struct ScrewParams &params);
     void add_vase();
     void on_import_object();
     void import_object_file(const std::filesystem::path &path);

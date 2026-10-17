@@ -59,6 +59,7 @@ enum class GroupType {
     CLONE,
     PIPE,
     SHELL,
+    THREAD,
 };
 
 class Group {

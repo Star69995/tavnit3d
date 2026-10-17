@@ -16,3 +16,4 @@
 #include "group_clone.hpp"
 #include "group_pipe.hpp"
 #include "group_shell.hpp"
+#include "group_thread.hpp"

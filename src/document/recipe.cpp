@@ -3,6 +3,7 @@
 #include "primitives.hpp"
 #include "combine.hpp"
 #include "hollow.hpp"
+#include "thread.hpp"
 #include "round_edges.hpp"
 #include "material.hpp"
 #include "group/group.hpp"
@@ -47,6 +48,12 @@ static const char *schema_text = R"JSON({
               "thickness": {"type": "number", "description": "wall thickness"},
               "open": {"type": "string", "enum": ["top", "bottom", "none"]}},
             "required": ["thickness"]},
+          "thread": {"type": "object", "description": "a helical screw thread round an upright cylinder (diameter = the root, i.e. the core), from the bottom up",
+            "properties": {
+              "pitch": {"type": "number"},
+              "depth": {"type": "number", "description": "ridge height above the cylinder"},
+              "length": {"type": "number"}},
+            "required": ["pitch", "depth", "length"]},
           "round_edges": {"type": "number", "description": "radius to round all edges with; less than half the wall thickness when hollow"}
         },
         "required": ["id", "shape"]
@@ -207,6 +214,13 @@ RecipeResult build_recipe(Document &doc, const UUID &after, const json &recipe, 
             else if (o_str == "none")
                 open = GroupShell::Open::NONE;
             if (set_hollow(doc, body, num(h, "thickness", 2), open))
+                doc.update_pending();
+        }
+        if (o.contains("thread") && o.at("thread").is_object()) {
+            const auto &t = o.at("thread");
+            // the root radius is read off the solid itself: the cylinder it is
+            const double radius = num(o, "diameter", num(t, "root_diameter", 0)) / 2;
+            if (radius > 0 && set_thread(doc, body, radius, num(t, "pitch", 1), num(t, "depth", .6), num(t, "length", 10)))
                 doc.update_pending();
         }
         if (const auto r = num(o, "round_edges", 0); r > 0) {

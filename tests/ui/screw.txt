@@ -1,0 +1,20 @@
+# Screws: add a hexagon bolt and a socket-head screw (real helical thread), save, export, reopen.
+action NEW_DOCUMENT
+wait 800
+screw 0 8 30
+screw 1 6 20
+screw 3 5 16 plain
+action ADD_SCREW
+wait 500
+shot @TMP@/screw-window.png
+button Add screw
+wait 3000
+wait 500
+action VIEW_FIT
+wait 800
+shot @TMP@/screws.png
+save @TMP@/screws.d3ddoc
+export-gltf @TMP@/screws.glb
+open @TMP@/screws.d3ddoc
+wait 1500
+quit

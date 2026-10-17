@@ -198,14 +198,23 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   is also where open/save dialogs start.
 - More shapes: hexagon, triangle prism, star, heart, half sphere are recipes
   (`src/editor/editor_recipe.cpp`, like Bowl/Vase). No pyramid yet (needs a
-  tapered extrude or loft). No helical threads (see Screw).
+  tapered extrude or loft). Threads: see Screw.
 - Holes (`Body::m_hole`, object panel "Hole" switch + "Cut"): drawn as glass,
   left out of STL/glTF export; `Editor::cut_with_hole` subtracts it from every
   shown non-hole object whose bounds it touches (`add_combination`).
 - Picture object (`Editor::add_picture_object` in editor_decal.cpp): a 1 mm
   white box with the picture as a sticker on its big face; resizable like a box.
-- Screw (`Editor::add_screw`, editor_recipe.cpp): M8 bolt as a recipe - hexagon
-  head joined with a revolved shank whose ridges are rings, not a helix.
+- Screw (`src/document/screw.*`, `Editor::add_screw`, `src/editor/screw_window.*`): palette
+  button opens a window (head: hexagon/socket/pan/countersunk, M3-M12, length, thread on/off);
+  `make_screw_recipe` builds a cylinder shank at the thread root + head parts joined, recess
+  subtracted. Real helical thread: `GroupThread` (`Group::Type::THREAD`,
+  `solid_model_thread.cpp`, `thread.*`, recipe key `"thread"`): a ridge swept along a helix
+  (BRepOffsetAPI_MakePipeShell, binormal mode) fused to the upright cylinder, tip cut to a cone.
+  Gotchas: fusing a ridge that was first trimmed with Common silently returns just the core, so
+  trim the fused result instead; `BRepBndLib::Add` is loose on curved faces (use `AddOptimal`).
+  Only upright (not rotated) cylinders; thread max 32 turns from the tip, rest plain. Automation:
+  `screw HEAD D L [plain]`; tests `tests/test_screw.cpp`, `tests/ui/screw.txt`. The AI prompt
+  (`recipe_ai.cpp`) and recipe schema know `thread`.
 - Copies in a row (object panel, `Editor::copy_in_a_row`): N x `duplicate_body`
   with an X offset of width + gap; only for objects that have an X position.
 - Round hole (palette "Hole"): a 6 x 30 mm cylinder created as a hole body

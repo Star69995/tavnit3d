@@ -23,4 +23,5 @@ class GroupSolidModelOperation;
 class GroupClone;
 class GroupPipe;
 class GroupShell;
+class GroupThread;
 } // namespace dune3d

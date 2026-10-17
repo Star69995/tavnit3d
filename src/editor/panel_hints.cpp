@@ -95,7 +95,7 @@ std::string get_action_hint(const ActionToolID &id)
             {ActionID::ADD_STAR, "A star-shaped block"},
             {ActionID::ADD_HEART, "A heart-shaped block"},
             {ActionID::ADD_HALF_SPHERE, "Half a ball, flat side down"},
-            {ActionID::ADD_SCREW, "An M8 bolt with a hexagon head"},
+            {ActionID::ADD_SCREW, "A screw or bolt: choose the head, size and length (the ridges are rings, not a spiral)"},
             {ActionID::ADD_HOLE_SHAPE, "A round hole: move it into an object, then press Cut in the panel"},
             {ActionID::ADD_BOWL, "A hollow, rounded bowl"},
             {ActionID::ADD_VASE, "A hollow vase"},

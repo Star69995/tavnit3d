@@ -17,6 +17,9 @@ How the program sees things:
 - Combining makes a new object from two: join, or subtract the tool from the target (holes, cut-outs).
 - "hollow" makes walls of the given thickness, inwards, open at the top by default: bowls, cups, vases,
   boxes, planters. A revolve is solid, so vessels need it.
+- "thread" winds a real helical screw thread round an upright "cylinder" whose diameter is the thread's root
+  (core), from the bottom up: pitch, depth (ridge height) and length in mm. For an M8 bolt: core 6.5 mm,
+  pitch 1.25, depth 0.77. Join the shank to a hexagon head ("extrude") standing on top of it.
 - "round_edges" rounds every edge; keep it below half the wall thickness of hollow objects.
 
 Good habits:
