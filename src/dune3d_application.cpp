@@ -188,7 +188,23 @@ void Dune3DApplication::UserConfig::load(const std::filesystem::path &filename)
     }
     check_for_updates = j.value("check_for_updates", true);
     blender_path = path_from_string(j.value("blender_path", ""));
-    claude_api_key = j.value("claude_api_key", "");
+    if (j.contains("ai") && j.at("ai").is_object()) {
+        const auto &a = j.at("ai");
+        ai.provider = a.value("provider", "claude");
+        for (const auto &[name, dest] : {std::pair<const char *, std::map<std::string, std::string> *>{"keys", &ai.keys},
+                                         {"models", &ai.models},
+                                         {"urls", &ai.urls}}) {
+            if (a.contains(name) && a.at(name).is_object()) {
+                for (const auto &[k, v] : a.at(name).items()) {
+                    if (v.is_string())
+                        (*dest)[k] = v.get<std::string>();
+                }
+            }
+        }
+    }
+    // before other services were possible there was only this
+    if (const auto old_key = j.value("claude_api_key", ""); old_key.size() && ai.keys["claude"].empty())
+        ai.keys["claude"] = old_key;
     typing_threshold_ms = std::clamp(j.value("typing_threshold_ms", 350u), 50u, 2000u);
     autosave_minutes = std::min(j.value("autosave_minutes", 3u), 120u);
     documents_dir = path_from_string(j.value("documents_dir", ""));
@@ -214,8 +230,7 @@ void Dune3DApplication::UserConfig::save(const std::filesystem::path &filename)
     j["check_for_updates"] = check_for_updates;
     if (!blender_path.empty())
         j["blender_path"] = path_to_string(blender_path);
-    if (!claude_api_key.empty())
-        j["claude_api_key"] = claude_api_key;
+    j["ai"] = {{"provider", ai.provider}, {"keys", ai.keys}, {"models", ai.models}, {"urls", ai.urls}};
     j["typing_threshold_ms"] = typing_threshold_ms;
     j["autosave_minutes"] = autosave_minutes;
     if (!documents_dir.empty())

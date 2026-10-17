@@ -569,6 +569,16 @@ test_patterns = executable('test_patterns',
     include_directories: include_directories,
 )
 test('patterns', test_patterns, timeout: 60)
+
+test_recipe_ai = executable('test_recipe_ai',
+    'tests/test_recipe_ai.cpp',
+    dependencies: [build_dependencies],
+    link_whole: [dune3d_common],
+    link_with: [solvespace_nopic, clipper_nopic, dxflib_nopic],
+    cpp_args: cpp_args,
+    include_directories: include_directories,
+)
+test('recipe_ai', test_recipe_ai, timeout: 60)
 # drives the real app through tests/ui/*.txt; needs a display; one at a time:
 # a second instance of the app would hand its work to the first one (single instance)
 foreach ui_test : ['smoke', 'patterns']

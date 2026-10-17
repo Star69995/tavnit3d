@@ -3,6 +3,7 @@
 #include "preferences/preferences.hpp"
 #include "logger/log_dispatcher.hpp"
 #include "util/uuid.hpp"
+#include "document/recipe_ai.hpp"
 #include <filesystem>
 
 namespace dune3d {
@@ -43,7 +44,7 @@ public:
         std::map<std::pair<std::filesystem::path, UUID>, ExportPaths> export_paths;
         bool check_for_updates = true;
         std::filesystem::path blender_path; // for rendering pictures; found by itself if empty
-        std::string claude_api_key;         // for making shapes from descriptions
+        AiSettings ai;                      // for making shapes from descriptions
         // letters in the 3D view less than this apart are typing (they go to Find), not shortcuts;
         // people type about 150-250 ms apart
         unsigned int typing_threshold_ms = 350;

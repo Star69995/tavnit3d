@@ -81,8 +81,8 @@ std::vector<SearchItem> Editor::get_search_items()
     items.push_back({"3D text", shapes, "letters words טקסט כיתוב", action(ActionID::ADD_TEXT), keys(ActionID::ADD_TEXT)});
     items.push_back({"Bowl", shapes, "dish קערה", action(ActionID::ADD_BOWL), keys(ActionID::ADD_BOWL)});
     items.push_back({"Vase", shapes, "bottle אגרטל", action(ActionID::ADD_VASE), keys(ActionID::ADD_VASE)});
-    items.push_back({"Make from a description (Claude)", "Tool palette > Shapes > Describe",
-                     "ai text prompt describe בינה מלאכותית תיאור טקסט", action(ActionID::MAKE_FROM_DESCRIPTION), keys(ActionID::MAKE_FROM_DESCRIPTION)});
+    items.push_back({"Make from a description (AI)", "Tool palette > Shapes > Describe",
+                     "ai text prompt describe chatgpt gemini claude openai chatbot copy paste בינה מלאכותית תיאור טקסט צאט בוט", action(ActionID::MAKE_FROM_DESCRIPTION), keys(ActionID::MAKE_FROM_DESCRIPTION)});
 
     const char *lights = "Tool palette > Lights";
     items.push_back({"Lamp", lights, "light bulb point תאורה מנורה אור", action(ActionID::ADD_LAMP), keys(ActionID::ADD_LAMP)});

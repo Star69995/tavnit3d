@@ -131,9 +131,15 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 - Recipes (`src/document/recipe.*`): JSON descriptions of objects built from
   `add_primitive` (sizes, `Placement`), `add_revolved_profile`,
   `add_extruded_outline`, hollow, rounding, combining. Bowl/Vase are recipes;
-  `src/document/recipe_ai.*` asks Claude (`claude-opus-5-5`, structured
-  outputs, `fallbacks: "default"`) for one; `DUNE3D_CLAUDE_URL` overrides the
-  endpoint for tests. HTTP: `src/util/http.*` (WinHTTP).
+  `src/document/recipe_ai.*` asks an AI service for one: `ai_providers()` (Claude
+  via its own API with structured outputs, plus OpenAI-style chat completions for
+  OpenAI/Gemini/OpenRouter/"Other" with a custom address), `AiSettings`
+  (`UserConfig::ai`: provider, key/model/url per provider id, so a key never goes to
+  another service; old `claude_api_key` is migrated). Without a key,
+  `make_chatbot_prompt` (instructions + schema + description) is copied from
+  `DescribeWindow` and `parse_recipe_text` reads the pasted answer (fences and chatter
+  tolerated). `DUNE3D_CLAUDE_URL` overrides the Claude endpoint for tests; tests in
+  `tests/test_recipe_ai.cpp`. HTTP: `src/util/http.*` (WinHTTP/libcurl).
 - Resize handles (`src/editor/editor_handles.cpp`) use the object panel's
   dimension list (`src/editor/object_dimensions.hpp`).
 - Autosave (`src/editor/editor_autosave.cpp`, `Core::write_backup`): every

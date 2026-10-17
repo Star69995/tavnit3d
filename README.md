@@ -20,8 +20,11 @@ one click.
   each other on a floor grid; a picture as a flat object
 - Holes (Tinkercad-style): turn any object into a hole, or add a round one,
   move it into another object and press Cut
-- Make objects from a description ("a mug with a handle") with Claude (needs
-  a Claude API key); they come out as ordinary, editable shapes
+- Make objects from a description ("a mug with a handle") with an AI service
+  of your choice (Claude, OpenAI, Gemini, OpenRouter, or any OpenAI-compatible
+  address, with your own API key) - or with no key at all: copy a ready prompt
+  into any chatbot and paste its answer back. They come out as ordinary,
+  editable shapes
 - Click a solid to select it; an object panel shows its dimensions, X/Y
   position, colour, material (satin/matte/glossy/metal/glass) and visibility;
   handles on the object resize it by dragging

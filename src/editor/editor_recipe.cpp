@@ -64,7 +64,7 @@ void Editor::show_describe_window(const std::string &text)
         return;
     if (!m_describe_window) {
         m_describe_window = std::make_unique<DescribeWindow>(
-                m_win, m_win.get_app().m_user_config.claude_api_key,
+                m_win, m_win.get_app().m_user_config.ai,
                 [this](const json &recipe, const std::string &description) {
                     auto what = description.substr(0, 40);
                     return add_from_recipe(recipe, "make: " + what);
