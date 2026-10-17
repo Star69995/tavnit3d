@@ -155,6 +155,12 @@ void WorkspaceBrowser::update_documents(const std::map<UUID, DocumentView> &doc_
     block_signals();
     auto store = Gio::ListStore<DocumentItem>::create();
     for (auto doci : m_core.get_documents()) {
+        if (!m_show_other_documents && m_core.has_documents()
+            && doci->get_uuid() != m_core.get_current_idocument_info().get_uuid()) {
+            auto doc_view = doc_views.find(doci->get_uuid());
+            if (doc_view == doc_views.end() || !doc_view->second.document_is_visible())
+                continue;
+        }
         auto mi = DocumentItem::create();
         mi->m_uuid = doci->get_uuid();
         mi->m_close_sensitive = doci->can_close();
@@ -564,6 +570,8 @@ public:
         m_bindings.push_back(Glib::Binding::bind_property_value(
                 it.m_tooltip.get_proxy(), m_label->property_tooltip_text(), Glib::Binding::Flags::SYNC_CREATE));
         update_label_attrs(it);
+        // a band that tells where one document's rows start (see "document-row" in dune3d.css)
+        add_css_class("document-row");
 
 
         m_connections.push_back(
@@ -668,6 +676,8 @@ public:
         m_group = nullptr;
         m_body = nullptr;
         m_doc = nullptr;
+        remove_css_class("document-row");
+        remove_css_class("document-row-current");
         set_hide_expander(false);
     }
 
@@ -700,6 +710,10 @@ private:
     void update_label_attrs(DocumentItem &it)
     {
         update_label_attrs(it.m_active);
+        if (it.m_active.get_value())
+            add_css_class("document-row-current");
+        else
+            remove_css_class("document-row-current");
     }
     void update_label_attrs(const Glib::Property<bool> &prop)
     {

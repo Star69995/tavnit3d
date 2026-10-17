@@ -208,6 +208,11 @@ void Dune3DApplication::UserConfig::load(const std::filesystem::path &filename)
     typing_threshold_ms = std::clamp(j.value("typing_threshold_ms", 350u), 50u, 2000u);
     autosave_minutes = std::min(j.value("autosave_minutes", 3u), 120u);
     palette_folded = j.value("palette_folded", false);
+    show_other_documents = j.value("show_other_documents", false);
+    if (j.count("panels")) {
+        for (const auto &[name, v] : j.at("panels").items())
+            panels[name] = {v.value("floating", false), v.value("x", -1), v.value("y", -1)};
+    }
     documents_dir = path_from_string(j.value("documents_dir", ""));
     if (j.count("export_paths")) {
         const json &o = j.at("export_paths");
@@ -235,6 +240,9 @@ void Dune3DApplication::UserConfig::save(const std::filesystem::path &filename)
     j["typing_threshold_ms"] = typing_threshold_ms;
     j["autosave_minutes"] = autosave_minutes;
     j["palette_folded"] = palette_folded;
+    j["show_other_documents"] = show_other_documents;
+    for (const auto &[name, it] : panels)
+        j["panels"][name] = {{"floating", it.floating}, {"x", it.x}, {"y", it.y}};
     if (!documents_dir.empty())
         j["documents_dir"] = path_to_string(documents_dir);
     for (const auto &[path, mod] : recent_items) {

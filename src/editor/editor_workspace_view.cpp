@@ -208,7 +208,9 @@ void Editor::set_current_workspace_view(const UUID &uu)
         update_version_info();
     }
     update_action_sensitivity();
-    m_workspace_browser->update_current_group(get_current_document_views());
+    // another current document: the list shows a different set of documents
+    if (m_core.has_documents())
+        m_workspace_browser->update_documents(get_current_document_views());
 }
 
 void Editor::save_workspace_view(const UUID &doc_uu)

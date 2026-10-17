@@ -319,6 +319,19 @@ void Editor::init_view_options()
     m_show_other_sketches_action->signal_change_state().connect([this](const Glib::VariantBase &v) {
         set_show_other_sketches(Glib::VariantBase::cast_dynamic<Glib::Variant<bool>>(v).get());
     });
+    {
+        auto &config = m_win.get_app().m_user_config;
+        m_workspace_browser->set_show_other_documents(config.show_other_documents);
+        auto action = m_win.add_action_bool("show_other_documents", config.show_other_documents);
+        action->signal_change_state().connect([this, action](const Glib::VariantBase &v) {
+            const auto b = Glib::VariantBase::cast_dynamic<Glib::Variant<bool>>(v).get();
+            m_win.get_app().m_user_config.show_other_documents = b;
+            action->set_state(Glib::Variant<bool>::create(b));
+            m_workspace_browser->set_show_other_documents(b);
+            if (m_core.has_documents())
+                m_workspace_browser->update_documents(get_current_document_views());
+        });
+    }
     m_snap_to_grid_action = m_win.add_action_bool("snap_to_grid", true);
     m_snap_to_grid_action->signal_change_state().connect([this](const Glib::VariantBase &v) {
         set_snap_to_grid(Glib::VariantBase::cast_dynamic<Glib::Variant<bool>>(v).get());
@@ -341,6 +354,7 @@ void Editor::init_view_options()
     m_view_options_menu->append("Perspective projection", "win.perspective");
     m_view_options_menu->append("Studio lighting", "win.studio_lighting");
     m_view_options_menu->append("Sketch lines of other objects", "win.show_other_sketches");
+    m_view_options_menu->append("Hidden documents in the list", "win.show_other_documents");
     {
         auto grid_menu = Gio::Menu::create();
         grid_menu->append("Automatic", "win.grid_step('0')");

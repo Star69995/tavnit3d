@@ -191,6 +191,7 @@ src_gui = files(
   'src/main.cpp',
   'src/dune3d_application.cpp',
   'src/dune3d_appwindow.cpp',
+  'src/dune3d_appwindow_panels.cpp',
   'src/editor/editor.cpp',
   'src/editor/editor_workspace_browser.cpp',
   'src/editor/editor_primitives.cpp',

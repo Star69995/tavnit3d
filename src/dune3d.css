@@ -88,6 +88,16 @@ listview, list, .navigation-sidebar {background: @studio_panel;}
 notebook > header {background: @studio_panel; border-color: @studio_border;}
 notebook > header tab:checked {box-shadow: inset 0 -3px @accent_bg_color;}
 
+/* a document's row in the layers list: a band, so where one document ends and the next starts is clear */
+.document-row {
+  background: alpha(@studio_dim, .12);
+  border-radius: 8px;
+  margin-top: 8px;
+  padding: 3px 0;
+  font-weight: 700;
+}
+.document-row-current {background: alpha(@accent_bg_color, .16);}
+
 /* floating tool palette over the 3D view */
 .action-bar {
   background: @studio_panel;
@@ -125,6 +135,27 @@ notebook > header tab:checked {box-shadow: inset 0 -3px @accent_bg_color;}
   background: none;
 }
 .action-bar .action-bar-fold:hover {background: alpha(@accent_bg_color, .10); color: @accent_bg_color;}
+
+/* movable panels: a grip to drag them by (dune3d_appwindow_panels.cpp) */
+.panel-grip-bar {
+  background: alpha(@studio_dim, .45);
+  border-radius: 2px;
+}
+.panel-grip:hover .panel-grip-bar {background: @accent_bg_color;}
+.layers-panel-header {padding: 4px 6px 2px 10px;}
+.layers-panel-header .action-bar-section {margin: 0;}
+.layers-panel-button {padding: 2px 6px; min-height: 0; min-width: 0; color: @studio_dim;}
+.layers-panel-button:hover {color: @accent_bg_color;}
+.layers-panel.floating {
+  background: @studio_panel;
+  border: 1px solid @studio_border;
+  border-radius: 14px;
+  padding: 4px;
+  box-shadow: 0 6px 24px alpha(black, .12), 0 1px 3px alpha(black, .08);
+}
+.layers-panel.floating .layers-panel-header {padding-left: 6px;}
+/* the sidebar while a floating panel is held over it: drop to put it back */
+paned.dock-target {box-shadow: inset 0 0 0 3px alpha(@accent_bg_color, .55);}
 
 /* bottom tool hint bar */
 .osd {border-radius: 12px;}

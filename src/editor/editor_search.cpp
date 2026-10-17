@@ -164,6 +164,9 @@ std::vector<SearchItem> Editor::get_search_items()
                      "perspective orthographic פרספקטיבה", win_action("win.perspective")});
     items.push_back({"Show other objects' sketch lines", std::string(viewmenu) + " > Sketch lines of other objects",
                      "sketch lines קווי שרטוט", win_action("win.show_other_sketches")});
+    items.push_back({"List documents hidden from the view",
+                     std::string(viewmenu) + " > Hidden documents in the list",
+                     "documents files open מסמכים קבצים פתוחים", win_action("win.show_other_documents")});
     items.push_back({"Show only the solids", std::string(viewmenu) + " > Only solid models", "solids only מוצקים",
                      win_action("win.show_only_solid_models")});
 

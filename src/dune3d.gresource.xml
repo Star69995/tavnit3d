@@ -79,6 +79,8 @@
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-half-sphere-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-screw-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/actions/action-add-hole-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/scalable/actions/action-panel-float-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/scalable/actions/action-panel-dock-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/apps/dune3d.svg</file>
     <file>icon_texture_atlas.png</file>
   </gresource>

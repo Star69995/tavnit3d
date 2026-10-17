@@ -108,6 +108,12 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   moves the current group to the document's last group (like Duplicate/Combine).
 - Sketch lines of bodies other than the current one are hidden by default
   (`Renderer::render`, View > Sketch lines of other objects).
+- Open documents share one window; each new/opened one gets its own tab
+  (workspace view) where only it is shown. The side list hides documents not
+  shown in the current tab (`WorkspaceBrowser::update_documents`), unless
+  View > Hidden documents in the list (`UserConfig::show_other_documents`). Document rows are bands (`.document-row`, the
+  current one `.document-row-current`, dune3d.css) so one document's rows are
+  told apart from the next.
 - Combine (object panel, `src/document/combine.*`): solid model operation
   group in a new body after everything; the sources get hidden, not removed.
   It points at a source's last solid group: rounding/hollowing a source calls
@@ -121,6 +127,12 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   a raised part's own workplane origin (moving it needs generate pending, or
   the extrusion flips) or X/Y dims. Picking a part in the panel shows its
   handles (`m_object_editor_part`); a joined object drags as a whole.
+- Movable panels (`src/dune3d_appwindow_panels.cpp`): the tool palette and the layers list
+  (workspace browser, `Dune3DAppWindow::set_layers_panel`) have a grip you drag. One capture
+  `GestureDrag` on the window handles all of them (`m_panels`); dragging the layers header out of
+  the sidebar floats it as an overlay on `canvas_overlay`, dropping it over the sidebar docks it
+  again (also the button in its header). Places are kept in `UserConfig::panels` (margins in
+  the overlay, clamped back in view on resize). Automation: `drag-panel NAME X Y`.
 - Tool palette: `Editor::create_action_bar_button` / `add_action_bar_section`.
   A "Hide"/"Tools" button on top folds the whole palette away
   (`Dune3DAppWindow` constructor, remembered in `UserConfig::palette_folded`).

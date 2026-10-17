@@ -238,6 +238,8 @@ Dune3DAppWindow::Dune3DAppWindow(BaseObjectType *cobject, const Glib::RefPtr<Gtk
         toggle->signal_toggled().connect(update);
         update();
     }
+    m_canvas_overlay = refBuilder->get_widget<Gtk::Overlay>("canvas_overlay");
+    init_movable_panels(*refBuilder->get_widget<Gtk::Box>("action_bar_box"));
 
     m_view_options_button = refBuilder->get_widget<Gtk::MenuButton>("view_options_button");
     m_view_hints_label = refBuilder->get_widget<Gtk::Label>("view_hints_label");

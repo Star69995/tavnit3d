@@ -139,7 +139,7 @@ dim-label</property>
                   </object>
                 </child>
                 <child>
-                  <object class="GtkOverlay">
+                  <object class="GtkOverlay" id="canvas_overlay">
                     <property name="vexpand">True</property>
                     <child>
                       <object class="GtkBox" id="canvas_box">

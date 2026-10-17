@@ -78,7 +78,7 @@ void Editor::init_workspace_browser()
         });
     });
 
-    m_win.get_left_bar().set_start_child(*m_workspace_browser);
+    m_win.set_layers_panel(*m_workspace_browser);
 }
 
 void Editor::on_workspace_browser_group_selected(const UUID &uu_doc, const UUID &uu_group)
@@ -321,7 +321,7 @@ void Editor::on_workspace_browser_document_checked(const UUID &uu_doc, bool chec
 {
     CanvasUpdater canvas_updater{*this};
     get_current_document_views()[uu_doc].m_document_is_visible = checked;
-    m_workspace_browser->update_current_group(get_current_document_views());
+    m_workspace_browser->update_documents(get_current_document_views());
     update_workspace_view_names();
 }
 

@@ -50,7 +50,16 @@ public:
         unsigned int typing_threshold_ms = 350;
         // a backup of unsaved work is written this often (0 = off) ...
         unsigned int autosave_minutes = 3;
-        bool palette_folded = false; // the tool palette over the 3D view
+        bool palette_folded = false;        // the tool palette over the 3D view
+        bool show_other_documents = false; // documents hidden from the 3D view still in the side list
+        // where movable panels ("palette", "layers") were dragged to, in pixels from the 3D view's
+        // top left; x < 0: where they start out. "layers" floats over the view or sits in the sidebar
+        struct PanelPlace {
+            bool floating = false;
+            int x = -1;
+            int y = -1;
+        };
+        std::map<std::string, PanelPlace> panels;
         // ... into "Autosave" in here, which is also where saving starts; Documents/Tavnit 3D if empty
         std::filesystem::path documents_dir;
     };

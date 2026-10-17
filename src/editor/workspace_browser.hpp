@@ -18,6 +18,11 @@ public:
     void update_documents(const std::map<UUID, DocumentView> &doc_views);
     void update_current_group(const std::map<UUID, DocumentView> &doc_views);
     void update_needs_save();
+    // off: only the current document and the ones shown in the 3D view are listed
+    void set_show_other_documents(bool show)
+    {
+        m_show_other_documents = show;
+    }
 
 
     using type_signal_group_selected = sigc::signal<void(UUID, UUID)>;
@@ -177,6 +182,7 @@ private:
     void block_signals();
     void unblock_signals();
     unsigned int m_blocked_count = 0;
+    bool m_show_other_documents = false;
 
     void select_group(const UUID &doc_uu, const UUID &uu);
 

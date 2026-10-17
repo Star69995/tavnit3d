@@ -1,6 +1,9 @@
 #pragma once
 #include <gtkmm.h>
 #include "editor/editor.hpp"
+#include <functional>
+#include <list>
+#include <optional>
 
 namespace dune3d {
 
@@ -36,6 +39,12 @@ public:
     {
         return *m_left_bar;
     }
+
+    // the layers list (workspace browser): in the sidebar, or dragged by its header over the 3D view
+    void set_layers_panel(Gtk::Widget &content);
+    // automation: drag a movable panel ("palette", "layers") by its grip so that the grip ends up
+    // at window pixel X Y, as a mouse drag would
+    bool drag_panel(const std::string &name, double x, double y);
 
     Gtk::Button &get_undo_button()
     {
@@ -253,6 +262,34 @@ private:
     Gtk::Revealer *m_action_bar_revealer = nullptr;
 
     Gtk::Paned *m_left_bar = nullptr;
+
+    // panels that can be dragged around by a grip (dune3d_appwindow_panels.cpp)
+    struct MovablePanel {
+        std::string name;
+        Gtk::Widget *widget = nullptr; // what moves; in the 3D view's overlay while floating
+        Gtk::Widget *grip = nullptr;   // pressing here starts a drag
+        bool dockable = false;         // can go back into the sidebar
+        bool floating = true;
+        std::function<void()> on_dock_changed;
+    };
+    std::list<MovablePanel> m_panels;
+    Gtk::Overlay *m_canvas_overlay = nullptr;
+    struct PanelDrag {
+        MovablePanel *panel = nullptr;
+        double grab_x = 0, grab_y = 0; // pointer position inside the panel when floating
+        bool moved = false;
+    };
+    std::optional<PanelDrag> m_panel_drag;
+    void init_movable_panels(Gtk::Box &palette_box);
+    MovablePanel &add_movable_panel(const std::string &name, Gtk::Widget &widget, Gtk::Widget &grip);
+    MovablePanel *panel_at(double win_x, double win_y);
+    void panel_drag_begin(MovablePanel &panel, double win_x, double win_y);
+    void panel_drag_update(double win_x, double win_y);
+    void panel_drag_end(double win_x, double win_y);
+    void set_panel_floating(MovablePanel &panel, bool floating);
+    void place_panel(MovablePanel &panel, double x, double y);
+    void keep_panels_in_view();
+    bool over_sidebar(double win_x) const;
 
     Canvas *m_canvas = nullptr;
     Gtk::Label *m_key_hint_label = nullptr;

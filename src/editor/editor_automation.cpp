@@ -58,6 +58,7 @@ namespace dune3d {
  *   export-gltf PATH         export the shown objects as glTF, from the current view
  *   update-check             check for updates as from the menu (feed: DUNE3D_UPDATE_FEED)
  *   panel-scroll F           scroll the side panel to F (0 top ... 1 bottom)
+ *   drag-panel NAME X Y      drag the "palette" or "layers" panel by its grip to window pixel X Y
  *   crash                    crash on purpose, to see the crash report
  *   close TITLE              close the window with this title as with its X button
  *   windows                  print the visible windows and their texts (dialogs aren't in shots)
@@ -510,6 +511,14 @@ void Editor::run_automation(const std::filesystem::path &script)
                         break;
                     }
                 }
+            }
+            else if (cmd == "drag-panel") {
+                std::istringstream is(rest);
+                std::string name;
+                double x = 0, y = 0;
+                is >> name >> x >> y;
+                if (!m_win.drag_panel(name, x, y))
+                    std::cerr << "automation: no panel " << name << std::endl;
             }
             else if (cmd == "crash") {
                 // to see the crash report (util/crash_report.cpp)
