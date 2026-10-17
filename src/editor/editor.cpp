@@ -1,6 +1,7 @@
 #include "editor.hpp"
 #include "render_window.hpp"
 #include "describe_window.hpp"
+#include "panel_hints.hpp"
 #include "action_search.hpp"
 #include "util/branding.hpp"
 #include "util/gtk_util.hpp"
@@ -143,15 +144,15 @@ void Editor::init()
     create_action_bar_button(ActionID::ADD_PICTURE_OBJECT, "Picture");
     create_action_bar_button(ActionID::MAKE_FROM_DESCRIPTION, "Describe");
     auto more = Gtk::make_managed<Gtk::ToggleButton>();
+    auto more_img = Gtk::make_managed<Gtk::Image>();
+    auto more_la = Gtk::make_managed<Gtk::Label>("More");
     {
         auto box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 2);
-        auto img = Gtk::make_managed<Gtk::Image>();
-        img->set_from_icon_name("view-more-symbolic");
-        img->set_icon_size(Gtk::IconSize::LARGE);
-        box->append(*img);
-        auto la = Gtk::make_managed<Gtk::Label>("More");
-        la->add_css_class("action-button-label");
-        box->append(*la);
+        more_img->set_from_icon_name("view-more-symbolic");
+        more_img->set_icon_size(Gtk::IconSize::LARGE);
+        box->append(*more_img);
+        more_la->add_css_class("action-button-label");
+        box->append(*more_la);
         more->set_child(*box);
         more->set_has_frame(false);
         more->add_css_class("action-button");
@@ -159,7 +160,13 @@ void Editor::init()
         m_win.add_action_button(*more);
     }
     auto &more_shapes = m_win.add_action_bar_collapsible_section("");
-    more->signal_toggled().connect([more, &more_shapes] { more_shapes.set_reveal_child(more->get_active()); });
+    more->signal_toggled().connect([more, more_img, more_la, &more_shapes] {
+        const bool open = more->get_active();
+        more_shapes.set_reveal_child(open);
+        more_img->set_from_icon_name(open ? "pan-up-symbolic" : "view-more-symbolic");
+        more_la->set_text(open ? "Less" : "More");
+        more->set_tooltip_text(open ? "Fewer shapes" : "More shapes");
+    });
     create_action_bar_button(ActionID::ADD_TUBE, "Tube");
     create_action_bar_button(ActionID::ADD_TORUS, "Torus");
     create_action_bar_button(ActionID::ADD_HEXAGON, "Hexagon");
@@ -936,6 +943,7 @@ void Editor::init_properties_notebook()
         scrolled->set_policy(Gtk::PolicyType::NEVER, Gtk::PolicyType::AUTOMATIC);
         scrolled->set_vexpand(true);
         scrolled->set_child(*m_group_editor_box);
+        m_side_panel_scrolled = scrolled;
         box->append(*scrolled);
         auto label = Gtk::make_managed<Gtk::Label>("Commit pending");
         label->set_margin(3);
@@ -1470,6 +1478,8 @@ void Editor::apply_preferences()
             m_tool_popover->set_key_sequences(id, it.key_sequences);
             tip += " (" + key_sequences_to_string(it.key_sequences) + ")";
         }
+        if (const auto hint = get_action_hint(id); hint.size())
+            tip += "\n" + hint;
         if (m_action_bar_buttons.contains(id)) {
             auto &button = *m_action_bar_buttons.at(id);
             button.set_tooltip_text(tip);
@@ -2126,6 +2136,19 @@ void Editor::remove_from_side_panel(Gtk::Widget &panel)
         }
     }
     m_group_editor_box->remove(panel);
+}
+
+void Editor::restore_side_panel_scroll(double value)
+{
+    if (!m_side_panel_scrolled || value <= 0)
+        return;
+    // the new panel only gets its height on the next frames: until then the adjustment can't go that far
+    auto frames = std::make_shared<int>(0);
+    m_side_panel_scrolled->add_tick_callback([this, value, frames](const Glib::RefPtr<Gdk::FrameClock> &) {
+        auto adj = m_side_panel_scrolled->get_vadjustment();
+        adj->set_value(value);
+        return adj->get_upper() - adj->get_page_size() < value && ++*frames < 10;
+    });
 }
 
 } // namespace dune3d

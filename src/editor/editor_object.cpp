@@ -14,6 +14,7 @@
 #include "document/entity/entity.hpp"
 #include "widgets/spin_button_dim.hpp"
 #include "util/gtk_util.hpp"
+#include "panel_hints.hpp"
 #include "util/util.hpp"
 #include "document/face_sketch.hpp"
 #include "document/body_solids.hpp"
@@ -60,7 +61,9 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
     }
     // the panel is rebuilt after every change: keep the focus on the same field
     std::string focus_label, focus_name;
+    double scroll = 0; // and where the panel was scrolled to
     if (m_object_editor && m_object_editor_doc == doc_uu && m_object_editor_body == body_uu) {
+        scroll = m_side_panel_scrolled->get_vadjustment()->get_value();
         if (auto grid = dynamic_cast<Gtk::Grid *>(m_object_editor)) {
             for (auto focus = m_win.get_focus(); focus && !focus_label.size(); focus = focus->get_parent()) {
                 if (focus->get_parent() != grid)
@@ -598,6 +601,7 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         grid->attach(*box, 0, top++, 2, 1);
     }
 
+    add_panel_hints(*grid);
     m_group_editor_box->append(*grid);
     wheel_scrolls_past_spinbuttons(*grid);
     if (focus_name.size()) {
@@ -626,6 +630,7 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         if (left_bar.get_position() > 240)
             left_bar.set_position(240);
     }
+    restore_side_panel_scroll(scroll);
     canvas_update_keep_selection(); // highlight it
 }
 

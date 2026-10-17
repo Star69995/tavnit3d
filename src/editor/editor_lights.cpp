@@ -9,6 +9,7 @@
 #include "document/solid_model/solid_model_occ.hpp"
 #include "widgets/spin_button_dim.hpp"
 #include "util/gtk_util.hpp"
+#include "panel_hints.hpp"
 #include <BRepBndLib.hxx>
 #include <Bnd_Box.hxx>
 #include <glm/gtx/rotate_vector.hpp>
@@ -326,6 +327,7 @@ void Editor::show_light_editor(const UUID &doc_uu, const UUID &light_uu)
         grid->attach(*del, 0, top++, 2, 1);
     }
 
+    add_panel_hints(*grid);
     m_group_editor_box->append(*grid);
     get_canvas().grab_focus();
     canvas_update_keep_selection();

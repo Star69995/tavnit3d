@@ -419,6 +419,9 @@ private:
     Gtk::Notebook *m_properties_notebook = nullptr;
     ConstraintsBox *m_constraints_box = nullptr;
     Gtk::Box *m_group_editor_box = nullptr;
+    Gtk::ScrolledWindow *m_side_panel_scrolled = nullptr;
+    // scrolls the side panel back to where it was once a rebuilt panel is laid out
+    void restore_side_panel_scroll(double value);
     Gtk::Revealer *m_group_commit_pending_revealer = nullptr;
     GroupEditor *m_group_editor = nullptr;
     void update_group_editor();

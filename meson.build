@@ -200,6 +200,7 @@ src_gui = files(
   'src/editor/editor_import.cpp',
   'src/editor/editor_recipe.cpp',
   'src/editor/editor_lights.cpp',
+  'src/editor/panel_hints.cpp',
   'src/editor/editor_handles.cpp',
   'src/editor/editor_search.cpp',
   'src/editor/action_search.cpp',

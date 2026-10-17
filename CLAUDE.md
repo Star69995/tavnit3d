@@ -224,6 +224,10 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   rebuild, or a panel change that set `m_object_editor_keep`) makes the panel
   again only once no mouse button is held. Never rebuild the panel straight
   from a field's handler: GTK crashed when a +/- still getting clicks was gone.
+- Hover hints (`src/editor/panel_hints.*`): `get_action_hint` adds a sentence to each palette
+  button's tooltip; `add_panel_hints` gives object/light panel rows a hint by their label (a
+  row's own tooltip wins). New palette buttons or panel rows: add their hint there.
+  The side panel keeps its scroll position across panel rebuilds (`restore_side_panel_scroll`).
 - Crash report (`src/util/crash_report.*`, Windows): unhandled exceptions and
   uncaught C++ exceptions write `%LOCALAPPDATA%/dune3d/crashes/crash-*.txt`
   (module+offset per call; resolve with `addr2line -e build-release/dune3d.exe`
