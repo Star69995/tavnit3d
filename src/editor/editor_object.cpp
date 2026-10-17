@@ -18,6 +18,8 @@
 #include "document/face_sketch.hpp"
 #include "document/body_solids.hpp"
 #include "document/combine.hpp"
+#include "document/pattern.hpp"
+#include "document/decal.hpp"
 #include "document/duplicate.hpp"
 #include "document/round_edges.hpp"
 #include "document/hollow.hpp"
@@ -524,6 +526,7 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
                 return nullptr;
             };
             const auto n = decals.size() > 1 ? " " + std::to_string(i + 1) : std::string();
+            const char *kind = decal.m_repeat ? "Pattern" : "Sticker";
             {
                 auto box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 5);
                 auto sp = Gtk::make_managed<SpinButtonDim>();
@@ -531,7 +534,8 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
                 sp->set_increments(1, 10);
                 sp->set_value(decal.m_width);
                 sp->set_hexpand(true);
-                sp->set_tooltip_text("Width; the height follows the picture");
+                sp->set_width_chars(7); // leaves room for the remove button within the sidebar
+                sp->set_tooltip_text(decal.m_repeat ? "Size of one tile" : "Width; the height follows the picture");
                 sp->signal_value_changed().connect([sp, find, decal_changed] {
                     auto dc = find();
                     if (!dc || dc->m_width == sp->get_value())
@@ -542,7 +546,7 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
                 box->append(*sp);
                 auto del = Gtk::make_managed<Gtk::Button>();
                 del->set_icon_name("edit-delete-symbolic");
-                del->set_tooltip_text("Remove this sticker");
+                del->set_tooltip_text(decal.m_repeat ? "Remove this pattern" : "Remove this sticker");
                 del->signal_clicked().connect([this, doc_uu, body_uu, decal_uu] {
                     Glib::signal_idle().connect_once([this, doc_uu, body_uu, decal_uu] {
                         auto &d = m_core.get_idocument_info(doc_uu).get_document();
@@ -555,7 +559,7 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
                     });
                 });
                 box->append(*del);
-                grid_attach_label_and_widget(*grid, "Sticker" + n, *box, top).add_css_class("tnum");
+                grid_attach_label_and_widget(*grid, kind + n, *box, top).add_css_class("tnum");
             }
             {
                 auto sp = Gtk::make_managed<Gtk::SpinButton>();
@@ -578,6 +582,28 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         add->set_tooltip_text("Put a picture on the object's surface");
         add->signal_clicked().connect([this, doc_uu, body_uu] { choose_decal_picture(doc_uu, body_uu); });
         grid->attach(*add, 0, top++, 2, 1);
+
+        // patterns: stripes, dots ... repeating over the surface
+        auto pattern_names = Gtk::StringList::create();
+        for (const auto &p : get_all_patterns())
+            pattern_names->append(p.label);
+        auto colour_names = Gtk::StringList::create();
+        for (const auto &c : get_all_pattern_colours())
+            colour_names->append(c.label);
+        auto pattern_dd = Gtk::make_managed<Gtk::DropDown>(pattern_names);
+        pattern_dd->set_hexpand(true);
+        auto colour_dd = Gtk::make_managed<Gtk::DropDown>(colour_names);
+        colour_dd->set_hexpand(true);
+        auto prow = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 5);
+        prow->append(*pattern_dd);
+        prow->append(*colour_dd);
+        grid_attach_label_and_widget(*grid, "Pattern", *prow, top);
+        auto add_pattern = Gtk::make_managed<Gtk::Button>("Add pattern...");
+        add_pattern->set_tooltip_text("Cover the surface with stripes, dots, checks or a grid; then click on the object");
+        add_pattern->signal_clicked().connect([this, doc_uu, body_uu, pattern_dd, colour_dd] {
+            begin_place_pattern(doc_uu, body_uu, pattern_dd->get_selected(), colour_dd->get_selected());
+        });
+        grid->attach(*add_pattern, 0, top++, 2, 1);
     }
 
     // combine with another shown object that has a solid

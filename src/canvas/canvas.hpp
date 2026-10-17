@@ -94,7 +94,7 @@ public:
     VertexRef draw_icon(IconTexture::IconTextureID id, glm::vec3 origin, glm::vec2 shift, glm::vec3 v) override;
     VertexRef draw_point(glm::vec3 point, IconTexture::IconTextureID id) override;
     VertexRef draw_picture(const std::array<glm::vec3, 4> &corners, std::shared_ptr<const PictureData> data) override;
-    void add_decal(const DecalMesh &mesh, std::shared_ptr<const PictureData> data) override;
+    void add_decal(const DecalMesh &mesh, std::shared_ptr<const PictureData> data, bool repeat) override;
 
     glm::dvec3 get_cursor_pos() const;
     glm::dvec3 get_cursor_pos_for_plane(glm::dvec3 origin, glm::dvec3 normal) const;

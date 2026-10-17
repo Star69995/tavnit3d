@@ -28,7 +28,8 @@ one click.
 - Drag to move, duplicate (Ctrl+D), copies in a row, round all edges, hollow
   out (cups, bowls, boxes), join/subtract/intersect
 - Automatic backups of unsaved work, offered back after a crash
-- Stickers: pictures on an object's surface, also on curved sides
+- Stickers: pictures on an object's surface, also on curved sides; patterns
+  (stripes, dots, checker, grid) in a choice of colours that cover the surface
 - Lights (lamp, spotlight, sun) that light the 3D view
 - Render photo-like pictures with Blender (free, installed separately) in the
   background: size, quality, background, floor shadows

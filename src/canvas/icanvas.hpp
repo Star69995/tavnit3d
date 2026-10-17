@@ -57,7 +57,7 @@ public:
     virtual VertexRef draw_picture(const std::array<glm::vec3, 4> &corners,
                                    std::shared_ptr<const PictureData> data) = 0;
     // a sticker on a solid's surface, see document/decal.hpp
-    virtual void add_decal(const struct DecalMesh &mesh, std::shared_ptr<const PictureData> data) = 0;
+    virtual void add_decal(const struct DecalMesh &mesh, std::shared_ptr<const PictureData> data, bool repeat = false) = 0;
 
     virtual void add_selectable(const VertexRef &vref, const SelectableRef &sref) = 0;
     virtual void set_selection_invisible(bool selection_invisible) = 0;

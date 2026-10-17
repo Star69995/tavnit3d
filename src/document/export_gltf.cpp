@@ -115,18 +115,21 @@ public:
         return m_j[key].size() - 1;
     }
 
-    std::map<UUID, size_t> m_textures; // by picture data
-    size_t get_texture(const PictureData &data)
+    std::map<std::pair<UUID, bool>, size_t> m_textures; // by picture data and whether it tiles
+    size_t get_texture(const PictureData &data, bool repeat = false)
     {
-        if (auto it = m_textures.find(data.m_uuid); it != m_textures.end())
+        if (auto it = m_textures.find({data.m_uuid, repeat}); it != m_textures.end())
             return it->second;
-        if (m_j["samplers"].empty())
+        if (m_j["samplers"].empty()) {
+            // 0: clamped (stickers), 1: repeating (patterns)
             add("samplers", {{"magFilter", 9729}, {"minFilter", 9987}, {"wrapS", 33071}, {"wrapT", 33071}});
+            add("samplers", {{"magFilter", 9729}, {"minFilter", 9987}, {"wrapS", 10497}, {"wrapT", 10497}});
+        }
         const auto png = picture_data_to_png(data);
         const auto view = add_view(png.data(), png.size(), {});
         const auto image = add("images", {{"bufferView", view}, {"mimeType", "image/png"}});
-        const auto tex = add("textures", {{"sampler", 0}, {"source", image}});
-        m_textures.emplace(data.m_uuid, tex);
+        const auto tex = add("textures", {{"sampler", repeat ? 1 : 0}, {"source", image}});
+        m_textures.emplace(std::make_pair(data.m_uuid, repeat), tex);
         return tex;
     }
 
@@ -249,7 +252,7 @@ bool export_gltf(const Document &doc, const std::filesystem::path &path, const G
                 dp.push_back(to_gltf_point(mesh.positions.at(i)));
                 dn.push_back(glm::normalize(to_gltf_dir(mesh.normals.at(i))));
             }
-            const auto tex = w.get_texture(*decal.m_data);
+            const auto tex = w.get_texture(*decal.m_data, decal.m_repeat);
             const auto pbr = get_material_pbr(body.m_material);
             const auto mat = w.add("materials", {
                                                         {"name", body.m_name + " sticker"},

@@ -7,6 +7,7 @@
 #include "document/primitives.hpp"
 #include "document/group/group.hpp"
 #include "util/color.hpp"
+#include "document/pattern.hpp"
 #include "document/face_sketch.hpp"
 #include "document/body_solids.hpp"
 #include "document/solid_model/solid_model_occ.hpp"
@@ -154,6 +155,19 @@ void Editor::begin_place_decal(const UUID &doc_uu, const UUID &body_uu, const st
     m_workspace_browser->show_toast("Click on the object where the sticker goes");
 }
 
+void Editor::begin_place_pattern(const UUID &doc_uu, const UUID &body_uu, int pattern, int colour)
+{
+    const auto &patterns = get_all_patterns();
+    const auto &colours = get_all_pattern_colours();
+    if (pattern < 0 || pattern >= (int)patterns.size() || colour < 0 || colour >= (int)colours.size())
+        return;
+    m_placing_decal = PlacingDecal{.doc = doc_uu,
+                                   .body = body_uu,
+                                   .data = make_pattern_picture(patterns.at(pattern).pattern, colours.at(colour)),
+                                   .repeat = true};
+    m_workspace_browser->show_toast("Click on the object: the pattern covers the faces that look that way");
+}
+
 bool Editor::place_decal_under_cursor()
 {
     if (!m_placing_decal)
@@ -182,7 +196,11 @@ bool Editor::place_decal_under_cursor()
     decal.m_origin = hit->point;
     decal.m_normal = hit->normal;
     decal.m_anchor = get_bounds_center(faces);
-    {
+    decal.m_repeat = placing.repeat;
+    if (placing.repeat) {
+        decal.m_width = 10; // one tile, in millimetres
+    }
+    else {
         // about half the object's size, in round millimetres
         glm::dvec3 lo{1e300}, hi{-1e300};
         for (const auto &face : faces) {

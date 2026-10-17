@@ -1,5 +1,5 @@
 # Basic workflow without errors: shapes, object panel, duplicate, combine, export menu entries.
-# Paths: @SAMPLE@ is replaced by the runner.
+# Paths: @SAMPLE@ and @TMP@ (a scratch folder) are replaced by the runner.
 action NEW_DOCUMENT
 wait 800
 button Box

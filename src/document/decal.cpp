@@ -17,16 +17,19 @@ Decal::Decal(const json &j)
     : m_uuid(j.at("uuid").get<UUID>()), m_data_uuid(j.at("data").get<UUID>()),
       m_origin(j.at("origin").get<glm::dvec3>()), m_normal(j.at("normal").get<glm::dvec3>()),
       m_anchor(j.at("anchor").get<glm::dvec3>()), m_width(j.at("width").get<double>()),
-      m_angle(j.value("angle", 0.))
+      m_angle(j.value("angle", 0.)), m_repeat(j.value("repeat", false))
 {
 }
 
 json Decal::serialize() const
 {
-    return json{
+    json j{
             {"uuid", m_uuid},     {"data", m_data_uuid}, {"origin", m_origin}, {"normal", m_normal},
             {"anchor", m_anchor}, {"width", m_width},    {"angle", m_angle},
     };
+    if (m_repeat)
+        j["repeat"] = true;
+    return j;
 }
 
 double Decal::get_height() const
@@ -125,20 +128,25 @@ DecalMesh make_decal_mesh(const Decal &decal, const face::Faces &faces, float of
                 uv_max = glm::max(uv_max, uv);
                 poly.push_back({.pos = {v.x, v.y, v.z}, .normal = {vn.x, vn.y, vn.z}, .uv = uv});
             }
-            if (d_max < -depth || d_min > depth)
-                continue;
-            if (uv_max.x < 0 || uv_min.x > 1 || uv_max.y < 0 || uv_min.y > 1)
-                continue;
+            if (!decal.m_repeat) {
+                if (d_max < -depth || d_min > depth)
+                    continue;
+                if (uv_max.x < 0 || uv_min.x > 1 || uv_max.y < 0 || uv_min.y > 1)
+                    continue;
+            }
             // only the side that looks towards the sticker's normal
             const auto tri_n = glm::cross(poly.at(1).pos - poly.at(0).pos, poly.at(2).pos - poly.at(0).pos);
             const auto len = glm::length(tri_n);
-            if (len == 0 || glm::dot(glm::dvec3(tri_n / len), n) < .1)
+            // a pattern stays on the faces that really look its way, so it isn't smeared over steep ones
+            if (len == 0 || glm::dot(glm::dvec3(tri_n / len), n) < (decal.m_repeat ? .5 : .1))
                 continue;
 
-            poly = clip(poly, 0, 0, 1);
-            poly = clip(poly, 0, 1, -1);
-            poly = clip(poly, 1, 0, 1);
-            poly = clip(poly, 1, 1, -1);
+            if (!decal.m_repeat) {
+                poly = clip(poly, 0, 0, 1);
+                poly = clip(poly, 0, 1, -1);
+                poly = clip(poly, 1, 0, 1);
+                poly = clip(poly, 1, 1, -1);
+            }
             for (size_t i = 2; i < poly.size(); i++) {
                 for (const auto &v : {poly.at(0), poly.at(i - 1), poly.at(i)}) {
                     const auto vn = glm::normalize(v.normal);

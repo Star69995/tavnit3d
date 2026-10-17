@@ -10,7 +10,7 @@ exe, script = os.path.abspath(sys.argv[1]), sys.argv[2]
 with tempfile.TemporaryDirectory() as tmp:
     path = os.path.join(tmp, "script.txt")
     with open(script, encoding="utf-8") as f:
-        text = f.read()
+        text = f.read().replace("@TMP@", tmp.replace("\\", "/"))
     with open(path, "w", encoding="utf-8") as f:
         f.write(text)
     env = dict(os.environ, DUNE3D_AUTOMATION=path)
