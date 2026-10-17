@@ -1075,6 +1075,9 @@ void System::add(const GroupRevolve &group)
 
     auto angle_param = add_param(group.m_uuid, glm::radians(group.m_angle));
     m_param_refs.emplace(angle_param, ParamRef{ParamRef::Type::GROUP, group.m_uuid, 0, 0});
+    // a full turn stays one: otherwise moving the profile lets the solver shrink the angle
+    if (group.m_uuid == m_solve_group && std::abs(std::abs(group.m_angle) - 360) < 1e-6)
+        AddEq(&m_sys->eq, Expr::From(hParam{angle_param})->Minus(Expr::From(glm::radians(group.m_angle))));
     auto hg = hGroup{(uint32_t)group.get_index() + 1};
     unsigned int eqi = 0;
     const auto org = m_doc.get_point(group.m_origin);

@@ -142,6 +142,25 @@ UUID add_upright_plane(PrimitiveBuilder &b, const EntityWorkplane &wrkpl, const 
     return upright.m_uuid;
 }
 
+// the same for a plane lying flat on the workplane, for outlines drawn around pos
+// that should move as one when the position changes
+UUID add_flat_plane(PrimitiveBuilder &b, const EntityWorkplane &wrkpl, const glm::dvec2 &pos, double size)
+{
+    auto &foot = b.entity<EntityPoint2D>();
+    foot.m_construction = true;
+    foot.m_p = pos;
+    b.position({foot.m_uuid, 0}, pos);
+
+    auto &flat = b.m_doc.add_entity<EntityWorkplane>(UUID::random());
+    flat.m_group = b.m_group;
+    flat.m_origin = wrkpl.transform(pos);
+    flat.m_normal = wrkpl.m_normal;
+    flat.m_size = {size, size};
+    b.coincident({flat.m_uuid, 1}, {foot.m_uuid, 0}, UUID());
+    b.constraint<ConstraintLockRotation>().m_entity = flat.m_uuid;
+    return flat.m_uuid;
+}
+
 // closed polygon of lines, consecutive ends made coincident
 std::vector<EntityLine2D *> add_polygon(PrimitiveBuilder &b, const UUID &wrkpl, const std::vector<glm::dvec2> &pts)
 {
@@ -355,21 +374,21 @@ Group &add_extruded_outline(Document &doc, const UUID &after, const std::vector<
         throw std::runtime_error("an outline needs at least three points");
     auto [sketch, wrkpl_uu] = begin_body(doc, after, placement);
     PrimitiveBuilder b{doc, sketch.m_uuid, wrkpl_uu};
-    const auto offset = placement ? glm::dvec2(0, 0) : pos;
-    std::vector<glm::dvec2> pts;
-    for (const auto &p : outline)
-        pts.push_back(p + offset);
+    // drawn around the origin of a plane of its own at pos, so the X/Y position moves it as a whole
+    const auto flat = add_flat_plane(b, doc.get_entity<EntityWorkplane>(wrkpl_uu),
+                                     placement ? glm::dvec2(0, 0) : pos, 2);
+    const auto &pts = outline;
     std::vector<Piece> pieces;
     if (smooth) {
         for (const auto &bz : smooth_curve(pts, true))
-            pieces.push_back(add_bezier(b, wrkpl_uu, bz));
+            pieces.push_back(add_bezier(b, flat, bz));
     }
     else {
         for (size_t i = 0; i < pts.size(); i++)
-            pieces.push_back(add_line(b, wrkpl_uu, pts.at(i), pts.at((i + 1) % pts.size())));
+            pieces.push_back(add_line(b, flat, pts.at(i), pts.at((i + 1) % pts.size())));
     }
-    connect(b, wrkpl_uu, pieces, true);
-    auto &ex = add_extrusion(doc, sketch.m_uuid, wrkpl_uu, height);
+    connect(b, flat, pieces, true);
+    auto &ex = add_extrusion(doc, sketch.m_uuid, flat, height);
     end_body(doc, sketch, ex, "Extruded shape");
     return ex;
 }

@@ -227,6 +227,73 @@ static double body_volume(const Document &doc, const Group &group)
     return props.Mass();
 }
 
+// moves a body's X/Y position (its distances from the workplane origin) and re-solves
+static void set_position(Document &doc, const Group &solid, double x, double y)
+{
+    const auto sketch = doc.get_group_rel(solid.m_uuid, -1);
+    for (auto &[uu, co] : doc.m_constraints) {
+        if (co->m_group != sketch)
+            continue;
+        auto from_origin = [&doc](const EntityAndPoint &e) {
+            return doc.get_entity(e.entity).get_type() == Entity::Type::WORKPLANE;
+        };
+        if (auto h = dynamic_cast<ConstraintPointDistanceHorizontal *>(co.get()); h && from_origin(h->m_entity1))
+            h->m_distance = x;
+        if (auto v = dynamic_cast<ConstraintPointDistanceVertical *>(co.get()); v && from_origin(v->m_entity1))
+            v->m_distance = y;
+    }
+    doc.set_group_solve_pending(sketch);
+    doc.update_pending();
+}
+
+// outlines and revolved profiles move as a whole with their X/Y position, and a
+// full revolve stays a full turn
+static void test_moving_shapes()
+{
+    std::cout << "moving outlines and revolves" << std::endl;
+    Document doc;
+    auto &outline = add_extruded_outline(doc, doc.get_groups_sorted().back()->m_uuid,
+                                         {{-5, -5}, {5, -5}, {5, 5}, {-5, 5}}, 4, false, {10, 0});
+    doc.update_pending();
+    set_position(doc, outline, 30, 20);
+    {
+        double x0, y0, z0, x1, y1, z1;
+        solid_bbox(doc, outline).Get(x0, y0, z0, x1, y1, z1);
+        check(std::abs((x0 + x1) / 2 - 30) < 1e-3 && std::abs((y0 + y1) / 2 - 20) < 1e-3,
+              "outline follows X/Y (centre " + std::to_string((x0 + x1) / 2) + ", " + std::to_string((y0 + y1) / 2)
+                      + ")");
+        check(std::abs(body_volume(doc, outline) - 400) < 1e-3, "outline keeps its shape");
+    }
+
+    auto &rev = add_revolved_profile(doc, doc.get_groups_sorted().back()->m_uuid, {{0, 0}, {10, 0}, {10, 10}, {0, 10}},
+                                     false, {-30, 0});
+    doc.update_pending();
+    // one move after another, as from the panel: X, then Y
+    set_position(doc, rev, 50, 0);
+    set_position(doc, rev, 50, 25);
+    {
+        double x0, y0, z0, x1, y1, z1;
+        solid_bbox(doc, rev).Get(x0, y0, z0, x1, y1, z1);
+        check(std::abs((y0 + y1) / 2 - 25) < 1e-3, "revolve follows Y (centre y " + std::to_string((y0 + y1) / 2) + ")");
+        const double expected = std::numbers::pi * 100 * 10;
+        check(std::abs(body_volume(doc, rev) - expected) / expected < 1e-3,
+              "revolve is still a full turn (volume " + std::to_string(body_volume(doc, rev)) + ")");
+    }
+
+    // the same with a smooth profile, like the dome
+    std::vector<glm::dvec2> quarter{{0, 0}};
+    for (int i = 0; i <= 5; i++)
+        quarter.push_back({20 * std::cos(i * std::numbers::pi / 10), 20 * std::sin(i * std::numbers::pi / 10)});
+    auto &dome = add_revolved_profile(doc, doc.get_groups_sorted().back()->m_uuid, quarter, true, {-60, 0});
+    doc.update_pending();
+    const auto dome_volume = body_volume(doc, dome);
+    set_position(doc, dome, -60, -35);
+    set_position(doc, dome, -20, -35);
+    check(dome_volume > 0 && std::abs(body_volume(doc, dome) - dome_volume) / dome_volume < 1e-3,
+          "smooth revolve is still a full turn (volume " + std::to_string(body_volume(doc, dome)) + " was "
+                  + std::to_string(dome_volume) + ")");
+}
+
 static void test_more_shapes()
 {
     std::cout << "more shapes" << std::endl;
@@ -392,6 +459,7 @@ static void test_combine()
 int main()
 {
     constexpr double pi = std::numbers::pi;
+    test_moving_shapes();
     test_primitive("box 20x20x20", Primitive::BOX, 20. * 20. * 20.);
     test_primitive("cylinder r10 h20", Primitive::CYLINDER, pi * 10. * 10. * 20.);
     test_primitive("sphere r10", Primitive::SPHERE, 4. / 3. * pi * 10. * 10. * 10.);
