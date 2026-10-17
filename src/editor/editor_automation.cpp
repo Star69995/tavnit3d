@@ -3,6 +3,7 @@
 #include "canvas/canvas.hpp"
 #include "util/fs_util.hpp"
 #include "document/document.hpp"
+#include "document/object_parts.hpp"
 #include "nlohmann/json.hpp"
 #include "action_search.hpp"
 #include "document/group/igroup_solid_model.hpp"
@@ -45,7 +46,9 @@ namespace dune3d {
  *   sticker PATH             add a sticker with this picture to the object in the panel (then click on it)
  *   save PATH                save the current document under this name
  *   render-window            open the render window (then "button Render", "shotwin Render picture PATH")
+ *   layout PATH              write where the picked object and the panel's number fields are
  *   handles                  print where the picked object's resize handles are, in window pixels
+ *   check-solids             fail if a step that makes a solid has none ("not done")
  *   groups                   print the current document's groups, their solids and messages
  *   find TEXT                open Find with this typed in (then "shotwin Find PATH", "key Return")
  *   find-run                 run what Find shows first
@@ -203,6 +206,56 @@ void Editor::run_automation(const std::filesystem::path &script)
                 show_render_window();
                 delay = 800;
             }
+            else if (cmd == "layout") {
+                // where things are, in window pixels, for testing with the real mouse
+                // (tools/stress-panel.ps1): the picked object's middle, and each number field in
+                // the side panel that can be seen: LABEL, its text, its - and its + button
+                std::ofstream ofs(path_from_string(rest));
+                auto in_window = [this](Gtk::Widget &w, double x, double y) {
+                    graphene_point_t in{(float)x, (float)y}, out;
+                    if (!gtk_widget_compute_point(GTK_WIDGET(w.gobj()), GTK_WIDGET(m_win.gobj()), &in, &out))
+                        out = in;
+                    return glm::ivec2(out.x, out.y);
+                };
+                auto &doc = m_core.get_current_document();
+                if (m_object_editor_body && doc.get_groups().contains(m_object_editor_body)) {
+                    if (auto b = get_body_bounds(doc, m_object_editor_body)) {
+                        const auto p = get_canvas().project_to_window((b->lo + b->hi) / 2.);
+                        const auto w = in_window(get_canvas(), p.x, p.y);
+                        ofs << "object\t" << w.x << "\t" << w.y << "\n";
+                    }
+                }
+                Gtk::ScrolledWindow *sc = nullptr;
+                for (Gtk::Widget *w = m_group_editor_box; w && !sc; w = w->get_parent())
+                    sc = dynamic_cast<Gtk::ScrolledWindow *>(w);
+                auto grid = dynamic_cast<Gtk::Grid *>(m_object_editor);
+                for (auto ch = grid ? grid->get_first_child() : nullptr; ch; ch = ch->get_next_sibling()) {
+                    auto sp = dynamic_cast<Gtk::SpinButton *>(ch);
+                    if (!sp || !sp->get_mapped())
+                        continue;
+                    // only what can be seen without scrolling
+                    if (sc) {
+                        graphene_point_t in{0, (float)sp->get_height() / 2}, out;
+                        if (!gtk_widget_compute_point(GTK_WIDGET(sp->gobj()), GTK_WIDGET(sc->gobj()), &in, &out)
+                            || out.y < 0 || out.y > sc->get_height())
+                            continue;
+                    }
+                    int col, row, cw, rh;
+                    gtk_grid_query_child(grid->gobj(), GTK_WIDGET(sp->gobj()), &col, &row, &cw, &rh);
+                    auto la = dynamic_cast<Gtk::Label *>(grid->get_child_at(col - 1, row));
+                    const auto text = in_window(*sp, sp->get_width() * .25, sp->get_height() / 2.);
+                    std::vector<glm::ivec2> buttons; // - then +
+                    for (auto b = sp->get_first_child(); b; b = b->get_next_sibling()) {
+                        if (dynamic_cast<Gtk::Button *>(b))
+                            buttons.push_back(in_window(*b, b->get_width() / 2., b->get_height() / 2.));
+                    }
+                    if (buttons.size() != 2)
+                        continue;
+                    ofs << "field\t" << (la ? la->get_text().raw() : std::string("?")) << "\t" << text.x << "\t"
+                        << text.y << "\t" << buttons.at(0).x << "\t" << buttons.at(0).y << "\t" << buttons.at(1).x
+                        << "\t" << buttons.at(1).y << "\n";
+                }
+            }
             else if (cmd == "handles") {
                 for (const auto &h : get_object_handles()) {
                     const auto p = get_canvas().project_to_window(h.pos);
@@ -220,6 +273,18 @@ void Editor::run_automation(const std::filesystem::path &script)
                               << (IGroupSolidModel::try_get_solid_model(*gr) ? " solid" : "") << std::endl;
                     for (const auto &m : gr->get_messages())
                         std::cerr << "automation:   " << m.message << std::endl;
+                }
+            }
+            else if (cmd == "check-solids") {
+                // fails if a step that makes a solid (extrude, rounding, ...) has none: "not done"
+                auto &doc = m_core.get_current_document();
+                for (auto gr : doc.get_groups_sorted()) {
+                    const auto t = gr->get_type();
+                    if (t == Group::Type::SKETCH || t == Group::Type::REFERENCE
+                        || !dynamic_cast<const IGroupSolidModel *>(gr))
+                        continue;
+                    if (!IGroupSolidModel::try_get_solid_model(*gr))
+                        throw std::runtime_error("no solid in " + gr->m_name);
                 }
             }
             else if (cmd == "find") {

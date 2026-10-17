@@ -1,0 +1,79 @@
+# Stress: many quick changes from the object panel on bigger objects - a table
+# joined from a top and four legs (as an AI would make it) and a hollow, rounded
+# bowl - including values that don't fit, splitting the legs up, dragging and
+# undo. Passes if every step works and the app is still there at the end.
+# Clicks are window pixels of the default 1400x900 window (see "shot").
+action NEW_DOCUMENT
+wait 800
+recipe @DIR@/table.json
+action VIEW_FIT
+wait 500
+click 850 330
+wait 600
+
+# the whole table, then its parts, quickly one after the other
+field Round edges=1
+field Round edges=2
+field Round edges=0
+field X=20
+field X=-20
+field X=0
+field Diameter=10
+field Diameter=4
+field Diameter=8
+field Width=140
+field Width=80
+field Width=100
+field Z=90
+field Z=70
+button Leg ×4
+wait 300
+field Diameter=12
+field Diameter=6
+button Separately
+wait 600
+button Together
+wait 600
+button Leg ×4
+wait 300
+drag 691 302 691 250
+wait 800
+drag 850 330 950 380
+wait 800
+
+# undo and redo all of it
+action UNDO
+action UNDO
+action UNDO
+action UNDO
+action UNDO
+action REDO
+action REDO
+wait 800
+check-solids
+
+# a hollow, rounded bowl: rounding and walls past what it allows go back
+action ADD_BOWL
+wait 1500
+action VIEW_FIT
+wait 500
+tree Bowl
+wait 800
+field Round edges=5
+field Round edges=0.5
+field Hollow=40
+field Hollow=1
+field Round edges=2
+field Hollow=4
+field Round edges=1.5
+field Hollow=0
+field Round edges=3
+field Hollow=2.5
+wait 1500
+action UNDO
+action UNDO
+action UNDO
+action REDO
+wait 1500
+check-solids
+quit

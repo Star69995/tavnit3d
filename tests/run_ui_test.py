@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Runs the app with an automation script (see src/editor/editor_automation.cpp)
-and fails if a step failed or an error dialog showed up."""
+(@TMP@: a temporary folder, @DIR@: the script's folder) and fails if a step failed or an error dialog showed up."""
 import os
 import subprocess
 import sys
@@ -11,6 +11,8 @@ with tempfile.TemporaryDirectory() as tmp:
     path = os.path.join(tmp, "script.txt")
     with open(script, encoding="utf-8") as f:
         text = f.read().replace("@TMP@", tmp.replace("\\", "/"))
+        # files next to the script, like recipes
+        text = text.replace("@DIR@", os.path.dirname(os.path.abspath(script)).replace("\\", "/"))
     with open(path, "w", encoding="utf-8") as f:
         f.write(text)
     env = dict(os.environ, DUNE3D_AUTOMATION=path)

@@ -34,7 +34,7 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 
 - Preferred: `tools/ui.sh script.txt` - in-app UI automation (also commands for
   stickers, import, export-gltf, save, recipe, describe, find, handles,
-  groups, render-window, zoom, close, panel-scroll, crash - see the top of editor_automation.cpp)
+  groups, render-window, zoom, close, panel-scroll, crash, check-solids, layout - see the top of editor_automation.cpp)
   (`src/editor/editor_automation.cpp`, enabled by `DUNE3D_AUTOMATION`):
   actions by catalog name, pointer on the 3D view, buttons/fields by label,
   `shot PATH` renders the window to PNG. Never touches the real mouse or
@@ -52,6 +52,13 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 - Site screenshots: lay the scene out with a recipe (`recipe PATH`) rather
   than clicks, then `action VIEW_FIT` and `zoom F X Y`.
 - `tools/snap.ps1 -Out PATH [-Doc file.d3ddoc]` just launches and captures.
+- Crashes and speed: `tests/ui/stress.txt` (many quick object panel changes
+  on a joined table and a bowl, undo, `check-solids`) and `tests/test_performance.cpp`
+  (drag step, part changes, rebuilds on bigger objects; fails well above today's
+  times) run with the other tests. `tools/stress-panel.ps1` does it with the real
+  mouse and keyboard (+/- clicks, typing, Alt+Shift, dragging; needs the computer
+  to itself for a few minutes): it takes field positions from automation `layout`
+  and reports a crash and its `crash-*.txt`. UI test scripts can use `@DIR@`.
 - Sample documents: https://github.com/dune3d/samples
 
 ## Code map (our additions)

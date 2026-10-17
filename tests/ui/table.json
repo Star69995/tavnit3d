@@ -1,0 +1,8 @@
+{"objects": [
+ {"id": "top", "name": "Top", "shape": "box", "width": 100, "depth": 60, "height": 5, "position": [0, 0, 70], "color": "#b07a4a"},
+ {"id": "leg1", "name": "Leg 1", "shape": "cylinder", "diameter": 6, "height": 70, "position": [-42, -24, 0]},
+ {"id": "leg2", "name": "Leg 2", "shape": "cylinder", "diameter": 6, "height": 70, "position": [42, -24, 0]},
+ {"id": "leg3", "name": "Leg 3", "shape": "cylinder", "diameter": 6, "height": 70, "position": [-42, 24, 0]},
+ {"id": "leg4", "name": "Leg 4", "shape": "cylinder", "diameter": 6, "height": 70, "position": [42, 24, 0]}],
+ "combine": [{"op": "join", "target": "top", "tool": "leg1"}, {"op": "join", "target": "top", "tool": "leg2"},
+  {"op": "join", "target": "top", "tool": "leg3"}, {"op": "join", "target": "top", "tool": "leg4"}]}
