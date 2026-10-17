@@ -606,7 +606,7 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
     wheel_scrolls_past_spinbuttons(*grid);
     if (focus_name.size()) {
         for (auto ch = grid->get_first_child(); ch; ch = ch->get_next_sibling()) {
-            if (ch->get_name() == focus_name)
+            if (ch->get_name().raw() == focus_name)
                 ch->grab_focus();
         }
     }
