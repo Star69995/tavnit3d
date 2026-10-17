@@ -3,7 +3,7 @@
 ; Silent update: Tavnit3D-<ver>-setup.exe /SILENT /SUPPRESSMSGBOXES /NORESTART [/RELAUNCH=1]
 
 #ifndef AppVersion
-  #define AppVersion "0.1.0" ; keep in sync with app_version in src/util/branding.hpp
+  #define AppVersion "0.3.0" ; keep in sync with app_version in src/util/branding.hpp
 #endif
 #define AppName "Tavnit 3D"
 #define AppExe "dune3d.exe"
