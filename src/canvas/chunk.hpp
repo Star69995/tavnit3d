@@ -160,6 +160,7 @@ public:
         size_t offset; // in m_decal_vertices
         size_t count;
         std::shared_ptr<const PictureData> data;
+        bool repeat = false; // the picture tiles (uv beyond 0..1)
     };
     std::vector<Decal> m_decals;
 };

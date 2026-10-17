@@ -129,6 +129,13 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   endpoint for tests. HTTP: `src/util/http.*` (WinHTTP).
 - Resize handles (`src/editor/editor_handles.cpp`) use the object panel's
   dimension list (`src/editor/object_dimensions.hpp`).
+- Patterns (`src/document/pattern.*`, `Decal::m_repeat`): stripes/dots/checker/grid
+  as a generated transparent tile used as a sticker that repeats (`m_width` =
+  tile size in mm). `make_decal_mesh` then covers every face looking within
+  60 degrees of the clicked normal, uv unclipped; the decal renderer sets
+  GL_REPEAT per decal, glTF export uses a repeating sampler. Panel: Stickers >
+  Pattern + colour + "Add pattern..." (click on the object); automation:
+  `pattern N [C]`. Tests: `tests/test_patterns.cpp`, `tests/ui/patterns.txt`.
 - Find (`src/editor/action_search.*`, items in `editor_search.cpp`): Ctrl+K
   both as the FIND action and a window-level capture shortcut. When a
   feature lands, add it there with where it lives.

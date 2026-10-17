@@ -39,6 +39,7 @@ namespace dune3d {
  *   size W H                 resize the window
  *   shot PATH                save the window contents as PNG
  *   shotwin TITLE PATH       the same for another window, e.g. a dialog
+ *   pattern N [C]            like "sticker", with the N-th pattern (0 stripes, 1 dots, 2 checker, 3 grid) in colour C
  *   sticker PATH             add a sticker with this picture to the object in the panel (then click on it)
  *   save PATH                save the current document under this name
  *   render-window            open the render window (then "button Render", "shotwin Render picture PATH")
@@ -245,6 +246,14 @@ void Editor::run_automation(const std::filesystem::path &script)
                 if (!m_object_editor)
                     throw std::runtime_error("no object panel");
                 begin_place_decal(m_object_editor_doc, m_object_editor_body, path_from_string(rest));
+            }
+            else if (cmd == "pattern") {
+                // pattern INDEX [COLOUR INDEX]: as chosen in the object panel; then click on the object
+                if (!m_object_editor)
+                    throw std::runtime_error("no object panel");
+                int pattern = 0, colour = 0;
+                std::istringstream(rest) >> pattern >> colour;
+                begin_place_pattern(m_object_editor_doc, m_object_editor_body, pattern, colour);
             }
             else if (cmd == "rotate") {
                 double x1, y1, x2, y2;

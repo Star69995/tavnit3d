@@ -1690,7 +1690,7 @@ ICanvas::VertexRef Canvas::draw_picture(const std::array<glm::vec3, 4> &corners,
     return {VertexType::PICTURE, m_current_chunk->m_pictures.size() - 1, m_current_chunk_id};
 }
 
-void Canvas::add_decal(const DecalMesh &mesh, std::shared_ptr<const PictureData> data)
+void Canvas::add_decal(const DecalMesh &mesh, std::shared_ptr<const PictureData> data, bool repeat)
 {
     if (!data || mesh.positions.empty())
         return;
@@ -1702,7 +1702,7 @@ void Canvas::add_decal(const DecalMesh &mesh, std::shared_ptr<const PictureData>
         const auto &uv = mesh.uvs.at(i);
         verts.push_back({p.x, p.y, p.z, n.x, n.y, n.z, uv.x, uv.y});
     }
-    m_current_chunk->m_decals.push_back({.offset = offset, .count = verts.size() - offset, .data = data});
+    m_current_chunk->m_decals.push_back({.offset = offset, .count = verts.size() - offset, .data = data, .repeat = repeat});
 }
 
 

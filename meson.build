@@ -56,6 +56,7 @@ src_common = files(
   'src/document/round_edges.cpp',
   'src/document/material.cpp',
   'src/document/decal.cpp',
+  'src/document/pattern.cpp',
   'src/document/light.cpp',
   'src/document/export_gltf.cpp',
   'src/document/import_objects.cpp',
@@ -551,8 +552,18 @@ test_update = executable('test_update',
     include_directories: include_directories,
 )
 test('update', test_update, timeout: 60)
+
+test_patterns = executable('test_patterns',
+    'tests/test_patterns.cpp',
+    dependencies: [build_dependencies],
+    link_whole: [dune3d_common],
+    link_with: [solvespace_nopic, clipper_nopic, dxflib_nopic],
+    cpp_args: cpp_args,
+    include_directories: include_directories,
+)
+test('patterns', test_patterns, timeout: 60)
 # drives the real app through tests/ui/*.txt; needs a display
-foreach ui_test : ['smoke']
+foreach ui_test : ['smoke', 'patterns']
     test('ui-' + ui_test, prog_python,
         args: [files('tests/run_ui_test.py'), dune3d, files('tests/ui' / ui_test + '.txt')],
         timeout: 240)

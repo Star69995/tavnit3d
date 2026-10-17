@@ -29,8 +29,10 @@ public:
     // where the centre of the body's bounds was when the sticker was placed;
     // the sticker moves along when the body does
     glm::dvec3 m_anchor = {0, 0, 0};
-    double m_width = 20; // the height follows from the picture's aspect ratio
+    double m_width = 20; // the height follows from the picture's aspect ratio (a tile's size when repeating)
     double m_angle = 0;  // degrees, counter-clockwise about the normal
+    // a pattern: the picture repeats over every surface facing along the normal, not just once
+    bool m_repeat = false;
 
     double get_height() const;
 };

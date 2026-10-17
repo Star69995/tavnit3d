@@ -1,0 +1,23 @@
+# Patterns on objects: place a checker on a box and stripes on a cylinder, save, export, reopen.
+# Clicks are window pixels of the default 1400x900 window (see "shot").
+action NEW_DOCUMENT
+wait 800
+button Box
+button Cylinder
+wait 800
+tree Box
+pattern 2 2
+click 780 330
+wait 800
+tree Cylinder
+pattern 0 3
+click 1215 440
+wait 800
+tree Cylinder
+save @TMP@/patterns.d3ddoc
+export-gltf @TMP@/patterns.glb
+open @TMP@/patterns.d3ddoc
+wait 1000
+tree Box
+wait 500
+quit

@@ -100,6 +100,10 @@ void DecalRenderer::render()
         const auto &chunk = m_ca.m_chunks.at(chunk_id);
         for (const auto &decal : chunk.m_decals) {
             glBindTexture(GL_TEXTURE_2D, m_textures.get(decal.data->m_uuid));
+            // set each time: the same picture may be used both ways
+            const GLint wrap = decal.repeat ? GL_REPEAT : GL_CLAMP_TO_EDGE;
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap);
             glDrawArrays(GL_TRIANGLES, chunk.m_decal_offset + decal.offset, decal.count);
         }
     }
