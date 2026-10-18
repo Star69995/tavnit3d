@@ -87,7 +87,7 @@ static void test_primitive(const char *name, Primitive primitive, double expecte
           "volume " + std::to_string(vol) + " ~ " + std::to_string(expected_volume));
 }
 
-static bool near(const glm::dvec3 &a, const glm::dvec3 &b)
+static bool vec_near(const glm::dvec3 &a, const glm::dvec3 &b)
 {
     return glm::length(a - b) < 1e-6;
 }
@@ -100,7 +100,7 @@ static void test_sketch_on_face()
         auto &cyl = add_primitive(doc, doc.get_groups_sorted().back()->m_uuid, Primitive::CYLINDER);
         doc.update_pending();
         auto top = pick_planar_face(doc, cyl.m_uuid, {3, 0, 100}, {0, 0, -1});
-        check(top && near(top->normal, {0, 0, 1}), "cylinder top is flat");
+        check(top && vec_near(top->normal, {0, 0, 1}), "cylinder top is flat");
         auto round = pick_planar_face(doc, cyl.m_uuid, {0, 100, 5}, {0, -1, 0});
         check(!round, "cylinder side is curved, not picked");
     }
@@ -113,14 +113,14 @@ static void test_sketch_on_face()
     check(top.has_value(), "ray from above hits a flat face");
     if (!top)
         return;
-    check(near(top->normal, {0, 0, 1}), "top face normal points up");
+    check(vec_near(top->normal, {0, 0, 1}), "top face normal points up");
     check(std::abs(top->centroid.z - 20) < 1e-6, "top face is at z=20");
 
     auto bottom = pick_planar_face(doc, box.m_uuid, {3, 4, -100}, {0, 0, 1});
-    check(bottom && near(bottom->normal, {0, 0, -1}), "bottom face normal points down");
+    check(bottom && vec_near(bottom->normal, {0, 0, -1}), "bottom face normal points down");
 
     auto side = pick_planar_face(doc, box.m_uuid, {100, 2, 5}, {-1, 0, 0});
-    check(side && near(side->normal, {1, 0, 0}), "side face normal points along +x");
+    check(side && vec_near(side->normal, {1, 0, 0}), "side face normal points along +x");
 
     auto miss = pick_planar_face(doc, box.m_uuid, {500, 500, 100}, {0, 0, -1});
     check(!miss, "ray past everything picks nothing");
@@ -131,7 +131,7 @@ static void test_sketch_on_face()
     check(sketch.m_dof == 0, "face sketch workplane is pinned (dof=" + std::to_string(sketch.m_dof) + ")");
     auto &wrkpl = doc.get_entity<EntityWorkplane>(sketch.m_active_wrkpl);
     check(std::abs(wrkpl.m_origin.z - 20) < 1e-6, "workplane sits on the top face");
-    check(near(wrkpl.get_normal_vector(), {0, 0, 1}), "workplane faces up");
+    check(vec_near(wrkpl.get_normal_vector(), {0, 0, 1}), "workplane faces up");
 
     // make the box taller: the face sketch should move along
     for (auto &[uu, co] : doc.m_constraints) {

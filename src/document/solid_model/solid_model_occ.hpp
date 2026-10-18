@@ -2,6 +2,9 @@
 #include "document/group/igroup_solid_model.hpp"
 #include "util/color.hpp"
 #include "document/group/group.hpp"
+// gtkmm/cairomm before OCCT, whose windows.h defines IN, IGNORE, DOUBLE_CLICK and near
+#include <gdkmm.h>
+#include <cairomm/cairomm.h>
 #include <TopoDS.hxx>
 #include <BRepBuilderAPI_MakeShape.hxx>
 
