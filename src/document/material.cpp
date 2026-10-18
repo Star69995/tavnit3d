@@ -16,6 +16,8 @@ MaterialPbr get_material_pbr(Body::Material mat)
         return {.metallic = 1, .roughness = .3};
     case M::GLASS:
         return {.metallic = 0, .roughness = .05, .alpha = .3};
+    case M::WOOD:
+        return {.metallic = 0, .roughness = .6};
     }
     return {};
 }
@@ -37,7 +39,7 @@ Body::Material material_from_pbr(const MaterialPbr &pbr)
 const std::vector<Body::Material> &get_all_materials()
 {
     using M = Body::Material;
-    static const std::vector<M> all = {M::SATIN, M::MATTE, M::GLOSSY, M::METAL, M::GLASS};
+    static const std::vector<M> all = {M::SATIN, M::MATTE, M::GLOSSY, M::METAL, M::GLASS, M::WOOD};
     return all;
 }
 
@@ -55,6 +57,8 @@ const char *get_material_label(Body::Material mat)
         return "Metal";
     case M::GLASS:
         return "Glass";
+    case M::WOOD:
+        return "Wood";
     }
     return "";
 }

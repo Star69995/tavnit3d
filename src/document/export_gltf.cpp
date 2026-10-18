@@ -171,6 +171,12 @@ json pbr_material(const std::string &name, const Color &color, Body::Material ma
 {
     const auto pbr = get_material_pbr(mat);
     auto base = linear_rgb(color);
+    if (mat == Body::Material::WOOD) {
+        // no procedural grain in glTF: the average wood colour, stained by the body's colour
+        const auto luma = std::max(.299f * color.r + .587f * color.g + .114f * color.b, .05f);
+        const auto stain = [luma](float wood, float c) { return std::clamp(wood * std::min(c / luma, 1.6f), 0.f, 1.f); };
+        base = linear_rgb(Color(stain(.66f, color.r), stain(.45f, color.g), stain(.27f, color.b)));
+    }
     base.push_back(pbr.alpha);
     json m = {
             {"name", name},

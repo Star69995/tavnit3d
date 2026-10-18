@@ -34,6 +34,7 @@ static const LutEnumStr<Body::Material> body_material_lut = {
         {"glossy", Body::Material::GLOSSY},
         {"metal", Body::Material::METAL},
         {"glass", Body::Material::GLASS},
+        {"wood", Body::Material::WOOD},
 };
 
 Body::Body(const json &j) : m_name(j.at("name").get<std::string>())

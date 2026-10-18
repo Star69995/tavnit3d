@@ -167,12 +167,15 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 - Materials: `src/document/material.*` is the one table (PBR values, labels,
   `material_from_pbr` for imports); glass is drawn in a second, blended pass
   (`FaceRenderer::render(bool glass)`). Shading for faces and stickers lives in
-  `src/canvas/shaders/lighting.glsl` (included as `##lighting`).
+  `src/canvas/shaders/lighting.glsl` (included as `##lighting`). Wood (material 5) is procedural in
+  that shader (`wood_color`: grain along X in world mm, body colour stains it; glTF gets a flat wood colour).
 - Stickers (`src/document/decal.*`, `Body::m_decals`): a picture projected along
   a normal onto the body's triangles (`make_decal_mesh`), anchored to the
   body's bounds centre so it follows moves; pictures saved like picture
   entities (`.d3dpic` folder). Drawn by `src/canvas/decal_renderer.*`; placed
   by clicking (`src/editor/editor_decal.cpp`, `pick_surface_point`).
+- Light symbols: `draw_light_symbol` in `src/render/renderer.cpp` draws a globe (+ rays for a point lamp, a beam
+  cone for a spot, rays and parallel arrows for the sun) in 3D lines, sized by the light-to-target distance.
 - Lights (`src/document/light.*`, `Document::m_lights`): brightness is as seen
   at the target; `src/editor/editor_lights.cpp` (palette, panel, picking the
   marker by screen distance, which also starts dragging the lamp or, for spot/sun, its aimed-at

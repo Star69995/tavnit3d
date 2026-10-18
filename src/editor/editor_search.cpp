@@ -113,7 +113,7 @@ std::vector<SearchItem> Editor::get_search_items()
     const char *panel = "Object panel (click an object first)";
     auto in_panel = [panel](const char *what) { return std::string(panel) + " > " + what; };
     items.push_back({"Colour", in_panel("Colour"), "color צבע", field("Colour")});
-    items.push_back({"Material", in_panel("Material"), "metal glass glossy matte חומר מתכת זכוכית מבריק",
+    items.push_back({"Material", in_panel("Material"), "metal glass glossy matte wood חומר מתכת זכוכית מבריק עץ",
                      field("Material")});
     items.push_back({"Hollow out", in_panel("Hollow"), "shell wall cup חלול דופן", field("Hollow")});
     items.push_back({"Round edges", in_panel("Round edges"), "fillet עיגול קצוות", field("Round edges")});

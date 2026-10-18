@@ -23,7 +23,7 @@ public:
     std::string m_name = "Body";
     std::optional<Color> m_color;
     // how the surface reflects light; only affects display
-    enum class Material { SATIN, MATTE, GLOSSY, METAL, GLASS }; // see material.hpp
+    enum class Material { SATIN, MATTE, GLOSSY, METAL, GLASS, WOOD }; // see material.hpp
     Material m_material = Material::SATIN;
     std::vector<Decal> m_decals; // stickers
     // a "hole": drawn see-through, left out of exports, cuts the objects it overlaps when asked to

@@ -28,6 +28,80 @@ namespace dune3d {
 
 using IconID = IconTexture::IconTextureID;
 
+static void draw_circle_3d(ICanvas &ca, const glm::dvec3 &c, const glm::dvec3 &a, const glm::dvec3 &b, double r)
+{
+    constexpr int n = 28;
+    auto prev = c + a * r;
+    for (int i = 1; i <= n; i++) {
+        const double t = glm::two_pi<double>() * i / n;
+        const auto p = c + (a * std::cos(t) + b * std::sin(t)) * r;
+        ca.draw_line(prev, p);
+        prev = p;
+    }
+}
+
+// What a lamp looks like in the 3D view, so it reads as a light rather than a dot: a bulb (point),
+// a lamp with its beam cone (spot), a sun with rays and parallel arrows (sun). Sized by how far the
+// light is from what it shines at, so it stays in proportion to the scene.
+static void draw_light_symbol(ICanvas &ca, const Light &light)
+{
+    const auto dir = light.get_direction();
+    const double dist = std::max(light.get_target_distance(), 1.);
+    const double r = std::max(dist * .03, 1.);
+    // any two axes across the beam
+    const auto helper = std::abs(dir.z) < .9 ? glm::dvec3(0, 0, 1) : glm::dvec3(1, 0, 0);
+    const auto u = glm::normalize(glm::cross(dir, helper));
+    const auto v = glm::cross(dir, u);
+    const auto p = light.m_position;
+
+    // the bulb: a small globe, always
+    draw_circle_3d(ca, p, u, v, r);
+    draw_circle_3d(ca, p, u, dir, r);
+    draw_circle_3d(ca, p, v, dir, r);
+
+    switch (light.m_type) {
+    case Light::Type::POINT:
+        // rays all around
+        for (int i = 0; i < 8; i++) {
+            const double t = glm::two_pi<double>() * i / 8;
+            const auto d = u * std::cos(t) + v * std::sin(t);
+            ca.draw_line(p + d * r * 1.5, p + d * r * 2.4);
+        }
+        ca.draw_line(p - dir * r * 1.5, p - dir * r * 2.4);
+        ca.draw_line(p + dir * r * 1.5, p + dir * r * 2.4);
+        break;
+    case Light::Type::SPOT: {
+        // the beam: a cone opening towards the target
+        const double len = std::min(dist * .3, r * 9);
+        const double cone_r = len * std::tan(glm::radians(std::clamp(light.m_spot_angle, 1., 170.)) / 2);
+        const auto end = p + dir * len;
+        draw_circle_3d(ca, end, u, v, cone_r);
+        for (int i = 0; i < 4; i++) {
+            const double t = glm::half_pi<double>() * i;
+            ca.draw_line(p, end + (u * std::cos(t) + v * std::sin(t)) * cone_r);
+        }
+        break;
+    }
+    case Light::Type::SUN:
+        // rays all around plus a few arrows in the direction it shines
+        for (int i = 0; i < 12; i++) {
+            const double t = glm::two_pi<double>() * i / 12;
+            const auto d = u * std::cos(t) + v * std::sin(t);
+            ca.draw_line(p + d * r * 1.4, p + d * r * 2.6);
+        }
+        for (int i = 0; i < 3; i++) {
+            const double t = glm::two_pi<double>() * i / 3;
+            const auto from = p + (u * std::cos(t) + v * std::sin(t)) * r * .6;
+            const auto to = from + dir * r * 7.;
+            const auto side = u * std::cos(t) + v * std::sin(t);
+            ca.draw_line(from, to);
+            ca.draw_line(to, to - dir * r * 1.2 + side * r * .5);
+            ca.draw_line(to, to - dir * r * 1.2 - side * r * .5);
+        }
+        break;
+    }
+}
+
 class Renderer::AutoSaveRestore {
 public:
     [[nodiscard]]
@@ -194,6 +268,7 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
     // lights: a marker, and which way it shines
     if (!sr) {
         for (const auto &light : doc.m_lights) {
+            draw_light_symbol(m_ca, light);
             m_ca.draw_point(light.m_position, IconID::POINT_CIRCLE);
             if (light.m_type != Light::Type::POINT) {
                 // a line to what it's aimed at, which can be dragged too

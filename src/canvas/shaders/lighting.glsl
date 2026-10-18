@@ -9,9 +9,46 @@ uniform vec4 light_dir[8];   // xyz towards where it shines; w: cosine of the co
 uniform vec4 light_color[8]; // rgb times brightness; w: cosine of where the cone starts fading
 uniform float light_dist[8]; // distance to its target, where it's as bright as asked for
 
-// mat: 0 satin, 1 matte, 2 glossy, 3 metal, 4 glass (see document/material.cpp)
+float wood_hash(vec3 p)
+{
+  p = fract(p * .3183099 + .1);
+  p *= 17.;
+  return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+}
+
+float wood_noise(vec3 x)
+{
+  vec3 i = floor(x), f = fract(x);
+  f = f*f*(3. - 2.*f);
+  return mix(mix(mix(wood_hash(i), wood_hash(i + vec3(1,0,0)), f.x),
+                 mix(wood_hash(i + vec3(0,1,0)), wood_hash(i + vec3(1,1,0)), f.x), f.y),
+             mix(mix(wood_hash(i + vec3(0,0,1)), wood_hash(i + vec3(1,0,1)), f.x),
+                 mix(wood_hash(i + vec3(0,1,1)), wood_hash(i + vec3(1,1,1)), f.x), f.y), f.z);
+}
+
+// Grain of a plank along X (pos in mm): growth rings around an axis parallel to X, so the top
+// shows stripes and the ends show rings. The body's colour stains it (grey = natural wood).
+vec3 wood_color(vec3 color, vec3 pos)
+{
+  vec3 p = pos / 10.;
+  // a slight waviness along the plank, finer fibres across the grain
+  float wobble = wood_noise(vec3(p.x*.15, p.y*.6, p.z*.6)) * 1.6;
+  float r = length(vec2(p.y, p.z) + vec2(.8, 1.3)*wobble) * 1.8 + wood_noise(vec3(p.x*.08, p.y*.3, p.z*.3)) * 1.2;
+  float ring = smoothstep(.15, .85, fract(r));
+  ring = ring*ring;
+  float fibre = wood_noise(vec3(p.x*.7, p.y*18., p.z*18.));
+  vec3 light = vec3(.80, .58, .36), dark = vec3(.52, .33, .18);
+  vec3 wood = mix(light, dark, ring * .85) * (.9 + .2*fibre);
+  float luma = dot(color, vec3(.299, .587, .114));
+  vec3 tint = clamp(color / max(luma, .05), 0., 1.6);
+  return clamp(wood * tint, 0., 1.);
+}
+
+// mat: 0 satin, 1 matte, 2 glossy, 3 metal, 4 glass, 5 wood (see document/material.cpp)
 vec4 shade_surface(vec3 color, vec3 normal, vec3 pos, int mat)
 {
+  if(mat == 5)
+    color = wood_color(color, pos);
   vec3 v = normalize(cam_normal);
   vec3 n = normalize(normal);
   if(dot(n, v) < 0)
@@ -31,6 +68,7 @@ vec4 shade_surface(vec3 color, vec3 normal, vec3 pos, int mat)
   if(mat == 1) { spec_strength = 0.; }
   else if(mat == 2) { spec_strength = .45; shininess = 140; }
   else if(mat == 3) { spec_strength = .9; shininess = 70; diffuse_strength = .45; }
+  else if(mat == 5) { spec_strength = .1; shininess = 18; }
   else if(mat == 4) { spec_strength = .8; shininess = 160; diffuse_strength = .35; }
 
   // the studio lights step back a little when the scene has its own

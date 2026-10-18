@@ -10,7 +10,7 @@ const std::map<std::string, std::string> row_hints = {
         // object panel
         {"Name", "The object's name, as shown in the list above; press Enter to change it"},
         {"Colour", "The object's colour; Default goes back to the usual grey"},
-        {"Material", "How the surface takes the light: satin, matte, glossy, metal, glass..."},
+        {"Material", "How the surface takes the light: satin, matte, glossy, metal, glass, wood (with grain)..."},
         {"Hole",
          "A hole is drawn see-through and isn't exported; place it inside an object and press Cut to remove it "
          "from what it overlaps"},
