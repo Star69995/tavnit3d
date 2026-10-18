@@ -188,6 +188,8 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
         if (!m_workspace_view->show_other_sketches() && group->get_type() != Group::Type::REFERENCE
             && &group->find_body(doc).group != m_current_body_group)
             continue;
+        if (m_hide_sketches && group->get_type() != Group::Type::REFERENCE)
+            continue;
         set_chunk_from_group(*group);
         for (const auto &[uu, el] : doc.m_entities) {
             if (el->m_group == group->m_uuid)
@@ -263,6 +265,24 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
         m_ca.draw_point(h.pos, h.kind == 0   ? IconID::POINT_DIAMOND
                                : h.kind == 1 ? IconID::POINT_TRIANGLE_DOWN
                                              : IconID::POINT_CIRCLE);
+    }
+
+    if (m_move_arrows) {
+        const auto &[o, len] = *m_move_arrows;
+        const auto head = len * .12;
+        const glm::dvec3 up{0, 0, 1};
+        for (const auto &dir : {glm::dvec3(1, 0, 0), glm::dvec3(0, 1, 0)}) {
+            const auto side = glm::cross(dir, up);
+            // double headed: the object moves both ways along it
+            for (const double sign : {1., -1.}) {
+                const auto tip = o + dir * len * sign;
+                m_ca.draw_line(o, tip);
+                m_ca.draw_line(tip, tip - dir * head * sign + side * head * .5);
+                m_ca.draw_line(tip, tip - dir * head * sign - side * head * .5);
+            }
+            m_ca.draw_bitmap_text_3d(o + dir * (len + head), glm::quat(1, 0, 0, 0), head * 1.5f,
+                                     dir.x > 0 ? "X" : "Y");
+        }
     }
 
     // lights: a marker, and which way it shines

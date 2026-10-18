@@ -143,6 +143,11 @@ private:
         glm::dvec2 last = {0, 0};          // how far they've moved
     };
     std::optional<ObjectDrag> m_object_drag;
+    UUID m_finished_group; // current group whose sketch "Finish editing" hid
+    bool sketches_are_finished() const;
+    void finish_editing();
+    // X/Y arrows on the floor under the picked object, if dragging can move it
+    std::optional<std::pair<glm::dvec3, double>> get_move_arrows(); // centre, arm length
     bool begin_object_drag(const UUID &doc_uu, const UUID &body_uu);
     void update_object_drag();
     // while dragging, slow solid models wait (Document::update_pending interactive);

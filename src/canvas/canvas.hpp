@@ -100,6 +100,11 @@ public:
     glm::dvec3 get_cursor_pos_for_plane(glm::dvec3 origin, glm::dvec3 normal) const;
     glm::vec3 get_cam_normal() const;
     glm::dvec2 get_cursor_pos_win() const;
+    // whether Shift was held at the last pointer movement
+    bool is_shift_down() const
+    {
+        return m_shift_down;
+    }
 
     void set_selection_mode(SelectionMode mode);
     SelectionMode get_selection_mode() const
@@ -421,6 +426,7 @@ private:
     void handle_click_release();
     void handle_left_press(double x, double y);
     void handle_motion(double x, double y);
+    bool m_shift_down = false;
 
     glm::vec2 m_pointer_pos_orig;
     glm::quat m_cam_quat_orig;

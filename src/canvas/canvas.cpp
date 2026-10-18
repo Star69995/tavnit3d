@@ -261,7 +261,10 @@ void Canvas::setup_controllers()
     }
 
     auto controller = Gtk::EventControllerMotion::create();
-    controller->signal_motion().connect(sigc::mem_fun(*this, &Canvas::handle_motion));
+    controller->signal_motion().connect([this, c = controller.get()](double x, double y) {
+        m_shift_down = (c->get_current_event_state() & Gdk::ModifierType::SHIFT_MASK) == Gdk::ModifierType::SHIFT_MASK;
+        handle_motion(x, y);
+    });
     add_controller(controller);
 }
 

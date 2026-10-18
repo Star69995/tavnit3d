@@ -151,6 +151,14 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 - Tool palette: `Editor::create_action_bar_button` / `add_action_bar_section`.
   A "Hide"/"Tools" button on top folds the whole palette away
   (`Dune3DAppWindow` constructor, remembered in `UserConfig::palette_folded`).
+- Moving cues (`Editor::get_move_arrows`, `Renderer::m_move_arrows`): double-headed X/Y arrows on
+  the floor under a picked movable object; the drag shows the offset in the key hint; Shift locks
+  to one axis (`Canvas::is_shift_down`, updated on pointer motion). `grow_floor`
+  (`body_solids.*`, called on `Core::signal_rebuilt`) widens the reference XY plane in 100 mm
+  steps when solids reach past it, never shrinks. "Finish editing" (`Dune3DAppWindow::set_finish_editing_visible`,
+  `Editor::finish_editing`, `m_finished_group`): overlay button that hides the current step's sketches
+  (`Renderer::m_hide_sketches`) until another step is opened (`Editor::set_current_group`). No Z drag yet:
+  shapes only have X/Y dims (only parts with their own workplane can go up/down).
 - Smooth dragging: `Document::update_pending(..., interactive=true)` (used by
   `Core::solve_current`, object and handle drags) skips solid models whose last
   build (`Group::m_solid_model_ms`) would blow a 40 ms budget, and everything

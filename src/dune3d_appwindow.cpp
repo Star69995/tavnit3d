@@ -239,6 +239,15 @@ Dune3DAppWindow::Dune3DAppWindow(BaseObjectType *cobject, const Glib::RefPtr<Gtk
         update();
     }
     m_canvas_overlay = refBuilder->get_widget<Gtk::Overlay>("canvas_overlay");
+    m_finish_editing_button = Gtk::make_managed<Gtk::Button>("Finish editing");
+    m_finish_editing_button->add_css_class("suggested-action");
+    m_finish_editing_button->set_halign(Gtk::Align::CENTER);
+    m_finish_editing_button->set_valign(Gtk::Align::START);
+    m_finish_editing_button->set_margin_top(12);
+    m_finish_editing_button->set_tooltip_text("Go back to the finished object and hide the sketch points of this step");
+    m_finish_editing_button->set_visible(false);
+    m_finish_editing_button->signal_clicked().connect([this] { m_signal_finish_editing.emit(); });
+    m_canvas_overlay->add_overlay(*m_finish_editing_button);
     init_movable_panels(*refBuilder->get_widget<Gtk::Box>("action_bar_box"));
 
     m_view_options_button = refBuilder->get_widget<Gtk::MenuButton>("view_options_button");
@@ -650,6 +659,12 @@ void Dune3DAppWindow::set_window_title_from_path(const std::filesystem::path &pa
         set_window_title(filename);
         set_subtitle(path_to_string(path.parent_path()));
     }
+}
+
+void Dune3DAppWindow::set_finish_editing_visible(bool show)
+{
+    if (m_finish_editing_button)
+        m_finish_editing_button->set_visible(show);
 }
 
 void Dune3DAppWindow::set_banner(Gtk::Widget *widget)
