@@ -116,6 +116,10 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   told apart from the next.
 - Combine (object panel, `src/document/combine.*`): solid model operation
   group in a new body after everything; the sources get hidden, not removed.
+  Faces keep their source's colour and material through a join/cut (`calc_keep_colors` in
+  `solid_model_solid_model_operation.cpp`: boolean history -> `SolidModelOcc::m_face_colors`/`m_face_materials`,
+  `face::Face::material`). The renderer makes a face group per material, glTF a primitive per colour+material,
+  STEP gets per-face colours (no materials in STEP). Fillet and hollow steps pass them on (`SolidModelOcc::inherit_looks`: face history; new faces along an edge take the look of the larger neighbour).
   It points at a source's last solid group: rounding/hollowing a source calls
   `repoint_combinations` (else removing the step would delete the join).
 - Parts of joined objects (`src/document/object_parts.*`, panel in

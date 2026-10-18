@@ -90,6 +90,7 @@ std::shared_ptr<const SolidModel> SolidModel::create(const Document &doc, GroupS
             return nullptr;
         }
         mod->m_shape_acc = maker.Shape();
+        mod->inherit_looks(*last, maker);
         // it may "work" and still make nonsense, e.g. walls thicker than rounded edges are round
         if (!BRepCheck_Analyzer(mod->m_shape_acc).IsValid()) {
             group.m_shell_messages.emplace_back(GroupStatusMessage::Status::ERR,

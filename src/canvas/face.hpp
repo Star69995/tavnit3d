@@ -70,6 +70,9 @@ using Vertex = TVertex<float>;
 class Face {
 public:
     Color color;
+    // Body::Material of its own (a joined part keeps its look), or no_material for the body's
+    static constexpr unsigned char no_material = 0xff;
+    unsigned char material = no_material;
     std::vector<Vertex> vertices;
     std::vector<Vertex> normals;
     std::vector<std::tuple<size_t, size_t, size_t>> triangle_indices;

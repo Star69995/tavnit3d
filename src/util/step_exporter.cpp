@@ -34,7 +34,8 @@ STEPExporter::STEPExporter(const char *assy_name) : m_impl(std::make_unique<Impl
 
 STEPExporter::~STEPExporter() = default;
 
-void STEPExporter::add_model(const char *name, const TopoDS_Shape &shape, const Color &color)
+void STEPExporter::add_model(const char *name, const TopoDS_Shape &shape, const Color &color,
+                             const std::vector<std::pair<TopoDS_Shape, Color>> &face_colors)
 {
     auto shape_tool = XCAFDoc_DocumentTool::ShapeTool(m_impl->doc->Main());
     TDF_Label label = shape_tool->AddShape(shape, false);
@@ -45,6 +46,13 @@ void STEPExporter::add_model(const char *name, const TopoDS_Shape &shape, const 
     auto color_tool = XCAFDoc_DocumentTool::ColorTool(m_impl->doc->Main());
     auto occ_color = Quantity_Color{color.r, color.g, color.b, Quantity_TOC_sRGB};
     color_tool->SetColor(label, occ_color, XCAFDoc_ColorGen);
+    for (const auto &[face, face_color] : face_colors) {
+        const auto sub_label = shape_tool->AddSubShape(label, face);
+        if (sub_label.IsNull())
+            continue;
+        color_tool->SetColor(sub_label, Quantity_Color{face_color.r, face_color.g, face_color.b, Quantity_TOC_sRGB},
+                             XCAFDoc_ColorSurf);
+    }
 }
 
 void STEPExporter::write(const std::filesystem::path &path) const

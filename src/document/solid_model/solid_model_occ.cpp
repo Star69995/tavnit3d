@@ -12,6 +12,11 @@
 #include <BRep_Tool.hxx>
 
 #include <TopExp_Explorer.hxx>
+#include <TopExp.hxx>
+#include <TopTools_ShapeMapHasher.hxx>
+#include <NCollection_IndexedDataMap.hxx>
+#include <BRepGProp.hxx>
+#include <GProp_GProps.hxx>
 #include <TopoDS.hxx>
 #include <TopoDS_Compound.hxx>
 #include <TopoDS_Face.hxx>
@@ -52,7 +57,8 @@ namespace dune3d {
 class Triangulator {
 public:
     Triangulator(const TopoDS_Shape &shape, const Color &color, face::Faces &faces,
-                 const std::map<const TopoDS_TShape *, Color> &face_colors);
+                 const std::map<const TopoDS_TShape *, Color> &face_colors,
+                 const std::map<const TopoDS_TShape *, Body::Material> &face_materials);
 
 
 private:
@@ -66,6 +72,13 @@ private:
     face::Faces &m_faces;
     face::Color m_color;
     const std::map<const TopoDS_TShape *, Color> &m_face_colors;
+    const std::map<const TopoDS_TShape *, Body::Material> &m_face_materials;
+    unsigned char get_material(const TopoDS_Face &face) const
+    {
+        if (auto it = m_face_materials.find(face.TShape().get()); it != m_face_materials.end())
+            return static_cast<unsigned char>(it->second);
+        return face::Face::no_material;
+    }
     face::Color get_color(const TopoDS_Face &face) const
     {
         if (auto it = m_face_colors.find(face.TShape().get()); it != m_face_colors.end())
@@ -75,8 +88,9 @@ private:
 };
 
 Triangulator::Triangulator(const TopoDS_Shape &shape, const Color &color, face::Faces &faces,
-                           const std::map<const TopoDS_TShape *, Color> &face_colors)
-    : m_faces(faces), m_face_colors(face_colors)
+                           const std::map<const TopoDS_TShape *, Color> &face_colors,
+                           const std::map<const TopoDS_TShape *, Body::Material> &face_materials)
+    : m_faces(faces), m_face_colors(face_colors), m_face_materials(face_materials)
 {
     m_color.r = color.r;
     m_color.b = color.b;
@@ -130,6 +144,7 @@ bool Triangulator::processFace(const TopoDS_Face &face, const glm::dmat4 &mat_in
 
     if (BRep_Tool::Surface(face).IsNull()) {
         add_mesh(*triangulation, mat, face.Orientation() == TopAbs_REVERSED, get_color(face));
+        m_faces.back().material = get_material(face);
         return true;
     }
 
@@ -145,6 +160,7 @@ bool Triangulator::processFace(const TopoDS_Face &face, const glm::dmat4 &mat_in
     m_faces.emplace_back();
     auto &face_out = m_faces.back();
     face_out.color = get_color(face);
+    face_out.material = get_material(face);
     face_out.vertices.reserve(triangulation->NbNodes());
 
     std::map<face::Vertex, std::vector<size_t>> pts_map;
@@ -401,7 +417,7 @@ bool Triangulator::processNode(const TopoDS_Shape &shape)
 void SolidModelOcc::triangulate()
 {
     m_faces.clear();
-    Triangulator tri{m_shape_acc, m_color, m_faces, m_face_colors};
+    Triangulator tri{m_shape_acc, m_color, m_faces, m_face_colors, m_face_materials};
 }
 
 inline double defaultAngularDeflection(double linearTolerance)
@@ -436,7 +452,63 @@ void SolidModelOcc::export_stl(const std::filesystem::path &path) const
 
 void SolidModelOcc::add_to_step_exporter(STEPExporter &exporter, const char *name) const
 {
-    exporter.add_model(name, m_shape_acc, m_color);
+    std::vector<std::pair<TopoDS_Shape, Color>> face_colors;
+    for (TopExp_Explorer ex(m_shape_acc, TopAbs_FACE); ex.More(); ex.Next()) {
+        if (auto it = m_face_colors.find(ex.Current().TShape().get()); it != m_face_colors.end())
+            face_colors.emplace_back(ex.Current(), it->second);
+    }
+    exporter.add_model(name, m_shape_acc, m_color, face_colors);
+}
+
+void SolidModelOcc::inherit_looks(const SolidModelOcc &from, BRepBuilderAPI_MakeShape &algo)
+{
+    if (from.m_face_colors.empty() && from.m_face_materials.empty())
+        return;
+    auto copy_look = [&](const TopoDS_TShape *src, const TopoDS_Shape &to) {
+        const auto *dst = to.TShape().get();
+        if (auto it = from.m_face_colors.find(src); it != from.m_face_colors.end())
+            m_face_colors.emplace(dst, it->second);
+        if (auto it = from.m_face_materials.find(src); it != from.m_face_materials.end())
+            m_face_materials.emplace(dst, it->second);
+    };
+    auto has_look = [&](const TopoDS_Shape &face) {
+        return from.m_face_colors.contains(face.TShape().get()) || from.m_face_materials.contains(face.TShape().get());
+    };
+    for (TopExp_Explorer ex(from.m_shape_acc, TopAbs_FACE); ex.More(); ex.Next()) {
+        const auto &face = ex.Current();
+        if (!has_look(face) || algo.IsDeleted(face))
+            continue;
+        const auto &modified = algo.Modified(face);
+        const auto &generated = algo.Generated(face);
+        // the face itself may stay in the result as it is, next to the faces made from it
+        copy_look(face.TShape().get(), face);
+        for (const auto &f : modified)
+            copy_look(face.TShape().get(), f);
+        for (const auto &f : generated)
+            copy_look(face.TShape().get(), f);
+    }
+
+    NCollection_IndexedDataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher> edge_faces;
+    TopExp::MapShapesAndAncestors(from.m_shape_acc, TopAbs_EDGE, TopAbs_FACE, edge_faces);
+    for (int i = 1; i <= edge_faces.Extent(); i++) {
+        const auto &generated = algo.Generated(edge_faces.FindKey(i));
+        if (generated.IsEmpty())
+            continue;
+        const TopoDS_Shape *largest = nullptr;
+        double largest_area = -1;
+        for (const auto &face : edge_faces.FindFromIndex(i)) {
+            GProp_GProps props;
+            BRepGProp::SurfaceProperties(face, props);
+            if (props.Mass() > largest_area) {
+                largest_area = props.Mass();
+                largest = &face;
+            }
+        }
+        if (largest && has_look(*largest)) {
+            for (const auto &f : generated)
+                copy_look(largest->TShape().get(), f);
+        }
+    }
 }
 
 void SolidModelOcc::find_edges()
@@ -532,6 +604,8 @@ void SolidModelOcc::finish(const Document &doc, const Group &group)
     else {
         m_color = Preferences::get().canvas.appearance.get_color(ColorP::SOLID_MODEL);
     }
+
+    m_material = body.m_material;
 
     triangulate();
     find_edges();
