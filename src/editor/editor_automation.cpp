@@ -4,6 +4,7 @@
 #include "util/fs_util.hpp"
 #include "document/document.hpp"
 #include "document/object_parts.hpp"
+#include "document/screw.hpp"
 #include "nlohmann/json.hpp"
 #include "action_search.hpp"
 #include "document/group/igroup_solid_model.hpp"
@@ -56,6 +57,7 @@ namespace dune3d {
  *   find TEXT                open Find with this typed in (then "shotwin Find PATH", "key Return")
  *   find-run                 run what Find shows first
  *   describe TEXT            open "Make from a description" with this text (then "button Make it")
+ *   screw HEAD D L [plain]   add a screw: HEAD 0 hexagon, 1 socket, 2 pan, 3 countersunk; diameter, length in mm
  *   recipe PATH              build the objects of a recipe (JSON file, see document/recipe.hpp)
  *   import PATH              import objects from a model file
  *   export-gltf PATH         export the shown objects as glTF, from the current view
@@ -348,6 +350,17 @@ void Editor::run_automation(const std::filesystem::path &script)
             else if (cmd == "recipe") {
                 std::ifstream ifs(path_from_string(rest));
                 add_from_recipe(json::parse(ifs), "recipe");
+                delay = 1500;
+            }
+            else if (cmd == "screw") {
+                // screw HEAD D L [plain]: HEAD 0 hexagon, 1 socket, 2 pan, 3 countersunk
+                ScrewParams p;
+                int head = 0;
+                std::string plain;
+                std::istringstream(rest) >> head >> p.diameter >> p.length >> plain;
+                p.head = static_cast<ScrewHead>(head);
+                p.thread = plain != "plain";
+                add_screw(p);
                 delay = 1500;
             }
             else if (cmd == "import") {

@@ -79,7 +79,7 @@ std::vector<SearchItem> Editor::get_search_items()
     items.push_back({"Heart", shapes, "לב", action(ActionID::ADD_HEART), keys(ActionID::ADD_HEART)});
     items.push_back({"Half sphere", shapes, "dome hemisphere חצי כדור כיפה", action(ActionID::ADD_HALF_SPHERE), keys(ActionID::ADD_HALF_SPHERE)});
     items.push_back({"Picture", shapes, "image photo flat sticker תמונה", action(ActionID::ADD_PICTURE_OBJECT), keys(ActionID::ADD_PICTURE_OBJECT)});
-    items.push_back({"Screw", shapes, "bolt thread hex בורג ברגים", action(ActionID::ADD_SCREW), keys(ActionID::ADD_SCREW)});
+    items.push_back({"Screw", shapes, "bolt thread helix hex socket countersunk בורג ברגים הברגה", action(ActionID::ADD_SCREW), keys(ActionID::ADD_SCREW)});
     items.push_back({"Round hole", shapes, "drill cut subtract חור קידוח", action(ActionID::ADD_HOLE_SHAPE), keys(ActionID::ADD_HOLE_SHAPE)});
     items.push_back({"3D text", shapes, "letters words טקסט כיתוב", action(ActionID::ADD_TEXT), keys(ActionID::ADD_TEXT)});
     items.push_back({"Bowl", shapes, "dish קערה", action(ActionID::ADD_BOWL), keys(ActionID::ADD_BOWL)});

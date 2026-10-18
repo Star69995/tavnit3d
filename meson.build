@@ -155,9 +155,13 @@ src_common = files(
   'src/document/group/group_clone.cpp',
   'src/document/group/group_pipe.cpp',
   'src/document/group/group_shell.cpp',
+  'src/document/group/group_thread.cpp',
+  'src/document/thread.cpp',
   'src/document/solid_model/solid_model_shell.cpp',
+  'src/document/solid_model/solid_model_thread.cpp',
   'src/document/hollow.cpp',
   'src/document/recipe.cpp',
+  'src/document/screw.cpp',
   'src/document/recipe_ai.cpp',
   'src/document/export_paths.cpp',
   'src/document/export_dxf.cpp',
@@ -207,6 +211,7 @@ src_gui = files(
   'src/editor/action_search.cpp',
   'src/editor/render_window.cpp',
   'src/editor/describe_window.cpp',
+  'src/editor/screw_window.cpp',
   'src/editor/editor_object_drag.cpp',
   'src/editor/editor_update.cpp',
   'src/editor/editor_autosave.cpp',
@@ -576,6 +581,16 @@ test_patterns = executable('test_patterns',
 )
 test('patterns', test_patterns, timeout: 60)
 
+test_screw = executable('test_screw',
+    'tests/test_screw.cpp',
+    dependencies: [build_dependencies],
+    link_whole: [dune3d_common],
+    link_with: [solvespace_nopic, clipper_nopic, dxflib_nopic],
+    cpp_args: cpp_args,
+    include_directories: include_directories,
+)
+test('screw', test_screw, timeout: 120)
+
 test_performance = executable('test_performance',
     'tests/test_performance.cpp',
     dependencies: [build_dependencies],
@@ -608,7 +623,7 @@ test_recipe_ai = executable('test_recipe_ai',
 test('recipe_ai', test_recipe_ai, timeout: 60)
 # drives the real app through tests/ui/*.txt; needs a display; one at a time:
 # a second instance of the app would hand its work to the first one (single instance)
-foreach ui_test : ['smoke', 'patterns', 'simple', 'stress', 'lights']
+foreach ui_test : ['smoke', 'patterns', 'simple', 'screw', 'stress', 'lights']
     test('ui-' + ui_test, prog_python,
         args: [files('tests/run_ui_test.py'), dune3d, files('tests/ui' / ui_test + '.txt')],
         timeout: 240, is_parallel: false)

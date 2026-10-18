@@ -6,6 +6,8 @@
 #include "document/body_solids.hpp"
 #include "nlohmann/json.hpp"
 #include "describe_window.hpp"
+#include "screw_window.hpp"
+#include "document/screw.hpp"
 #include "dune3d_appwindow.hpp"
 #include "dune3d_application.hpp"
 #include <array>
@@ -145,26 +147,20 @@ void Editor::add_half_sphere()
     add_from_recipe({{"objects", json::array({o})}}, "add half sphere");
 }
 
-// An M8 bolt: hexagon head, and a shank whose ridges are rings rather than a
-// real thread (a helix is slow and often fails in the solid kernel)
+// Screw: the palette button asks for head, size and length; the real work is in
+// document/screw.cpp (rings for the thread, not a helix)
 void Editor::add_screw()
 {
-    json shank = json::array({json::array({0, 4}), json::array({3.4, 4})});
-    const double pitch = 1.5;
-    const int ridges = 12;
-    for (int i = 0; i <= 2 * ridges; i++)
-        shank.push_back({i % 2 ? 4.0 : 3.4, 5 + i * pitch / 2});
-    shank.push_back({0, 5 + ridges * pitch});
-    json head_outline = json::array();
-    for (int i = 0; i < 6; i++)
-        head_outline.push_back({std::round(7.5 * std::cos(i * M_PI / 3) * 100) / 100,
-                                std::round(7.5 * std::sin(i * M_PI / 3) * 100) / 100});
-    json head = {{"id", "head"}, {"name", "Screw"}, {"shape", "extrude"}, {"outline", head_outline},
-                 {"height", 5.3}, {"material", "metal"}, {"color", "#b4b8bc"}};
-    json shaft = {{"id", "shank"}, {"shape", "revolve"}, {"profile", shank}};
-    json recipe = {{"objects", json::array({head, shaft})},
-                   {"combine", json::array({json{{"target", "head"}, {"tool", "shank"}, {"op", "join"}}})}};
-    add_from_recipe(recipe, "add screw");
+    if (m_core.tool_is_active() || !m_core.has_documents())
+        return;
+    if (!m_screw_window)
+        m_screw_window = std::make_unique<ScrewWindow>(m_win, [this](const ScrewParams &p) { add_screw(p); });
+    m_screw_window->present();
+}
+
+void Editor::add_screw(const ScrewParams &params)
+{
+    add_from_recipe(make_screw_recipe(params), "add screw");
 }
 
 void Editor::add_vase()
