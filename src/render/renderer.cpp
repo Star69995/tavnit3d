@@ -177,9 +177,11 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
     if (!sr) {
         for (const auto &light : doc.m_lights) {
             m_ca.draw_point(light.m_position, IconID::POINT_CIRCLE);
-            if (light.m_type != Light::Type::POINT)
-                m_ca.draw_line(light.m_position, light.m_position + light.get_direction() * std::min(
-                                                                           light.get_target_distance(), 1e4) * .3);
+            if (light.m_type != Light::Type::POINT) {
+                // a line to what it's aimed at, which can be dragged too
+                m_ca.draw_line(light.m_position, light.m_target);
+                m_ca.draw_point(light.m_target, IconID::POINT_DIAMOND);
+            }
         }
     }
 

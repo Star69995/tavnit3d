@@ -194,7 +194,17 @@ private:
     void add_light(Light::Type type);
     void show_light_editor(const UUID &doc_uu, const UUID &light_uu);
     void delete_light(const UUID &doc_uu, const UUID &light_uu);
-    bool pick_light_under_cursor();
+    bool pick_light_under_cursor(); // also starts dragging it (or what it's aimed at)
+    struct LightDrag {
+        UUID doc, light;
+        bool target = false;  // dragging the aimed-at point rather than the lamp
+        glm::dvec3 origin, normal; // plane facing the camera, through the point
+        glm::dvec3 offset;    // point minus where the cursor grabbed it
+        bool moved = false;
+    };
+    std::optional<LightDrag> m_light_drag;
+    void update_light_drag();
+    void end_light_drag();
     std::vector<struct CanvasLight> get_canvas_lights(const Document &doc) const;
     UUID m_object_editor_light; // the panel shows this light rather than an object
     void show_render_window();

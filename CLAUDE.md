@@ -171,7 +171,9 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   by clicking (`src/editor/editor_decal.cpp`, `pick_surface_point`).
 - Lights (`src/document/light.*`, `Document::m_lights`): brightness is as seen
   at the target; `src/editor/editor_lights.cpp` (palette, panel, picking the
-  marker by screen distance); the canvas gets them via `Canvas::set_lights`.
+  marker by screen distance, which also starts dragging the lamp or, for spot/sun, its aimed-at
+  diamond on a camera-facing plane: `update_light_drag`, one undo step on release); the canvas gets
+  them via `Canvas::set_lights`. Test: `tests/ui/lights.txt` (automation command `lights`).
 - glTF export (`src/document/export_gltf.*`): own GLB writer, metres/y-up,
   one primitive per face colour, stickers as textured primitives,
   KHR_lights_punctual, the view as camera.

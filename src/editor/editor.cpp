@@ -585,6 +585,7 @@ void Editor::init_canvas()
             if (button == 1) {
                 end_object_drag();
                 end_handle_drag();
+                end_light_drag();
             }
             if (button == 1 && n_press == 1) {
                 if (m_core.tool_is_active()) {
@@ -1746,6 +1747,10 @@ void Editor::handle_cursor_move()
             update_handle_drag();
             return;
         }
+        if (m_light_drag) {
+            update_light_drag();
+            return;
+        }
         update_handle_hint();
         if (m_drag_tool == ToolID::NONE)
             return;
@@ -2130,7 +2135,7 @@ void Editor::schedule_object_panel_refresh(unsigned int ms, bool go_to_last)
                 if (!m_object_editor)
                     return false;
                 // not while a button is held down (a +/- that repeats) or something is dragged
-                if (m_object_drag || m_handle_drag)
+                if (m_object_drag || m_handle_drag || m_light_drag)
                     return true;
                 if (auto seat = m_win.get_display()->get_default_seat()) {
                     if (auto pointer = seat->get_pointer();

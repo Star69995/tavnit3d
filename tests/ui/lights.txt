@@ -1,0 +1,36 @@
+# Lights: add a spotlight, edit brightness/angle/position in the panel, drag the lamp and its aimed-at point, undo, save, reopen.
+# "lights" prints where they are (window pixels, mm), colour and brightness.
+action NEW_DOCUMENT
+wait 800
+button Box
+wait 800
+button Spotlight
+wait 800
+lights
+field Brightness 2.5
+field Cone angle 30
+field X 120
+wait 500
+lights
+# a fresh start: the lamp is at 546 194, what it's aimed at at 785 432
+action NEW_DOCUMENT
+wait 800
+button Box
+wait 800
+button Spotlight
+wait 800
+drag 546 194 450 300
+wait 500
+lights
+drag 785 432 700 500
+wait 500
+lights
+action UNDO
+wait 500
+lights
+shot @TMP@/lights-panel.png
+save @TMP@/lights.d3ddoc
+open @TMP@/lights.d3ddoc
+wait 1000
+lights
+quit
