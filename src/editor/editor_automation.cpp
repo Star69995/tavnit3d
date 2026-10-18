@@ -15,10 +15,13 @@
 #include "in_tool_action/in_tool_action.hpp"
 #include "core/tool.hpp"
 #include <fstream>
+#include <map>
 #include <iostream>
 #include <sstream>
 
 namespace dune3d {
+
+static std::map<std::string, glm::dvec3> s_light_marks; // "light-mark": where a light was
 
 /*
  * UI automation for development and visual tests, enabled by pointing the
@@ -49,6 +52,10 @@ namespace dune3d {
  *   render-window            open the render window (then "button Render", "shotwin Render picture PATH")
  *   layout PATH              write where the picked object and the panel's number fields are
  *   lights                   print where the lights (and what they're aimed at) are on screen and in mm, with colour and brightness
+ *   drag-light NAME lamp|target X Y   drag that light's lamp or aimed-at point to window pixel X Y
+ *   light-mark NAME lamp|target       remember where it is; then "expect-light-moved|expect-light-same NAME lamp|target"
+ *   expect-light NAME lamp|target X Y Z   fail unless it is there (mm, within 0.5)
+ *   expect-lights N          fail unless the document has N lights
  *   handles                  print where the picked object's resize handles are, in window pixels
  *   hide NAME / show NAME    the eye of the object called NAME in the list
  *   handles-count N          fail unless the picked object has N resize handles (0 when it is hidden)
@@ -133,6 +140,45 @@ void Editor::run_automation(const std::filesystem::path &script)
                 out = in;
             return glm::vec2(out.x, out.y);
         };
+        // left-button drag on the 3D view from a to b (canvas pixels)
+        auto drag_on_canvas = [this](glm::vec2 a, glm::vec2 b) {
+            get_canvas().inject_motion(a.x, a.y);
+            Glib::signal_timeout().connect_once(
+                    [this, a, b] {
+                        handle_click(1, 1);
+                        get_canvas().inject_press(a.x, a.y);
+                        for (int i = 1; i <= 10; i++) {
+                            const auto p = a + (b - a) * (i / 10.f);
+                            get_canvas().inject_motion(p.x, p.y);
+                        }
+                        get_canvas().inject_release();
+                        end_object_drag();
+                        end_handle_drag();
+                        end_light_drag();
+                    },
+                    200);
+        };
+        // "NAME lamp|target ..." -> the light and which of its two points; the rest of the words are left in `more`
+        auto find_light_arg = [this](const std::string &args, bool &target, std::string &more) -> const Light & {
+            std::istringstream is(args);
+            std::string name, which;
+            is >> name >> which;
+            std::getline(is >> std::ws, more);
+            if (which != "lamp" && which != "target")
+                throw std::runtime_error("expected NAME lamp|target, got: " + args);
+            target = which == "target";
+            for (const auto &l : m_core.get_current_document().m_lights)
+                if (l.m_name == name)
+                    return l;
+            throw std::runtime_error("no light " + name);
+        };
+        auto light_in_window = [this](const Light &l, bool target) {
+            const auto p = get_canvas().project_to_window(target ? l.m_target : l.m_position);
+            graphene_point_t in{(float)p.x, (float)p.y}, out;
+            if (!gtk_widget_compute_point(GTK_WIDGET(get_canvas().gobj()), GTK_WIDGET(m_win.gobj()), &in, &out))
+                out = in;
+            return glm::vec2(out.x, out.y);
+        };
         auto in_tool = [this](InToolActionID action) {
             if (!m_core.tool_is_active())
                 return;
@@ -189,23 +235,54 @@ void Editor::run_automation(const std::filesystem::path &script)
                 // left-button drag on the 3D view, e.g. to move an object
                 double x1, y1, x2, y2;
                 std::istringstream(rest) >> x1 >> y1 >> x2 >> y2;
-                const auto a = to_canvas(x1, y1), b = to_canvas(x2, y2);
-                get_canvas().inject_motion(a.x, a.y);
-                Glib::signal_timeout().connect_once(
-                        [this, a, b] {
-                            handle_click(1, 1);
-                            get_canvas().inject_press(a.x, a.y);
-                            for (int i = 1; i <= 10; i++) {
-                                const auto p = a + (b - a) * (i / 10.f);
-                                get_canvas().inject_motion(p.x, p.y);
-                            }
-                            get_canvas().inject_release();
-                            end_object_drag();
-                            end_handle_drag();
-                            end_light_drag();
-                        },
-                        200);
+                drag_on_canvas(to_canvas(x1, y1), to_canvas(x2, y2));
                 delay = 900;
+            }
+            else if (cmd == "drag-light") {
+                // drag a light's lamp or its aimed-at point from where it is now to window pixel X Y
+                bool target;
+                std::string more;
+                const auto &l = find_light_arg(rest, target, more);
+                double x, y;
+                std::istringstream(more) >> x >> y;
+                const auto from = light_in_window(l, target);
+                drag_on_canvas(to_canvas(from.x, from.y), to_canvas(x, y));
+                delay = 900;
+            }
+            else if (cmd == "light-mark") {
+                bool target;
+                std::string more;
+                const auto &l = find_light_arg(rest, target, more);
+                s_light_marks[rest] = target ? l.m_target : l.m_position;
+            }
+            else if (cmd == "expect-light-moved" || cmd == "expect-light-same") {
+                // against the position "light-mark" saw (mm)
+                bool target;
+                std::string more;
+                const auto &l = find_light_arg(rest, target, more);
+                const auto it = s_light_marks.find(rest);
+                if (it == s_light_marks.end())
+                    throw std::runtime_error("no light-mark for " + rest);
+                const bool moved = glm::distance(it->second, target ? l.m_target : l.m_position) > 0.5;
+                if (moved != (cmd == "expect-light-moved"))
+                    throw std::runtime_error(rest + (moved ? " moved" : " did not move"));
+            }
+            else if (cmd == "expect-light") {
+                // NAME lamp|target X Y Z (mm, within 0.5)
+                bool target;
+                std::string more;
+                const auto &l = find_light_arg(rest, target, more);
+                glm::dvec3 want;
+                std::istringstream(more) >> want.x >> want.y >> want.z;
+                const auto &have = target ? l.m_target : l.m_position;
+                if (glm::distance(want, have) > 0.5)
+                    throw std::runtime_error("light " + rest + ", it is at " + std::to_string(have.x) + " "
+                                             + std::to_string(have.y) + " " + std::to_string(have.z));
+            }
+            else if (cmd == "expect-lights") {
+                const auto n = m_core.get_current_document().m_lights.size();
+                if (n != std::stoul(rest))
+                    throw std::runtime_error("expected " + rest + " lights, there are " + std::to_string(n));
             }
             else if (cmd == "save") {
                 m_core.save_as(path_from_string(rest));
@@ -297,10 +374,7 @@ void Editor::run_automation(const std::filesystem::path &script)
                     for (const bool target : {false, true}) {
                         if (target && l.m_type == Light::Type::POINT)
                             continue;
-                        const auto p = get_canvas().project_to_window(target ? l.m_target : l.m_position);
-                        graphene_point_t in{(float)p.x, (float)p.y}, out;
-                        if (!gtk_widget_compute_point(GTK_WIDGET(get_canvas().gobj()), GTK_WIDGET(m_win.gobj()), &in, &out))
-                            out = in;
+                        const auto out = light_in_window(l, target);
                         const auto &v = target ? l.m_target : l.m_position;
                         std::cerr << "automation: light " << l.m_name << (target ? " target " : " ") << (int)out.x << " "
                                   << (int)out.y << " at " << v.x << " " << v.y << " " << v.z << " colour " << l.m_color.r

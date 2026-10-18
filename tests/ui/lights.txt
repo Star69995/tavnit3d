@@ -1,36 +1,64 @@
-# Lights: add a spotlight, edit brightness/angle/position in the panel, drag the lamp and its aimed-at point, undo, save, reopen.
-# "lights" prints where they are (window pixels, mm), colour and brightness.
+# Lights: add a spotlight, edit brightness/angle/position in the panel, drag the lamp and its aimed-at point
+# (found by name, not by pixel), undo, save, reopen; also a point lamp (no aimed-at point) and the sun.
+# "lights" prints where they are (window pixels, mm), colour and brightness; the expect-* commands fail the test.
 action NEW_DOCUMENT
 wait 800
 button Box
 wait 800
 button Spotlight
 wait 800
-lights
+expect-lights 1
 field Brightness 2.5
 field Cone angle 30
 field X 120
 wait 500
 lights
-# a fresh start: the lamp is at 546 194, what it's aimed at at 785 432
+expect-light Spotlight lamp 120 -26 41
+# a fresh start
 action NEW_DOCUMENT
 wait 800
 button Box
 wait 800
 button Spotlight
 wait 800
-drag 546 194 450 300
+light-mark Spotlight lamp
+drag-light Spotlight lamp 450 300
 wait 500
 lights
-drag 785 432 700 500
+expect-light-moved Spotlight lamp
+light-mark Spotlight target
+drag-light Spotlight target 700 500
 wait 500
 lights
+expect-light-moved Spotlight target
+# a drag that starts away from both lights leaves them alone
+light-mark Spotlight lamp
+drag 100 600 150 650
+wait 500
+expect-light-same Spotlight lamp
 action UNDO
 wait 500
 lights
+expect-light-same Spotlight target
+action UNDO
+wait 500
+expect-light-moved Spotlight lamp
 shot @TMP@/lights-panel.png
 save @TMP@/lights.d3ddoc
 open @TMP@/lights.d3ddoc
 wait 1000
 lights
+expect-lights 1
+# a point lamp and the sun come with the same panel
+action NEW_DOCUMENT
+wait 800
+button Box
+wait 800
+button Lamp
+wait 800
+expect-lights 1
+button Sun
+wait 800
+expect-lights 2
+shot @TMP@/lights-more.png
 quit
