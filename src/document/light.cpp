@@ -56,6 +56,12 @@ double Light::get_target_distance() const
     return std::max(glm::length(m_target - m_position), 1e-3);
 }
 
+glm::dvec3 Light::get_height_handle(bool target) const
+{
+    const auto p = target ? m_target : m_position;
+    return p - glm::dvec3(0, 0, std::max(get_target_distance() * .12, 6.));
+}
+
 double Light::get_power_watts() const
 {
     if (m_type == Type::SUN)

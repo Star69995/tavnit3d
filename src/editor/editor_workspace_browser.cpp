@@ -44,8 +44,21 @@ void Editor::init_workspace_browser()
             sigc::mem_fun(*this, &Editor::on_workspace_browser_activate_link));
     m_workspace_browser->signal_rename_body().connect(sigc::mem_fun(*this, &Editor::on_workspace_browser_rename_body));
     m_workspace_browser->signal_body_selected().connect([this](const UUID &doc, const UUID &body) {
-        if (!m_core.tool_is_active() && m_core.has_documents())
-            show_object_editor(doc, body);
+        if (m_core.tool_is_active() || !m_core.has_documents())
+            return;
+        if (m_core.get_current_idocument_info().get_uuid() == doc
+            && m_core.get_current_group() != m_core.get_current_document().get_groups_sorted().back()->m_uuid) {
+            // from an earlier step: show the finished object (after this selection has settled)
+            Glib::signal_idle().connect_once([this, doc, body] {
+                if (!m_core.has_documents() || m_core.tool_is_active())
+                    return;
+                go_to_last_group(doc);
+                if (!m_workspace_browser->select_body(doc, body))
+                    show_object_editor(doc, body);
+            });
+            return;
+        }
+        show_object_editor(doc, body);
     });
     m_workspace_browser->signal_delete_body().connect([this](const UUID &doc, const UUID &body) {
         Glib::signal_idle().connect_once([this, doc, body] { delete_body(doc, body); });

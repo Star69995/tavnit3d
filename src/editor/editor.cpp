@@ -1,5 +1,4 @@
 #include "editor.hpp"
-#include "document/body_solids.hpp"
 #include "render_window.hpp"
 #include "describe_window.hpp"
 #include "screw_window.hpp"
@@ -394,7 +393,7 @@ void Editor::init_view_options()
         m_view_options_menu->append_submenu("Grid size", grid_menu);
         m_view_options_menu->append("Snap to grid", "win.snap_to_grid");
         m_win.add_action("grid_settings", [this] { show_grid_settings(); });
-        m_view_options_menu->append("Grid settings…", "win.grid_settings");
+        m_view_options_menu->append("Grid and floor settings…", "win.grid_settings");
     }
     {
         auto it = Gio::MenuItem::create("scale", "scale");
@@ -999,11 +998,7 @@ void Editor::init_properties_notebook()
         box->append(*m_group_commit_pending_revealer);
         m_properties_notebook->append_page(*box, "Group");
     }
-    m_win.signal_finish_editing().connect([this] { finish_editing(); });
     m_core.signal_rebuilt().connect([this] {
-        // the floor grows with the objects placed on it
-        if (m_core.has_documents() && grow_floor(m_core.get_current_document()))
-            canvas_update_keep_selection();
         if (m_group_editor) {
             if (m_core.get_current_group() != m_group_editor->get_group())
                 update_group_editor();
@@ -1622,16 +1617,10 @@ void Editor::render_document(const IDocumentInfo &doc)
         renderer.m_highlight_body = m_object_editor_body;
         renderer.m_hide_constraints = true; // the object panel lists the dimensions
     }
-    if (is_current_doc && sketches_are_finished()) {
-        renderer.m_hide_sketches = true;
-        renderer.m_hide_constraints = true;
-    }
     if (doc.get_uuid() == m_core.get_current_idocument_info().get_uuid()) {
         get_canvas().set_lights(get_canvas_lights(doc.get_document()));
         for (const auto &h : get_object_handles())
             renderer.m_handles.push_back({h.face, h.pos, static_cast<int>(h.kind)});
-        if (const auto arrows = get_move_arrows())
-            renderer.m_move_arrows = Renderer::MoveArrows{arrows->first, arrows->second};
     }
 
     if (doc.get_uuid() == m_core.get_current_idocument_info().get_uuid())
@@ -1668,10 +1657,6 @@ void Editor::canvas_update()
 
     get_canvas().set_hover_selection(hover_sel);
     update_error_overlay();
-    m_win.set_finish_editing_visible(
-            m_core.has_documents() && !m_core.tool_is_active()
-            && m_core.get_current_document().get_group(m_core.get_current_group()).get_type() != Group::Type::REFERENCE
-            && !sketches_are_finished());
     get_canvas().request_push();
     m_update_groups_after = UUID();
 }
@@ -2051,24 +2036,8 @@ void Editor::load_linked_documents(const UUID &uu_doc)
     }
 }
 
-// "Finish editing": the sketch of the current step is hidden until another step is opened
-bool Editor::sketches_are_finished() const
-{
-    return m_finished_group && !m_core.tool_is_active() && m_core.has_documents()
-           && m_core.get_current_group() == m_finished_group;
-}
-
-void Editor::finish_editing()
-{
-    if (!m_core.has_documents())
-        return;
-    m_finished_group = m_core.get_current_group();
-    canvas_update_keep_selection();
-}
-
 void Editor::set_current_group(const UUID &uu_group)
 {
-    m_finished_group = UUID(); // opening a step shows its sketch again
     CanvasUpdater canvas_updater{*this};
 
     m_core.set_current_group(uu_group);

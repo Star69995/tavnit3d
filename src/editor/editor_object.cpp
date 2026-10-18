@@ -51,6 +51,18 @@ bool has_xy_position(const Document &doc, const UUID &body)
 }
 } // namespace
 
+bool Editor::go_to_last_group(const UUID &doc_uu)
+{
+    if (!m_core.has_documents() || m_core.get_current_idocument_info().get_uuid() != doc_uu)
+        return false;
+    const auto last = m_core.get_current_document().get_groups_sorted().back()->m_uuid;
+    if (m_core.get_current_group() == last)
+        return false;
+    get_current_document_view().m_current_group = last;
+    set_current_group(last);
+    return true;
+}
+
 void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
 {
     if (m_group_editor) {
@@ -784,6 +796,7 @@ void Editor::select_object_under_cursor()
                               [this](const UUID &b) { return body_is_shown(b); })) {
         // selecting the row shows the object panel, like clicking it in the browser
         const auto doc_uu = m_core.get_current_idocument_info().get_uuid();
+        go_to_last_group(doc_uu);
         if (!m_workspace_browser->select_body(doc_uu, *body))
             show_object_editor(doc_uu, *body);
         begin_object_drag(doc_uu, *body); // in case the button stays down

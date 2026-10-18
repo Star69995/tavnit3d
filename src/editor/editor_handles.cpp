@@ -9,6 +9,9 @@
 #include "document/hollow.hpp"
 #include "document/round_edges.hpp"
 #include "document/body_solids.hpp"
+#include "document/duplicate.hpp"
+#include "document/face_sketch.hpp"
+#include "document/object_parts.hpp"
 #include "document/entity/entity_workplane.hpp"
 #include "document/constraint/constraint.hpp"
 #include "document/constraint/iconstraint_datum.hpp"
@@ -140,6 +143,18 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
         handles.push_back(h);
     }
 
+    // lifting: on the shown side at the underside, dragged up or down; only for whole objects
+    // that can be moved (a part of a joined object is moved by the whole)
+    if (!m_object_editor_part && can_move_object(doc, body)) {
+        ObjectHandle h;
+        h.kind = ObjectHandle::Kind::LIFT;
+        h.face = world({side_x.x, side_x.y, lo.z});
+        h.dir = {0, 0, 1};
+        h.pos = h.face + dx * out * .9;
+        h.label = "Lift";
+        handles.push_back(h);
+    }
+
     // walls and rounding, at the edge where the top meets the shown side
     const auto edge = world({right ? hi.x : lo.x, c.y, hi.z});
     {
@@ -167,18 +182,25 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
     return handles;
 }
 
-// where along the handle's line the pointer is, in mm from the face
-static double param_along(const Editor::ObjectHandle &h, const std::pair<glm::dvec3, glm::dvec3> &ray)
+// where along the line (from `face`, along `dir`) the pointer is, in mm from `face`
+double ray_param_along_line(const glm::dvec3 &face, const glm::dvec3 &dir,
+                            const std::pair<glm::dvec3, glm::dvec3> &ray)
 {
     const auto &[o, d] = ray;
-    const auto u = h.dir;
-    const auto w0 = h.face - o;
+    const auto u = dir;
+    const auto w0 = face - o;
     const double a = glm::dot(u, u), b = glm::dot(u, d), c = glm::dot(d, d), dd = glm::dot(u, w0),
                  e = glm::dot(d, w0);
     const double denom = a * c - b * b;
     if (std::abs(denom) < 1e-12)
         return 0; // looking straight along it
     return (b * e - c * dd) / denom;
+}
+
+// where along the handle's line the pointer is, in mm from the face
+static double param_along(const Editor::ObjectHandle &h, const std::pair<glm::dvec3, glm::dvec3> &ray)
+{
+    return ray_param_along_line(h.face, h.dir, ray);
 }
 
 std::optional<Editor::ObjectHandle> Editor::get_handle_under_cursor()
@@ -234,6 +256,12 @@ bool Editor::begin_handle_drag()
         auto fillet = find_round_edges(doc, body);
         drag.start_value = fillet ? fillet->m_radius : 0;
     } break;
+    case ObjectHandle::Kind::LIFT: {
+        const auto bounds = get_body_bounds(doc, body);
+        if (!bounds)
+            return false;
+        drag.lift_start = bounds->lo.z;
+    } break;
     }
     drag.start_param = param_along(*h, get_canvas().get_cursor_ray());
     m_handle_drag = drag;
@@ -250,6 +278,42 @@ void Editor::update_handle_drag()
     auto &doc = m_core.get_current_document();
     const double moved = param_along(drag.handle, get_canvas().get_cursor_ray()) - drag.start_param;
     double value = drag.start_value + moved * drag.handle.per_mm;
+
+    if (drag.handle.kind == ObjectHandle::Kind::LIFT) {
+        // whole millimetres, and not below the floor it started on
+        const double height = std::max(0., std::round(drag.lift_start + moved));
+        const double delta = height - drag.lift_start;
+        if (!drag.moved && delta == 0)
+            return;
+        if (drag.moved && height == drag.last_value)
+            return;
+        if (drag.lift_parts.empty()) {
+            // shapes on a shared plane get one of their own first, so they can go up and down
+            for (const auto &p : drag.parts) {
+                auto leaves = get_object_parts(doc, p);
+                if (leaves.empty())
+                    leaves.push_back(p); // a single shape
+                for (const auto &part : leaves) {
+                    give_own_workplane(doc, part);
+                    if (auto pos = get_part_position(doc, part))
+                        drag.lift_parts.push_back(*pos);
+                }
+            }
+            if (drag.lift_parts.empty())
+                return;
+        }
+        for (const auto &pos : drag.lift_parts)
+            set_part_position(doc, pos, {0, 0, delta});
+        drag.last_value = height;
+        drag.moved = true;
+        char buf[64];
+        snprintf(buf, sizeof(buf), "Height above the floor: %.0f mm", height);
+        m_win.set_key_hint_label_text(buf);
+        doc.update_pending({}, {}, true);
+        canvas_update_keep_selection();
+        schedule_deferred_solid_models();
+        return;
+    }
 
     if (drag.handle.kind == ObjectHandle::Kind::DIMENSION) {
         if (!doc.m_constraints.contains(drag.handle.constraint)) {
@@ -340,13 +404,72 @@ void Editor::end_handle_drag()
     canvas_update_keep_selection();
 }
 
+// what a handle does, shown while the pointer is over it
+static std::string get_handle_hint(const Editor::ObjectHandle &h)
+{
+    using Kind = Editor::ObjectHandle::Kind;
+    switch (h.kind) {
+    case Kind::LIFT:
+        return "Lift: drag up or down to raise the object off the floor";
+    case Kind::WALL:
+        return "Wall thickness: drag inwards to hollow the object out, back to the edge for a solid one";
+    case Kind::ROUNDING:
+        return "Round edges: drag in towards the middle of the object";
+    case Kind::DIMENSION:
+        break;
+    }
+    if (h.label == "Height")
+        return "Height: drag up or down";
+    if (h.label == "Width")
+        return "Width: drag sideways (the object stays centred)";
+    if (h.label == "Depth")
+        return "Depth: drag towards or away from you (the object stays centred)";
+    if (h.label == "Diameter" || h.label == "Outer diameter")
+        return h.label + ": drag outwards to make it wider";
+    if (h.label == "Radius")
+        return "Radius: drag outwards to make it wider";
+    if (h.label == "Inner diameter")
+        return "Inner diameter: drag outwards to widen the hole";
+    return "Drag to change: " + h.label;
+}
+
+// how to move what the pointer is over: a light, or the picked object
+std::string Editor::get_move_hint()
+{
+    auto &doc = m_core.get_current_document();
+    const auto cursor = glm::dvec2(get_canvas().get_cursor_pos_win());
+    auto close_to = [this, &cursor](const glm::dvec3 &p) {
+        return glm::length(get_canvas().project_to_window(p) - cursor) < 14;
+    };
+    for (const auto &light : doc.m_lights) {
+        const bool aimed = light.m_type != Light::Type::POINT;
+        if (close_to(light.get_height_handle(false)) || (aimed && close_to(light.get_height_handle(true))))
+            return "Drag up or down to change the height of the light";
+        if (close_to(light.m_position))
+            return "Drag to move the light (Shift: one direction); the dot below it changes its height";
+        if (aimed && close_to(light.m_target))
+            return "Drag to aim the light (Shift: one direction)";
+    }
+    if (m_object_editor && !m_object_editor_light && m_object_editor_body && get_canvas().is_face_under_cursor()
+        && can_move_object(doc, m_object_editor_body)) {
+        const auto [origin, dir] = get_canvas().get_cursor_ray();
+        const auto body = pick_body(doc, m_core.get_current_group(), origin, dir,
+                                    [this](const UUID &b) { return body_is_shown(b); });
+        if (body && *body == m_object_editor_body)
+            return "Drag to move (Shift: one direction); drag the Lift dot up or down to raise it";
+    }
+    return {};
+}
+
 // what's under the pointer, shown at the bottom
 void Editor::update_handle_hint()
 {
     if (m_handle_drag)
         return;
     const auto h = get_handle_under_cursor();
-    const std::string label = h ? ("Drag to change: " + h->label) : std::string();
+    std::string label = h ? get_handle_hint(*h) : std::string();
+    if (label.empty() && !m_core.tool_is_active() && m_core.has_documents())
+        label = get_move_hint();
     if (label == m_handle_hint)
         return;
     m_handle_hint = label;

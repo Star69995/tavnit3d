@@ -18,6 +18,10 @@
 
 namespace dune3d {
 
+// where along a line the pointer ray comes closest, in mm from its start point (editor_handles.cpp)
+double ray_param_along_line(const glm::dvec3 &start, const glm::dvec3 &dir,
+                            const std::pair<glm::dvec3, glm::dvec3> &ray);
+
 class Dune3DApplication;
 class Preferences;
 enum class ToolID;
@@ -125,6 +129,8 @@ private:
     sigc::connection m_autosave_connection;
     void start_update(const struct UpdateInfo &info);
     void show_object_editor(const UUID &doc_uu, const UUID &body_uu);
+    // opening an object means its finished state: leaves an earlier step (picked in the list) behind
+    bool go_to_last_group(const UUID &doc_uu);
     void delete_body(const UUID &doc_uu, const UUID &body_uu);
     void select_object_under_cursor();
     bool ready_made_object_under_cursor();
@@ -143,11 +149,6 @@ private:
         glm::dvec2 last = {0, 0};          // how far they've moved
     };
     std::optional<ObjectDrag> m_object_drag;
-    UUID m_finished_group; // current group whose sketch "Finish editing" hid
-    bool sketches_are_finished() const;
-    void finish_editing();
-    // X/Y arrows on the floor under the picked object, if dragging can move it
-    std::optional<std::pair<glm::dvec3, double>> get_move_arrows(); // centre, arm length
     bool begin_object_drag(const UUID &doc_uu, const UUID &body_uu);
     void update_object_drag();
     // while dragging, slow solid models wait (Document::update_pending interactive);
@@ -160,7 +161,7 @@ private:
 public:
     // resize handles on the picked object (editor_handles.cpp)
     struct ObjectHandle {
-        enum class Kind { DIMENSION, WALL, ROUNDING };
+        enum class Kind { DIMENSION, WALL, ROUNDING, LIFT };
         Kind kind = Kind::DIMENSION;
         glm::dvec3 face; // where it's attached
         glm::dvec3 pos;  // where it's drawn and grabbed
@@ -183,10 +184,14 @@ private:
         std::vector<UUID> parts;
         std::optional<PartsFollow> follow;
         size_t dim_index = 0;
+        // Kind::LIFT: where the parts were (once they have workplanes of their own, made on the first move)
+        std::vector<PartPosition> lift_parts;
+        double lift_start = 0; // the underside's height when the drag began
     };
     std::optional<HandleDrag> m_handle_drag;
     std::optional<ObjectHandle> get_handle_under_cursor();
     void update_handle_hint();
+    std::string get_move_hint();
     std::string m_handle_hint;
     bool begin_handle_drag();
     void update_handle_drag();
@@ -203,7 +208,10 @@ private:
     struct LightDrag {
         UUID doc, light;
         bool target = false;  // dragging the aimed-at point rather than the lamp
-        glm::dvec3 origin, normal; // plane facing the camera, through the point
+        bool height = false;  // the dot below it: only up and down
+        glm::dvec3 origin, normal; // the horizontal plane through the point (for height: the line's direction)
+        glm::dvec3 start;     // where the point was
+        double start_param = 0;
         glm::dvec3 offset;    // point minus where the cursor grabbed it
         bool moved = false;
     };
@@ -254,6 +262,7 @@ private:
     UUID m_object_editor_part;  // its handles are shown, not the whole object's
     std::set<UUID> m_split_parts; // parts edited one by one, not with the ones like them
     void append_object_parts(Gtk::Grid &grid, int &top, const UUID &doc_uu, const UUID &body_uu);
+    void add_lift_row(Gtk::Grid &grid, int &top, const UUID &doc_uu, const UUID &body_uu, double height);
     std::vector<UUID> get_part_set(const Document &doc, const UUID &object, const UUID &part) const;
     bool can_move_object(const Document &doc, const UUID &body) const;
     void finish_parts_change(const UUID &doc_uu, const std::string &what);
@@ -365,6 +374,7 @@ private:
     Glib::RefPtr<Gio::SimpleAction> m_hide_irrelevant_workplanes_action;
     void set_hide_irrelevant_workplanes(bool hide);
     Glib::RefPtr<Gio::SimpleAction> m_grid_step_action;
+    void set_floor_size(double size);
     void set_grid_step(double step);
     Glib::RefPtr<Gio::SimpleAction> m_studio_lighting_action;
     void set_studio_lighting(bool studio);

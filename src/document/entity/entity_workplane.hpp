@@ -33,6 +33,9 @@ public:
     glm::dvec3 m_origin;
     glm::dquat m_normal;
     glm::dvec2 m_size;
+    // the solver leaves the origin where it is (a body's own workplane: other planes tied to
+    // its sketch must follow, not meet it halfway)
+    bool m_origin_fixed = false;
 
     std::string get_point_name(unsigned int point) const override;
 

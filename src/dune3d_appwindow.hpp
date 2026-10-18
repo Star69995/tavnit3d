@@ -153,12 +153,6 @@ public:
     Gtk::Revealer &add_action_bar_collapsible_section(const std::string &title);
     // shows a strip at the top of the 3D view (e.g. about updates); nullptr hides it
     void set_banner(Gtk::Widget *widget);
-    // "Finish editing" button floating at the top of the 3D view, shown while an earlier step is open
-    void set_finish_editing_visible(bool show);
-    sigc::signal<void()> &signal_finish_editing()
-    {
-        return m_signal_finish_editing;
-    }
     Gtk::Box &get_view_bar()
     {
         return *m_view_bar;
@@ -264,8 +258,6 @@ private:
     Gtk::Grid *m_action_bar_grid = nullptr;
     Gtk::Box *m_view_bar = nullptr;
     Gtk::Widget *m_banner = nullptr;
-    Gtk::Button *m_finish_editing_button = nullptr;
-    sigc::signal<void()> m_signal_finish_editing;
     unsigned int m_action_bar_grid_n = 0;
     Gtk::Revealer *m_action_bar_revealer = nullptr;
 

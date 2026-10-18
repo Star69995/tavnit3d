@@ -146,16 +146,9 @@ public:
     // resize handles on the picked object: where they're attached, where they are
     struct Handle {
         glm::dvec3 face, pos;
-        int kind; // 0: a size, 1: wall thickness, 2: rounding
+        int kind; // 0: a size, 1: wall thickness, 2: rounding, 3: lift
     };
     std::vector<Handle> m_handles; // drawn tinted, e.g. the object being edited
-    // arrows on the floor at the picked object, showing which ways dragging moves it
-    struct MoveArrows {
-        glm::dvec3 origin;
-        double length;
-    };
-    std::optional<MoveArrows> m_move_arrows;
-    bool m_hide_sketches = false; // "Finish editing": only solids, no sketch points and lines
     bool m_hide_constraints = false;
 
 private:

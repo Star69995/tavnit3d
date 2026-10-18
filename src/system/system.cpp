@@ -386,8 +386,10 @@ void System::visit(const EntityWorkplane &wrkpl)
         eb.type = EntityBase::Type::POINT_IN_3D;
         eb.h.v = en_origin;
         eb.group.v = group;
+        // a group that is never the one being solved: the origin stays as it is
+        const UUID origin_group = wrkpl.m_origin_fixed ? UUID() : wrkpl.m_group;
         for (unsigned int axis = 0; axis < 3; axis++) {
-            eb.param[axis].v = add_param(wrkpl.m_group, wrkpl.m_uuid, 1, axis);
+            eb.param[axis].v = add_param(origin_group, wrkpl.m_uuid, 1, axis);
         }
         SK.entity.Add(&eb);
     }

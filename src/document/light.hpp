@@ -32,6 +32,8 @@ public:
 
     glm::dvec3 get_direction() const; // from the light towards the target
     double get_target_distance() const;
+    // the dot just below the lamp (or the aimed-at point) that is dragged to change its height
+    glm::dvec3 get_height_handle(bool target) const;
 
     // for exports, in physical units of a scene measured in metres:
     // W for point and spot lights (like Blender), W/m² for the sun

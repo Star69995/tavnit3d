@@ -469,6 +469,9 @@ private:
 
     std::map<std::pair<VertexType, unsigned int>, PickInfo> m_vertex_type_picks; // key vertex type, chunk
     VertexRef get_vertex_ref_for_pick(unsigned int pick) const;
+    // the same, but nothing for a pick the current picture doesn't have: right after the scene
+    // changed, the pick buffer can still hold ids from the one before
+    std::optional<VertexRef> find_vertex_ref_for_pick(unsigned int pick) const;
     std::optional<SelectableRef> get_selectable_ref_for_vertex_ref(const VertexRef &vref) const;
     std::optional<SelectableRef> get_selectable_ref_for_pick(unsigned int pick) const;
 

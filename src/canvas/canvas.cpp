@@ -752,12 +752,19 @@ glm::quat Canvas::get_tilt_snapped_quat(const glm::quat &q) const
     return best_q;
 }
 
-Canvas::VertexRef Canvas::get_vertex_ref_for_pick(unsigned int pick) const
+std::optional<Canvas::VertexRef> Canvas::find_vertex_ref_for_pick(unsigned int pick) const
 {
     for (const auto &[key, it] : m_vertex_type_picks) {
         if ((pick >= it.offset) && ((pick - it.offset) < it.count))
-            return {key.first, pick - it.offset, key.second};
+            return VertexRef{key.first, pick - it.offset, key.second};
     }
+    return {};
+}
+
+Canvas::VertexRef Canvas::get_vertex_ref_for_pick(unsigned int pick) const
+{
+    if (auto ref = find_vertex_ref_for_pick(pick))
+        return *ref;
     throw std::runtime_error(std::format("pick {} not found", pick));
 }
 
@@ -792,6 +799,8 @@ void Canvas::clear_flags(VertexFlags mask)
 unsigned int Canvas::get_hover_pick(const std::vector<pick_buf_t> &pick_buf) const
 {
     auto pick = read_pick_buf(pick_buf, m_last_x, m_last_y);
+    if (pick && !find_vertex_ref_for_pick(pick))
+        pick = 0; // from the picture before the last change
     if (!pick || any_of(get_vertex_ref_for_pick(pick).type, VertexType::FACE_GROUP, VertexType::PICTURE)) {
         int box_size = 10;
         float best_distance = glm::vec2(box_size, box_size).length();
@@ -802,7 +811,8 @@ unsigned int Canvas::get_hover_pick(const std::vector<pick_buf_t> &pick_buf) con
                 int py = m_last_y + dy;
                 if (px >= 0 && px < m_dev_width && py >= 0 && py < m_dev_height) {
                     if (auto p = read_pick_buf(pick_buf, px, py)) {
-                        if (any_of(get_vertex_ref_for_pick(p).type, VertexType::FACE_GROUP, VertexType::PICTURE))
+                        const auto ref = find_vertex_ref_for_pick(p);
+                        if (!ref || any_of(ref->type, VertexType::FACE_GROUP, VertexType::PICTURE))
                             continue;
                         const auto d = glm::vec2(dx, dy).length();
                         if (d <= best_distance) {
@@ -821,7 +831,8 @@ unsigned int Canvas::get_hover_pick(const std::vector<pick_buf_t> &pick_buf) con
 bool Canvas::is_face_under_cursor() const
 {
     const auto pick = read_pick_buf(m_pick_buf, m_last_x, m_last_y);
-    return pick && get_vertex_ref_for_pick(pick).type == VertexType::FACE_GROUP;
+    const auto ref = pick ? find_vertex_ref_for_pick(pick) : std::nullopt;
+    return ref && ref->type == VertexType::FACE_GROUP;
 }
 
 unsigned int Canvas::get_hover_pick() const

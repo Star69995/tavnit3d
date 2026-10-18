@@ -1,0 +1,39 @@
+# Lifting objects off the floor: the Z field in the object panel, and the Lift handle (dragged up).
+# Shapes standing on the shared floor plane get a workplane of their own the first time.
+action NEW_DOCUMENT
+wait 800
+button Box
+wait 800
+tree Box
+wait 500
+expect-bottom 0
+field Z 30
+wait 500
+expect-bottom 30
+check-solids
+# sideways at that height
+field X 40
+wait 500
+expect-bottom 30
+# the handle: dragging it up on the screen lifts it further, back down to the floor stays at 0
+drag-handle Lift 0 -60
+wait 500
+check-solids
+drag-handle Lift 0 300
+wait 500
+drag-handle Lift 0 300
+wait 500
+drag-handle Lift 0 300
+wait 500
+expect-bottom 0
+check-solids
+# a cylinder (another way of standing on the floor), and a revolved dome
+button Cylinder
+wait 800
+tree Cylinder
+wait 500
+field Z 12
+wait 500
+expect-bottom 12
+check-solids
+quit

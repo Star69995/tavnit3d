@@ -20,10 +20,6 @@ struct BodySolid {
 // actually there; earlier states of a body are left out.
 std::vector<BodySolid> get_body_solids(const Document &doc, const UUID &upto, const BodyFilter &filter = {});
 
-// Makes the floor (the reference XY plane) bigger when objects reach past it;
-// it never shrinks. Returns true if it changed.
-bool grow_floor(Document &doc);
-
 // Writes the final solids of all bodies into one STL file, e.g. for 3D printing.
 // Returns false if there's nothing to export.
 bool export_bodies_stl(const Document &doc, const std::filesystem::path &path);

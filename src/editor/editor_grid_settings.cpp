@@ -3,6 +3,10 @@
 #include "preferences/preferences.hpp"
 #include "util/gtk_util.hpp"
 #include "util/util.hpp"
+#include "document/document.hpp"
+#include "document/entity/entity_workplane.hpp"
+#include "document/group/group_reference.hpp"
+#include <algorithm>
 
 namespace dune3d {
 
@@ -19,7 +23,7 @@ void Editor::show_grid_settings()
     }
     auto win = new Gtk::Window;
     m_grid_settings_window = win;
-    win->set_title("Grid");
+    win->set_title("Grid and floor");
     win->set_transient_for(m_win);
     win->set_hide_on_close(false);
     win->set_resizable(false);
@@ -66,6 +70,32 @@ void Editor::show_grid_settings()
         sw->set_active(m_core.has_documents() ? get_current_workspace_view().m_snap_to_grid : true);
         sw->property_active().signal_changed().connect([this, sw] { set_snap_to_grid(sw->get_active()); });
         grid_attach_label_and_widget(*grid, "Snap to grid", *sw, top);
+    }
+    {
+        // the floor (the XY plane): its size changes only here, never by itself
+        static const std::vector<double> sizes = {200, 500, 1000, 2000, 5000};
+        const double current =
+                m_core.has_documents()
+                        ? m_core.get_current_document().get_entity<EntityWorkplane>(
+                                  m_core.get_current_document().get_reference_group().get_workplane_xy_uuid()).m_size.x
+                        : 500;
+        auto items = Gtk::StringList::create();
+        std::vector<double> options = sizes;
+        if (std::ranges::find(options, current) == options.end())
+            options.push_back(current); // a size set some other way stays selectable
+        std::ranges::sort(options);
+        guint sel = 0;
+        for (guint i = 0; i < options.size(); i++) {
+            items->append(format_grid_step(options.at(i), false) + " mm");
+            if (options.at(i) == current)
+                sel = i;
+        }
+        auto dd = Gtk::make_managed<Gtk::DropDown>(items);
+        dd->set_selected(sel);
+        dd->set_tooltip_text("How big the floor is. Objects can go past it; it never changes by itself.");
+        dd->property_selected().signal_changed().connect(
+                [this, dd, options] { set_floor_size(options.at(dd->get_selected())); });
+        grid_attach_label_and_widget(*grid, "Floor size", *dd, top);
     }
     auto &a = m_preferences.canvas.appearance;
     {
@@ -126,6 +156,21 @@ void Editor::show_grid_settings()
     }
     win->set_child(*grid);
     win->present();
+}
+
+void Editor::set_floor_size(double size)
+{
+    if (!m_core.has_documents())
+        return;
+    auto &doc = m_core.get_current_document();
+    auto &floor = doc.get_entity<EntityWorkplane>(doc.get_reference_group().get_workplane_xy_uuid());
+    if (floor.m_size == glm::dvec2(size, size))
+        return;
+    floor.m_size = {size, size};
+    doc.get_reference_group().m_xy_size = floor.m_size;
+    m_core.set_needs_save();
+    CanvasUpdater canvas_updater{*this};
+    update_workplane_label();
 }
 
 } // namespace dune3d

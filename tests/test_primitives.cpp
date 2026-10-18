@@ -304,6 +304,66 @@ static void test_moving_shapes()
                   + std::to_string(dome_volume) + ")");
 }
 
+// lifting a shape that stands on the shared floor plane: it gets a workplane of its own, keeps
+// its shape and X/Y, and still moves in X/Y afterwards
+static void test_lifting()
+{
+    std::cout << "lifting shapes" << std::endl;
+    Document doc;
+    std::vector<std::pair<std::string, Group *>> shapes;
+    shapes.push_back({"box", &add_primitive(doc, doc.get_groups_sorted().back()->m_uuid, Primitive::BOX, {10, 5})});
+    doc.update_pending();
+    shapes.push_back({"cylinder",
+                      &add_primitive(doc, doc.get_groups_sorted().back()->m_uuid, Primitive::CYLINDER, {-40, 0})});
+    doc.update_pending();
+    shapes.push_back({"outline", &add_extruded_outline(doc, doc.get_groups_sorted().back()->m_uuid,
+                                                       {{-5, -5}, {5, -5}, {5, 5}, {-5, 5}}, 4, false, {40, 30})});
+    doc.update_pending();
+    shapes.push_back({"revolve", &add_revolved_profile(doc, doc.get_groups_sorted().back()->m_uuid,
+                                                       {{0, 0}, {10, 0}, {10, 10}, {0, 10}}, false, {-30, 40})});
+    doc.update_pending();
+    for (const auto &[name, solid] : shapes) {
+        const auto body = doc.get_group_rel(solid->m_uuid, -1); // the sketch starts the body
+        const auto volume = body_volume(doc, *solid);
+        double x0, y0, z0, x1, y1, z1;
+        solid_bbox(doc, *solid).Get(x0, y0, z0, x1, y1, z1);
+        check(!get_part_position(doc, body)->wrkpl, name + " stands on the shared plane");
+        check(give_own_workplane(doc, body), name + " gets a workplane of its own");
+        doc.update_pending();
+        check(std::abs(body_volume(doc, *solid) - volume) < 1e-6 * volume, name + " keeps its shape when given one");
+        for (int step = 0; step < 2; step++) { // lifted twice: the second time it has one already
+            auto pos = get_part_position(doc, body);
+            check(pos && pos->wrkpl, name + " is positioned by its own workplane");
+            if (!pos)
+                break;
+            set_part_position(doc, *pos, {0, 0, 15});
+            doc.update_pending();
+        }
+        double a0, b0, c0, a1, b1, c1;
+        solid_bbox(doc, *solid).Get(a0, b0, c0, a1, b1, c1);
+        check(std::abs(c0 - (z0 + 30)) < 1e-3 && std::abs(c1 - (z1 + 30)) < 1e-3,
+              name + " is lifted (z " + std::to_string(c0) + " from " + std::to_string(z0) + ")");
+        check(std::abs(a0 - x0) < 1e-3 && std::abs(b0 - y0) < 1e-3 && std::abs(a1 - x1) < 1e-3
+                      && std::abs(b1 - y1) < 1e-3,
+              name + " stays where it was in X/Y");
+        check(std::abs(body_volume(doc, *solid) - volume) < 1e-6 * volume, name + " is the same size lifted");
+        // and it can still be moved sideways, and back down
+        set_position(doc, *solid, 70, -60);
+        double d0, e0, f0, d1, e1, f1;
+        solid_bbox(doc, *solid).Get(d0, e0, f0, d1, e1, f1);
+        check(std::abs((d0 + d1) / 2 - 70) < 1e-3 && std::abs((e0 + e1) / 2 + 60) < 1e-3
+                      && std::abs(f0 - c0) < 1e-3,
+              name + " moves sideways at its height");
+        auto pos = get_part_position(doc, body);
+        if (pos) {
+            set_part_position(doc, *pos, {0, 0, -30});
+            doc.update_pending();
+            solid_bbox(doc, *solid).Get(d0, e0, f0, d1, e1, f1);
+            check(std::abs(f0 - z0) < 1e-3, name + " comes back down");
+        }
+    }
+}
+
 static void test_more_shapes()
 {
     std::cout << "more shapes" << std::endl;
@@ -785,6 +845,7 @@ int main()
 {
     constexpr double pi = std::numbers::pi;
     test_moving_shapes();
+    test_lifting();
     test_primitive("box 20x20x20", Primitive::BOX, 20. * 20. * 20.);
     test_primitive("cylinder r10 h20", Primitive::CYLINDER, pi * 10. * 10. * 20.);
     test_primitive("sphere r10", Primitive::SPHERE, 4. / 3. * pi * 10. * 10. * 10.);

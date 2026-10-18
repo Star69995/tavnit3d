@@ -28,9 +28,9 @@ one click.
 - Click a solid to select it; an object panel shows its dimensions, X/Y
   position, colour, material (satin/matte/glossy/metal/glass) and visibility;
   handles on the object resize it by dragging
-- Drag to move (X/Y arrows on the floor show the directions, hold Shift to move
-  along one axis only; the floor grows by itself as objects reach past it; the
-  "Finish editing" button hides the sketch points of the open step), duplicate (Ctrl+D), copies in a row, round all edges, hollow
+- Drag to move (hold Shift to move along one axis only; hints at the bottom say how; the floor is
+  a fixed size you can change in View > Grid and floor settings), lift off the floor
+  (Z field, or the Lift handle dragged up), duplicate (Ctrl+D), copies in a row, round all edges, hollow
   out (cups, bowls, boxes), join/subtract/intersect
 - Automatic backups of unsaved work, offered back after a crash
 - Stickers: pictures on an object's surface, also on curved sides; patterns

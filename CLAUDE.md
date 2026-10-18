@@ -151,14 +151,23 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 - Tool palette: `Editor::create_action_bar_button` / `add_action_bar_section`.
   A "Hide"/"Tools" button on top folds the whole palette away
   (`Dune3DAppWindow` constructor, remembered in `UserConfig::palette_folded`).
-- Moving cues (`Editor::get_move_arrows`, `Renderer::m_move_arrows`): double-headed X/Y arrows on
-  the floor under a picked movable object; the drag shows the offset in the key hint; Shift locks
-  to one axis (`Canvas::is_shift_down`, updated on pointer motion). `grow_floor`
-  (`body_solids.*`, called on `Core::signal_rebuilt`) widens the reference XY plane in 100 mm
-  steps when solids reach past it, never shrinks. "Finish editing" (`Dune3DAppWindow::set_finish_editing_visible`,
-  `Editor::finish_editing`, `m_finished_group`): overlay button that hides the current step's sketches
-  (`Renderer::m_hide_sketches`) until another step is opened (`Editor::set_current_group`). No Z drag yet:
-  shapes only have X/Y dims (only parts with their own workplane can go up/down).
+- Moving cues: the drag shows the offset in the key hint; Shift locks to one axis
+  (`Canvas::is_shift_down`, updated on pointer motion); `Editor::get_move_hint` tells on hover how to move
+  the picked object or a light. The floor (reference XY plane) is 500 mm by default and changes only by hand
+  (View > Grid and floor settings, `Editor::set_floor_size`), never by itself. Opening an object (list row or
+  click on it) leaves an earlier step behind (`Editor::go_to_last_group`) so it can be moved again. Lights
+  slide on a horizontal plane at their height like objects (Shift: one direction); the dot below the lamp
+  (`Light::get_height_handle`) and below its aimed-at point goes up/down (`ray_param_along_line`).
+  Lifting (Z): a ready-made shape stands on the shared floor plane with X/Y dims, so it can't go up
+  until `give_own_workplane` (`duplicate.cpp`) makes a workplane of its own in its first group and
+  re-points the sketch, dimensions and steps at it (JSON `remap`, as Duplicate does); after that
+  `get_part_position`/`set_part_position` move its origin in 3D. The new plane has
+  `EntityWorkplane::m_origin_fixed` (the solver keeps its origin; otherwise it meets the body's
+  helper planes halfway and revolves/outlines end up half lifted), and `set_part_position` moves
+  those helper planes along first. UI: "Z" row (underside height; `Editor::add_lift_row`) and the
+  "Lift" handle (`Kind::LIFT` in `editor_handles.cpp`, dragged along the world Z line); both
+  convert lazily on the first real change. Tests: `test_lifting` in `tests/test_primitives.cpp`,
+  `tests/ui/lift.txt` (`drag-handle LABEL DX DY`, `expect-bottom MM`).
 - Smooth dragging: `Document::update_pending(..., interactive=true)` (used by
   `Core::solve_current`, object and handle drags) skips solid models whose last
   build (`Group::m_solid_model_ms`) would blow a 40 ms budget, and everything

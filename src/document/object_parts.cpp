@@ -207,6 +207,15 @@ void set_part_position(Document &doc, const PartPosition &pos, const glm::dvec3 
         if (!wp)
             return;
         wp->m_origin = pos.origin + delta;
+        // helper planes inside the body (upright / flat ones of revolves and outlines) are tied
+        // to its sketch, but the solver would only meet halfway: move them along first
+        for (auto gr : groups_of_body(doc, pos.body)) {
+            for (auto &[uu, en] : doc.m_entities) {
+                if (en->m_group == gr->m_uuid && en->m_kind == ItemKind::USER && uu != pos.wrkpl
+                    && en->get_type() == Entity::Type::WORKPLANE)
+                    static_cast<EntityWorkplane &>(*en).m_origin += delta;
+            }
+        }
         // its extrusion's far side would otherwise start out where it was, and the solver could
         // flip it over to stay near there: make it again from the moved sketch first
         doc.set_group_generate_pending(pos.group);

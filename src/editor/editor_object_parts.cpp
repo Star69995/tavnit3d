@@ -4,6 +4,7 @@
 #include "canvas/canvas.hpp"
 #include "document/document.hpp"
 #include "document/object_parts.hpp"
+#include "document/duplicate.hpp"
 #include "document/object_dimensions.hpp"
 #include "document/round_edges.hpp"
 #include "document/hollow.hpp"
@@ -77,12 +78,50 @@ void Editor::finish_parts_change(const UUID &doc_uu, const std::string &what)
     schedule_object_panel_refresh(700);
 }
 
+// "Z": how high the object's underside is above the floor. Shapes standing on the shared floor
+// plane get a workplane of their own the first time they're lifted.
+void Editor::add_lift_row(Gtk::Grid &grid, int &top, const UUID &doc_uu, const UUID &body_uu, double height)
+{
+    auto sp = Gtk::make_managed<SpinButtonDim>();
+    sp->set_show_plus(true);
+    sp->set_range(-1e5, 1e5);
+    sp->set_increments(1, 10);
+    sp->set_value(height);
+    sp->set_hexpand(true);
+    sp->set_name("object-z");
+    sp->set_tooltip_text("Height of the underside above the floor");
+    sp->signal_value_changed().connect([this, sp, doc_uu, body_uu] {
+        auto &d = m_core.get_idocument_info(doc_uu).get_document();
+        const auto b = get_body_bounds(d, body_uu);
+        if (!b)
+            return;
+        const double delta = sp->get_value() - b->lo.z; // from where it is now: the field may be behind
+        if (std::abs(delta) < 1e-9)
+            return;
+        auto leaves = get_object_parts(d, body_uu);
+        if (leaves.empty())
+            leaves.push_back(body_uu);
+        for (const auto &p : leaves) {
+            give_own_workplane(d, p);
+            if (auto pos = get_part_position(d, p))
+                set_part_position(d, *pos, {0, 0, delta});
+        }
+        finish_parts_change(doc_uu, "lift object");
+    });
+    grid_attach_label_and_widget(grid, "Z", *sp, top).add_css_class("tnum");
+}
+
 void Editor::append_object_parts(Gtk::Grid &grid, int &top, const UUID &doc_uu, const UUID &body_uu)
 {
     auto &doc = m_core.get_idocument_info(doc_uu).get_document();
     const auto parts = get_object_parts(doc, body_uu);
-    if (parts.empty())
+    if (parts.empty()) {
+        // a single shape has X/Y among its dimensions; up/down is added here
+        if (can_move_object(doc, body_uu))
+            if (auto bounds = get_body_bounds(doc, body_uu))
+                add_lift_row(grid, top, doc_uu, body_uu, bounds->lo.z);
         return;
+    }
 
     auto heading = [&grid, &top](const std::string &text) {
         auto la = Gtk::make_managed<Gtk::Label>(text);
@@ -122,6 +161,7 @@ void Editor::append_object_parts(Gtk::Grid &grid, int &top, const UUID &doc_uu, 
                 });
                 grid_attach_label_and_widget(grid, axis ? "Y" : "X", *sp, top).add_css_class("tnum");
             }
+            add_lift_row(grid, top, doc_uu, body_uu, bounds->lo.z);
         }
     }
 

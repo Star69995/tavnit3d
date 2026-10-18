@@ -12,7 +12,7 @@ EntityWorkplane::EntityWorkplane(const UUID &uu)
 
 EntityWorkplane::EntityWorkplane(const UUID &uu, const json &j)
     : Base(uu, j), m_origin(j.at("origin").get<glm::dvec3>()), m_normal(j.at("normal").get<glm::dquat>()),
-      m_size(j.at("size").get<glm::dvec2>())
+      m_size(j.at("size").get<glm::dvec2>()), m_origin_fixed(j.value("origin_fixed", false))
 {
 }
 
@@ -23,6 +23,8 @@ json EntityWorkplane::serialize() const
     j["origin"] = m_origin;
     j["normal"] = m_normal;
     j["size"] = m_size;
+    if (m_origin_fixed)
+        j["origin_fixed"] = true;
     return j;
 }
 

@@ -110,19 +110,39 @@ bool Editor::pick_light_under_cursor()
         return glm::length(get_canvas().project_to_window(pos) - glm::dvec2(cursor)) < 14;
     };
     for (const auto &light : doc.m_lights) {
+        const bool aimed = light.m_type != Light::Type::POINT;
         const bool lamp = near_cursor(light.m_position);
-        if (!lamp && !(light.m_type != Light::Type::POINT && near_cursor(light.m_target)))
+        const bool lamp_height = near_cursor(light.get_height_handle(false));
+        const bool target_height = aimed && near_cursor(light.get_height_handle(true));
+        if (!lamp && !lamp_height && !target_height && !(aimed && near_cursor(light.m_target)))
             continue;
         const auto doc_uu = m_core.get_current_idocument_info().get_uuid();
         show_light_editor(doc_uu, light.m_uuid);
-        // grabbed: it follows the pointer on a plane facing the camera
+        // grabbed: like an object it slides on a horizontal plane at its height (Shift: one
+        // direction); the dot below it goes up and down
         LightDrag drag;
         drag.doc = doc_uu;
         drag.light = light.m_uuid;
-        drag.target = !lamp;
-        drag.origin = lamp ? light.m_position : light.m_target;
-        drag.normal = glm::dquat(get_canvas().get_cam_quat()) * glm::dvec3(0, 0, 1);
-        drag.offset = drag.origin - get_canvas().get_cursor_pos_for_plane(drag.origin, drag.normal);
+        drag.height = lamp_height || target_height;
+        drag.target = lamp_height ? false : (target_height || !lamp);
+        drag.origin = drag.target ? light.m_target : light.m_position;
+        drag.start = drag.origin;
+        const auto eye = glm::dvec3(glm::dquat(get_canvas().get_cam_quat()) * glm::dvec3(0, 0, 1));
+        if (drag.height) {
+            drag.normal = {0, 0, 1};
+            drag.start_param = ray_param_along_line(drag.origin, drag.normal, get_canvas().get_cursor_ray());
+        }
+        else if (std::abs(eye.z) > .2) {
+            drag.normal = {0, 0, 1};
+            drag.offset = drag.origin - get_canvas().get_cursor_pos_for_plane(drag.origin, drag.normal);
+        }
+        else {
+            // looking along the floor: a plane facing the camera instead
+            drag.normal = eye;
+            drag.offset = drag.origin - get_canvas().get_cursor_pos_for_plane(drag.origin, drag.normal);
+        }
+        m_win.set_key_hint_label_text(drag.height ? "Height of the light"
+                                                  : "Moving the light (Shift: one direction)");
         m_light_drag = drag;
         get_canvas().inhibit_drag_selection();
         return true;
@@ -141,7 +161,24 @@ void Editor::update_light_drag()
         m_light_drag.reset();
         return;
     }
-    const auto pos = glm::round(get_canvas().get_cursor_pos_for_plane(drag.origin, drag.normal) + drag.offset);
+    glm::dvec3 pos;
+    if (drag.height) {
+        pos = drag.start
+              + drag.normal
+                        * (ray_param_along_line(drag.start, drag.normal, get_canvas().get_cursor_ray())
+                           - drag.start_param);
+    }
+    else {
+        pos = get_canvas().get_cursor_pos_for_plane(drag.origin, drag.normal) + drag.offset;
+        if (get_canvas().is_shift_down() && drag.normal.z == 1) {
+            // only along the direction the pointer has gone furthest
+            if (std::abs(pos.x - drag.start.x) >= std::abs(pos.y - drag.start.y))
+                pos.y = drag.start.y;
+            else
+                pos.x = drag.start.x;
+        }
+    }
+    pos = glm::round(pos);
     auto &point = drag.target ? light->m_target : light->m_position;
     if (point == pos)
         return;
@@ -156,6 +193,7 @@ void Editor::end_light_drag()
         return;
     const auto drag = *m_light_drag;
     m_light_drag.reset();
+    reset_key_hint_label();
     if (!drag.moved)
         return;
     m_core.set_needs_save();

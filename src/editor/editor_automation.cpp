@@ -58,6 +58,8 @@ static std::map<std::string, glm::dvec3> s_light_marks; // "light-mark": where a
  *   expect-lights N          fail unless the document has N lights
  *   handles                  print where the picked object's resize handles are, in window pixels
  *   hide NAME / show NAME    the eye of the object called NAME in the list
+ *   drag-handle LABEL DX DY  drag the picked object's handle called LABEL (e.g. Lift) by DX DY pixels
+ *   expect-bottom MM         fail unless the picked object's underside is MM above the floor (within 0.5)
  *   handles-count N          fail unless the picked object has N resize handles (0 when it is hidden)
  *   check-solids             fail if a step that makes a solid has none ("not done")
  *   groups                   print the current document's groups, their solids and messages
@@ -348,6 +350,38 @@ void Editor::run_automation(const std::filesystem::path &script)
                     if (!gtk_widget_compute_point(GTK_WIDGET(get_canvas().gobj()), GTK_WIDGET(m_win.gobj()), &in, &out))
                         out = in;
                     std::cerr << "automation: handle " << h.label << " " << (int)out.x << " " << (int)out.y << std::endl;
+                }
+            }
+            else if (cmd == "drag-handle" || cmd == "expect-bottom") {
+                if (cmd == "expect-bottom") {
+                    // how high the picked object's underside is above the floor
+                    auto b = get_body_bounds(m_core.get_current_document(), m_object_editor_body);
+                    if (!b || std::abs(b->lo.z - std::stod(rest)) > .5)
+                        throw std::runtime_error("expected the underside at " + rest + " mm, it is at "
+                                                 + (b ? std::to_string(b->lo.z) : std::string("?")));
+                }
+                else {
+                    // drag the picked object's handle called LABEL by DX DY pixels
+                    std::istringstream is(rest);
+                    std::string label;
+                    double dx, dy;
+                    is >> label >> dx >> dy;
+                    bool found = false;
+                    for (const auto &h : get_object_handles()) {
+                        if (h.label != label)
+                            continue;
+                        const auto p = get_canvas().project_to_window(h.pos);
+                        graphene_point_t in{(float)p.x, (float)p.y}, out;
+                        if (!gtk_widget_compute_point(GTK_WIDGET(get_canvas().gobj()), GTK_WIDGET(m_win.gobj()), &in,
+                                                      &out))
+                            out = in;
+                        drag_on_canvas(to_canvas(out.x, out.y), to_canvas(out.x + dx, out.y + dy));
+                        found = true;
+                        delay = 900;
+                        break;
+                    }
+                    if (!found)
+                        throw std::runtime_error("no handle called " + label);
                 }
             }
             else if (cmd == "handles-count") {

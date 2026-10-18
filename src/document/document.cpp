@@ -73,7 +73,7 @@ Document::Document() : m_version(app_version)
     // just the floor, like a work surface; the upright planes can be shown from the group
     grp.m_show_yz = false;
     grp.m_show_zx = false;
-    grp.m_xy_size = {200, 200};
+    grp.m_xy_size = {500, 500}; // changed by hand only (View > Grid and floor settings)
 
     auto &sketch = add_group<GroupSketch>(UUID::random());
     sketch.set_index({}, 1);
