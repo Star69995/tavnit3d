@@ -50,6 +50,7 @@ public:
         unsigned int typing_threshold_ms = 350;
         // a backup of unsaved work is written this often (0 = off) ...
         unsigned int autosave_minutes = 3;
+        bool show_measurements = true;      // size lines on the picked object while the pointer is over it
         bool palette_folded = false;        // the tool palette over the 3D view
         bool show_other_documents = false; // documents hidden from the 3D view still in the side list
         bool one_document_per_screen = false; // each tab shows only its own document

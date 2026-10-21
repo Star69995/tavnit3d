@@ -193,6 +193,13 @@ private:
     void update_handle_hint();
     std::string get_move_hint();
     std::string m_handle_hint;
+    // size lines on the picked object: shown while the pointer is over it or a drag is going on
+    bool m_measure_hover = false;
+    void update_measure_hover();
+    // the Width/Depth/Height text under the pointer, if the lines are shown
+    std::optional<std::string> get_measure_label_under_cursor();
+    Gtk::SpinButton *find_object_field(const std::string &axis);
+    bool click_measure_label();
     bool begin_handle_drag();
     void update_handle_drag();
     void end_handle_drag();

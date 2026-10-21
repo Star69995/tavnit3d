@@ -282,10 +282,13 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   rebuild, or a panel change that set `m_object_editor_keep`) makes the panel
   again only once no mouse button is held. Never rebuild the panel straight
   from a field's handler: GTK crashed when a +/- still getting clicks was gone.
-- Measurements on the model: while an object is picked in the panel, `Renderer::m_measure_box` (set in
-  `Editor::render_document` from `get_body_bounds`) draws Width/Depth/Height lines around it. "Rotate view around it"
-  (object panel) moves the view centre (`Canvas::animate_to_center_abs`) to the object's middle. The picked object
-  keeps its sketch lines even with "Sketch lines of other objects" off; the view hints say when those are hidden.
+- Measurements on the model: while an object is picked in the panel and the pointer is over it (or a handle/object
+  drag is going on), `Renderer::m_measure_box` (set in `Editor::render_document` when `m_measure_hover`; tracked by
+  `Editor::update_measure_hover` on pointer motion) draws Width/Depth/Height lines (`get_measure_axes`, in the
+  dimension colour). Clicking a size text (`click_measure_label`) focuses its field in the panel. View > Sizes on the
+  object (`UserConfig::show_measurements`) turns it off. "Rotate view around it" (object panel) moves the view centre
+  (`Canvas::animate_to_center_abs`) to the object's middle. The picked object keeps its sketch lines even with
+  "Sketch lines of other objects" off; the view hints say when those are hidden.
 - Menu hints: `add_menu_hints` (panel_hints.cpp) sets tooltips on the GtkModelButtons of a popover menu by label
   (Gio menu models have no tooltip attribute in GTK 4.14); preference rows use their subtitle as tooltip.
 - Hover hints (`src/editor/panel_hints.*`): `get_action_hint` adds a sentence to each palette

@@ -223,6 +223,7 @@ void Dune3DApplication::UserConfig::load(const std::filesystem::path &filename)
     typing_threshold_ms = std::clamp(j.value("typing_threshold_ms", 350u), 50u, 2000u);
     autosave_minutes = std::min(j.value("autosave_minutes", 3u), 120u);
     palette_folded = j.value("palette_folded", false);
+    show_measurements = j.value("show_measurements", true);
     show_other_documents = j.value("show_other_documents", false);
     one_document_per_screen = j.value("one_document_per_screen", false);
     simple_ui = j.value("simple_ui", false);
@@ -257,6 +258,7 @@ void Dune3DApplication::UserConfig::save(const std::filesystem::path &filename)
     j["typing_threshold_ms"] = typing_threshold_ms;
     j["autosave_minutes"] = autosave_minutes;
     j["palette_folded"] = palette_folded;
+    j["show_measurements"] = show_measurements;
     j["show_other_documents"] = show_other_documents;
     j["one_document_per_screen"] = one_document_per_screen;
     j["simple_ui"] = simple_ui;

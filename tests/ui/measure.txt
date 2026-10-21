@@ -1,0 +1,20 @@
+# Sizes on the picked object: shown only while the pointer is over it; a click on a size text goes to the panel field.
+action NEW_DOCUMENT
+wait 800
+button Box
+wait 800
+tree Box
+wait 800
+move 1150 650
+wait 400
+move 760 450
+wait 500
+move 765 455
+wait 500
+move 790 628
+wait 400
+move 792 630
+wait 300
+click 792 630
+wait 400
+quit
