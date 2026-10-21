@@ -48,3 +48,5 @@ colorbutton colorswatch {box-shadow: inset 0 0 0 1px alpha(white, .12);}
 .object-editor button.destructive-action:hover {background: alpha(#ff6b6b, .28);}
 .object-editor button.cut-action {background: alpha(#fbbf24, .16); color: #fbbf24;}
 .object-editor button.cut-action:hover {background: alpha(#fbbf24, .28);}
+
+.studio-prefs treeview header button {background: @studio_window;}

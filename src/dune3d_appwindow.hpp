@@ -74,6 +74,28 @@ public:
     // shows the tools of a palette category (Shapes, Lights, ...)
     void show_action_bar_category(const std::string &name);
 
+    // the note about backups from last time on the start screen (shown only while no document is open)
+    Gtk::Box &get_welcome_recovery_box()
+    {
+        return *m_welcome_recovery_box;
+    }
+    Gtk::Label &get_welcome_recovery_label()
+    {
+        return *m_welcome_recovery_label;
+    }
+    Gtk::Button &get_welcome_recovery_restore()
+    {
+        return *m_welcome_recovery_restore;
+    }
+    Gtk::Button &get_welcome_recovery_discard()
+    {
+        return *m_welcome_recovery_discard;
+    }
+    bool get_welcome_box_visible() const
+    {
+        return m_welcome_box->get_visible();
+    }
+
     // ready-made shapes on the start screen: "bowl", "vase", "screw"
     Gtk::Button &get_welcome_template_button(const std::string &name)
     {
@@ -275,6 +297,10 @@ private:
     Gtk::ListBox *m_welcome_recent_listbox = nullptr;
     Gtk::Button *m_welcome_new_button = nullptr;
     Gtk::Button *m_welcome_open_button = nullptr;
+    Gtk::Box *m_welcome_recovery_box = nullptr;
+    Gtk::Label *m_welcome_recovery_label = nullptr;
+    Gtk::Button *m_welcome_recovery_restore = nullptr;
+    Gtk::Button *m_welcome_recovery_discard = nullptr;
     std::map<std::string, Gtk::Button *> m_welcome_template_buttons;
     Gtk::Button *m_welcome_window_button = nullptr;
     Gtk::Button *m_welcome_import_button = nullptr;

@@ -14,7 +14,11 @@ one click.
 
 ## What it adds to Dune 3D
 
-- Labelled tool palette and a light "studio" theme
+- A "studio" look in light and dark (Preferences > Appearance and theme): a tool palette with categories
+  (Shapes, Lights, Sketch, Edit, Look, Import), an object panel of cards with a slider for each size, a
+  start screen with big action cards, ready-made shapes, recent files with a picture of each and a note
+  about unsaved work, and a Find box in the header
+- New window (Ctrl+Shift+N) and Open in a new window (Ctrl+Shift+O): a separate window next to the first
 - Ready-made Box, Cylinder, Sphere, Cone, Tube, Torus, Wedge, 3D Text,
   Hexagon, Triangle, Star, Heart, Dome, Screw, Bowl and Vase, placed next to
   each other on a floor grid; a picture as a flat object
@@ -27,7 +31,7 @@ one click.
   editable shapes
 - Click a solid to select it; an object panel shows its dimensions, X/Y
   position, colour, material (satin/matte/glossy/metal/glass) and visibility;
-  handles on the object resize it by dragging
+  handles on the object (squares on its edges for a size, an arrow above it to lift) resize and move it by dragging
 - Drag to move (hold Shift to move along one axis only; hints at the bottom say how; the floor is
   a fixed size you can change in View > Grid and floor settings), lift off the floor
   (Z field, or the Lift handle dragged up), duplicate (Ctrl+D), copies in a row, round all edges, hollow

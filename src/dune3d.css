@@ -434,3 +434,43 @@ scale.dim-slider slider:hover {background: alpha(@accent_bg_color, .12);}
 .welcome-box list {background: none;}
 .welcome-box list > row {border-radius: 9px; margin: 3px 6px; padding: 6px 8px;}
 .welcome-box list > row:hover {background: alpha(@accent_bg_color, .10);}
+
+/* start screen: the note about unsaved work from last time */
+.welcome-banner {
+  background: alpha(@accent_bg_color, .10);
+  border: 1px solid alpha(@accent_bg_color, .45);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+.welcome-banner-title {font-weight: 700; color: @accent_bg_color;}
+.recent-thumb {border-radius: 10px; background: @studio_field; border: 1px solid @studio_border;}
+
+/* the search pill in the header bar */
+headerbar button.find-pill {
+  background: @studio_field;
+  border: 1px solid @studio_border;
+  border-radius: 9px;
+  min-width: 150px;
+  padding: 3px 10px;
+  color: @studio_dim;
+}
+headerbar button.find-pill:hover {border-color: alpha(@accent_bg_color, .6); color: @studio_text; background: @studio_panel;}
+.find-pill-key {font-size: 75%; font-weight: 600; opacity: .8;}
+
+/* preferences: the keyboard lists */
+.studio-prefs treeview {background: @studio_panel; color: @studio_text;}
+.studio-prefs treeview.view:selected, .studio-prefs treeview.view:selected:focus {background: alpha(@accent_bg_color, .14); color: @studio_text;}
+.studio-prefs treeview.view:hover {background: @studio_hover;}
+.studio-prefs treeview header button {
+  background: @studio_window; color: @studio_dim; font-weight: 700; font-size: 80%; letter-spacing: .6px;
+  border: none; border-bottom: 1px solid @studio_border; border-radius: 0; padding: 8px 10px; box-shadow: none;
+}
+.studio-prefs scrolledwindow {border-radius: 0;}
+.studio-prefs paned > separator {background: @studio_border;}
+
+/* the same soft feedback on the newer pieces */
+.welcome-card, .object-card, .find-pill, .action-bar-category, scale.dim-slider slider, .prefs-card {
+  transition: background-color 160ms ease-out, border-color 160ms ease-out, box-shadow 160ms ease-out,
+              color 160ms ease-out;
+}

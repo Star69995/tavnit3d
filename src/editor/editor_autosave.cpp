@@ -1,4 +1,5 @@
 #include "editor.hpp"
+#include "canvas/canvas.hpp"
 #include "util/new_window.hpp"
 #include "dune3d_appwindow.hpp"
 #include "dune3d_application.hpp"
@@ -103,6 +104,38 @@ void Editor::restart_autosave_timer()
             minutes * 60);
 }
 
+void Editor::save_thumbnail(const std::filesystem::path &document)
+{
+    if (!Glib::getenv("DUNE3D_AUTOMATION").empty() && Glib::getenv("DUNE3D_THUMBNAILS").empty())
+        return; // automated runs leave the user's files alone
+    auto &canvas = get_canvas();
+    const int w = canvas.get_width(), h = canvas.get_height();
+    if (w < 50 || h < 50 || !m_win.get_visible())
+        return;
+    // small: the canvas scaled to 320 pixels wide
+    const float k = 320.f / w;
+    auto paintable = gtk_widget_paintable_new(GTK_WIDGET(canvas.gobj()));
+    auto snapshot = gtk_snapshot_new();
+    gtk_snapshot_scale(snapshot, k, k);
+    gdk_paintable_snapshot(paintable, snapshot, w, h);
+    auto node = gtk_snapshot_free_to_node(snapshot);
+    if (node) {
+        auto renderer = gtk_native_get_renderer(GTK_NATIVE(m_win.gobj()));
+        graphene_rect_t bounds = GRAPHENE_RECT_INIT(0, 0, 320.f, h * k);
+        if (renderer) {
+            if (auto texture = gsk_renderer_render_texture(renderer, node, &bounds)) {
+                const auto path = get_thumbnail_path(document);
+                std::error_code ec;
+                std::filesystem::create_directories(path.parent_path(), ec);
+                gdk_texture_save_to_png(texture, path_to_string(path).c_str());
+                g_object_unref(texture);
+            }
+        }
+        gsk_render_node_unref(node);
+    }
+    g_object_unref(paintable);
+}
+
 void Editor::offer_recovery()
 {
     const auto dir = get_autosave_dir();
@@ -114,23 +147,11 @@ void Editor::offer_recovery()
     }
     if (found.empty())
         return;
-    auto dialog = Gtk::AlertDialog::create("Unsaved work from last time was found");
-    dialog->set_detail(std::to_string(found.size())
-                       + " backup(s) were made automatically but the work was never saved. Open them now?");
-    dialog->set_buttons({"Delete them", "Open them"});
-    dialog->set_cancel_button(0);
-    dialog->set_default_button(1);
-    dialog->choose(m_win, [this, dialog, found, dir](Glib::RefPtr<Gio::AsyncResult> &result) {
-        int btn = 0;
-        try {
-            btn = dialog->choose_finish(result);
-        }
-        catch (const Glib::Error &) {
-            return; // leave them for next time
-        }
+    // open the backups (as copies in the documents folder) or throw them away
+    auto recover = [this, found, dir](bool open) {
         for (const auto &file : found) {
             const auto stem = path_to_string(file.stem());
-            if (btn == 1) {
+            if (open) {
                 // copy to the documents folder first, so saving the recovered work doesn't touch the backup
                 std::string name = "Recovered";
                 try {
@@ -156,6 +177,34 @@ void Editor::offer_recovery()
             remove_quietly(file);
             remove_quietly(dir / path_from_string(stem + ".d3dpic"));
             remove_quietly(dir / path_from_string(stem + ".json"));
+        }
+    };
+    const auto what = std::to_string(found.size()) + " backup(s) were made automatically but the work was never saved.";
+    if (m_win.get_welcome_box_visible()) {
+        // the start screen has a note for it, which stays until you choose
+        m_win.get_welcome_recovery_label().set_text(what);
+        m_win.get_welcome_recovery_box().set_visible(true);
+        m_win.get_welcome_recovery_restore().signal_clicked().connect([this, recover] {
+            m_win.get_welcome_recovery_box().set_visible(false);
+            recover(true);
+        });
+        m_win.get_welcome_recovery_discard().signal_clicked().connect([this, recover] {
+            m_win.get_welcome_recovery_box().set_visible(false);
+            recover(false);
+        });
+        return;
+    }
+    auto dialog = Gtk::AlertDialog::create("Unsaved work from last time was found");
+    dialog->set_detail(what + " Open them now?");
+    dialog->set_buttons({"Delete them", "Open them"});
+    dialog->set_cancel_button(0);
+    dialog->set_default_button(1);
+    dialog->choose(m_win, [dialog, recover](Glib::RefPtr<Gio::AsyncResult> &result) {
+        try {
+            recover(dialog->choose_finish(result) == 1);
+        }
+        catch (const Glib::Error &) {
+            // leave them for next time
         }
     });
 }

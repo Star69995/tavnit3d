@@ -76,6 +76,7 @@ static std::map<std::string, glm::dvec3> s_light_marks; // "light-mark": where a
  *   update-check             check for updates as from the menu (feed: DUNE3D_UPDATE_FEED)
  *   panel-scroll F           scroll the side panel to F (0 top ... 1 bottom)
  *   drag-panel NAME X Y      drag the "palette" or "layers" panel by its grip to window pixel X Y
+ *   recovery                 offer backups found in the documents folder's Autosave folder (the note on the start screen)
  *   rotate-object DEGREES    turn the picked object about the upright line through its middle
  *   expect-extent X|Y|Z MM   fail unless the picked object is that long along that world axis (within 0.5)
  *   preferences [PAGE]       open Preferences (page: canvas, editor, keys, in_tool_keys)
@@ -295,6 +296,11 @@ void Editor::run_automation(const std::filesystem::path &script)
             }
             else if (cmd == "save") {
                 m_core.save_as(path_from_string(rest));
+                // DUNE3D_THUMBNAILS=1: as a real save does, add it to the recent files with its picture
+                if (!Glib::getenv("DUNE3D_THUMBNAILS").empty()) {
+                    m_win.get_app().add_recent_item(path_from_string(rest));
+                    save_thumbnail(path_from_string(rest));
+                }
             }
             else if (cmd == "render-window") {
                 show_render_window();
@@ -693,6 +699,11 @@ void Editor::run_automation(const std::filesystem::path &script)
                 is >> name >> x >> y;
                 if (!m_win.drag_panel(name, x, y))
                     std::cerr << "automation: no panel " << name << std::endl;
+            }
+            else if (cmd == "recovery") {
+                // look for backups from last time, as at the start
+                offer_recovery();
+                delay = 500;
             }
             else if (cmd == "rotate-object") {
                 // turn the picked object by DEGREES about the upright line through its middle

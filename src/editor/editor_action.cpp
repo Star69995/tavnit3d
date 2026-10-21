@@ -56,12 +56,15 @@ void Editor::init_actions()
         for (auto doc : m_core.get_documents()) {
             save_workspace_view(doc->get_uuid());
         }
+        if (m_core.has_documents() && m_core.get_current_idocument_info().has_path())
+            save_thumbnail(m_core.get_current_idocument_info().get_path());
     });
     connect_action(ActionID::SAVE, [this](auto &a) {
         if (m_core.get_current_idocument_info().has_path()) {
             if (m_core.get_needs_save())
                 m_core.save();
             save_workspace_view(m_core.get_current_idocument_info().get_uuid());
+            save_thumbnail(m_core.get_current_idocument_info().get_path());
             update_version_info();
             if (m_after_save_cb)
                 m_after_save_cb();
@@ -93,6 +96,10 @@ void Editor::init_actions()
         update_workspace_view_names();
     });
     connect_action(ActionID::OPEN_DOCUMENT, sigc::mem_fun(*this, &Editor::on_open_document));
+    // the look of the picked object: take you to its colour, material and sticker settings in the panel
+    connect_action(ActionID::FOCUS_COLOUR, [this](auto &a) { focus_object_panel_field("Colour"); });
+    connect_action(ActionID::FOCUS_MATERIAL, [this](auto &a) { focus_object_panel_field("Material"); });
+    connect_action(ActionID::FOCUS_STICKER, [this](auto &a) { focus_object_panel_field("Add sticker..."); });
     connect_action(ActionID::IMPORT_OBJECT, [this](auto &a) { on_import_object(); });
     connect_action(ActionID::NEW_WINDOW, [this](auto &a) {
         if (!launch_new_window())
@@ -567,6 +574,8 @@ void Editor::update_action_sensitivity(const std::set<SelectableRef> &sel)
     m_action_sensitivity[ActionID::NEW_DOCUMENT] = true;
     m_action_sensitivity[ActionID::NEW_WINDOW] = true;
     m_action_sensitivity[ActionID::IMPORT_OBJECT] = true;
+    for (auto act : {ActionID::FOCUS_COLOUR, ActionID::FOCUS_MATERIAL, ActionID::FOCUS_STICKER})
+        m_action_sensitivity[act] = true;
     m_action_sensitivity[ActionID::OPEN_DOCUMENT_NEW_WINDOW] = true;
     m_action_sensitivity[ActionID::FIND] = true;
     for (auto act : {ActionID::ADD_BOX, ActionID::ADD_CYLINDER, ActionID::ADD_SPHERE, ActionID::ADD_CONE, ActionID::ADD_TUBE,

@@ -123,6 +123,8 @@ private:
     void show_update_message(const std::string &text, bool error);
     std::filesystem::path get_autosave_dir() const;
     void autosave_now();
+    // saves a small picture of the 3D view for the recent files list
+    void save_thumbnail(const std::filesystem::path &document);
     void autosave_remove(const UUID &doc_uu);
     void restart_autosave_timer();
     void offer_recovery();

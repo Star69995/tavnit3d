@@ -12,6 +12,8 @@ void save_json_to_file(const std::filesystem::path &filename, const json &j);
 json json_from_resource(const std::string &rsrc);
 
 std::filesystem::path get_config_dir();
+// the small picture of a document shown in the recent files list (made when it is saved)
+std::filesystem::path get_thumbnail_path(const std::filesystem::path &document);
 void create_config_dir();
 
 template <typename Map, typename F> static void map_erase_if(Map &m, F pred)

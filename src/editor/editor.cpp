@@ -203,13 +203,17 @@ void Editor::init()
     create_action_bar_button(ToolID::DRAW_REGULAR_POLYGON, "Polygon");
     create_action_bar_button(ToolID::DRAW_TEXT, "Text");
     create_action_bar_button(ToolID::DRAW_WORKPLANE, "Plane");
-    m_win.add_action_bar_section("Solid");
+    m_win.add_action_bar_section("Edit");
     create_action_bar_button(ActionID::CREATE_GROUP_EXTRUDE, "Extrude");
     create_action_bar_button(ActionID::CREATE_GROUP_REVOLVE, "Revolve");
     create_action_bar_button(ActionID::CREATE_GROUP_LOFT, "Loft");
     create_action_bar_button(ActionID::CREATE_GROUP_FILLET, "Fillet");
     create_action_bar_button(ActionID::CREATE_GROUP_CHAMFER, "Chamfer");
     create_action_bar_button(ActionID::COMBINE_OBJECTS, "Combine");
+    m_win.add_action_bar_section("Look");
+    create_action_bar_button(ActionID::FOCUS_COLOUR, "Colour");
+    create_action_bar_button(ActionID::FOCUS_MATERIAL, "Material");
+    create_action_bar_button(ActionID::FOCUS_STICKER, "Sticker");
     m_win.add_action_bar_section("Import");
     create_action_bar_button(ActionID::IMPORT_OBJECT, "Model");
     create_action_bar_button(ActionID::ADD_PICTURE_OBJECT, "Picture");
@@ -488,6 +492,9 @@ Gtk::Button &Editor::create_action_bar_button(ActionToolID action, const std::st
             {ActionID::ADD_HOLE_SHAPE, "action-add-hole-symbolic"},
             {ActionID::ADD_TEXT, "action-draw-text-symbolic"},
             {ActionID::IMPORT_OBJECT, "document-open-symbolic"},
+            {ActionID::FOCUS_COLOUR, "color-select-symbolic"},
+            {ActionID::FOCUS_MATERIAL, "applications-graphics-symbolic"},
+            {ActionID::FOCUS_STICKER, "image-x-generic-symbolic"},
             {ActionID::ADD_PICTURE_OBJECT, "action-add-picture-symbolic"},
     };
     auto bu = Gtk::make_managed<Gtk::Button>();
@@ -1117,7 +1124,20 @@ void Editor::init_header_bar()
         m_win.get_header_bar().pack_end(*bu);
 
         auto find = Gtk::make_managed<Gtk::Button>();
-        find->set_icon_name("system-search-symbolic");
+        // a search field look-alike with its key: the way to find any tool, shape or setting
+        {
+            auto box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 8);
+            box->append(*Gtk::make_managed<Gtk::Image>(Gio::ThemedIcon::create("system-search-symbolic")));
+            auto la = Gtk::make_managed<Gtk::Label>("Find");
+            la->set_hexpand(true);
+            la->set_xalign(0);
+            box->append(*la);
+            auto key = Gtk::make_managed<Gtk::Label>("Ctrl+K");
+            key->add_css_class("find-pill-key");
+            box->append(*key);
+            find->set_child(*box);
+            find->add_css_class("find-pill");
+        }
         find->set_tooltip_text("Find a command, and where it is (Ctrl+K)");
         find->signal_clicked().connect([this] { show_search(); });
         m_win.get_header_bar().pack_end(*find);
@@ -1320,6 +1340,7 @@ void Editor::on_save_as(const ActionConnection &conn)
             m_win.get_app().add_recent_item(filename);
             m_core.save_as(filename);
             save_workspace_view(m_core.get_current_idocument_info().get_uuid());
+            save_thumbnail(filename);
             m_workspace_browser->update_documents(get_current_document_views());
             update_version_info();
             update_title();

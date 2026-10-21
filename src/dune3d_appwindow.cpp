@@ -43,7 +43,7 @@ recent_sort(const std::map<std::filesystem::path, Glib::DateTime> &recent_items)
     return recent_items_sorted;
 }
 
-static void update_recent_listbox(Gtk::ListBox &lb, Dune3DApplication &app)
+static void update_recent_listbox(Gtk::ListBox &lb, Dune3DApplication &app, bool with_thumbnails = false)
 {
     while (auto child = lb.get_first_child())
         lb.remove(*child);
@@ -52,7 +52,7 @@ static void update_recent_listbox(Gtk::ListBox &lb, Dune3DApplication &app)
 
     for (const auto &[path, mtime] : recent_items_sorted) {
         const auto name = path_to_string(path.filename());
-        auto box = Gtk::make_managed<RecentItemBox>(name, path, mtime);
+        auto box = Gtk::make_managed<RecentItemBox>(name, path, mtime, with_thumbnails);
         lb.append(*box);
         box->show();
         box->signal_remove().connect([box, &app] {
@@ -191,6 +191,10 @@ Dune3DAppWindow::Dune3DAppWindow(BaseObjectType *cobject, const Glib::RefPtr<Gtk
     m_welcome_recent_search_entry = refBuilder->get_widget<Gtk::SearchEntry>("welcome_recent_search_entry");
     m_welcome_new_button = refBuilder->get_widget<Gtk::Button>("welcome_new_button");
     m_welcome_open_button = refBuilder->get_widget<Gtk::Button>("welcome_open_button");
+    m_welcome_recovery_box = refBuilder->get_widget<Gtk::Box>("welcome_recovery_box");
+    m_welcome_recovery_label = refBuilder->get_widget<Gtk::Label>("welcome_recovery_label");
+    m_welcome_recovery_restore = refBuilder->get_widget<Gtk::Button>("welcome_recovery_restore");
+    m_welcome_recovery_discard = refBuilder->get_widget<Gtk::Button>("welcome_recovery_discard");
     m_welcome_window_button = refBuilder->get_widget<Gtk::Button>("welcome_window_button");
     for (const char *name : {"bowl", "vase", "screw"})
         m_welcome_template_buttons[name] = refBuilder->get_widget<Gtk::Button>(std::string("welcome_") + name + "_button");
@@ -286,7 +290,7 @@ Dune3DAppWindow::Dune3DAppWindow(BaseObjectType *cobject, const Glib::RefPtr<Gtk
 
     set_view_hints_label({});
 
-    update_recent_listbox(*m_welcome_recent_listbox, m_app);
+    update_recent_listbox(*m_welcome_recent_listbox, m_app, true);
     m_welcome_recent_search_entry->signal_changed().connect(
             [this] { update_recent_search(*m_welcome_recent_search_entry, *m_welcome_recent_listbox); });
 
@@ -434,7 +438,7 @@ void Dune3DAppWindow::set_welcome_box_visible(bool v)
     get_canvas().set_can_target(!v);
     if (v) {
         m_welcome_recent_search_entry->set_text("");
-        update_recent_listbox(*m_welcome_recent_listbox, m_app);
+        update_recent_listbox(*m_welcome_recent_listbox, m_app, true);
     }
 }
 
