@@ -99,7 +99,7 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
         ObjectHandle h;
         h.face = world(face);
         h.dir = dir;
-        h.pos = h.face + dir * out * .25;
+        h.pos = h.face; // right on the box, like Tinkercad's squares
         h.constraint = d->constraint;
         h.group = d->group;
         h.scale = d->scale;
@@ -156,7 +156,7 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
         ObjectHandle h;
         h.kind = ObjectHandle::Kind::LIFT;
         // above the middle of the top, like Tinkercad's cone: it takes the whole object up and down
-        h.pos = world({c.x, c.y, hi.z}) + az * out * 1.6;
+        h.pos = world({c.x, c.y, hi.z}) + az * out * .9;
         h.face = h.pos;
         h.dir = {0, 0, 1};
         h.size = out;

@@ -279,24 +279,38 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
 
 
     if (m_selection_box) {
-        // the box around the picked object, which the handles sit on
+        // like Tinkercad: the footprint on the floor, and dashed lines through the middle of it and up to the top
         const auto &b = *m_selection_box;
-        for (int i = 0; i < 8; i++) {
-            for (int bit : {1, 2, 4}) {
-                if (!(i & bit))
-                    m_ca.draw_line(b[i], b[i | bit]);
-            }
-        }
+        auto dashed = [this](const glm::dvec3 &from, const glm::dvec3 &to) {
+            const int n = 14;
+            for (int k = 0; k < n; k += 2)
+                m_ca.draw_line(from + (to - from) * (double(k) / n), from + (to - from) * (double(k + 1) / n));
+        };
+        const int base[4] = {0, 1, 3, 2};
+        for (int k = 0; k < 4; k++)
+            dashed(b[base[k]], b[base[(k + 1) % 4]]);
+        const auto mid = [&b](int i, int j) { return (b[i] + b[j]) / 2.; };
+        dashed(mid(0, 2), mid(1, 3));
+        dashed(mid(0, 1), mid(2, 3));
+        dashed(mid(0, 3), mid(4, 7));
     }
     for (const auto &h : m_handles) {
         // like Tinkercad: a square on the object for a size, a dot for walls and rounding;
         // only lifting, which really moves the object, has arrows (up and down)
         if (h.kind == 3) {
-            // two arrows, up and down, around the grip
-            const auto reach = h.size;
-            const glm::dvec3 up{0, 0, reach * .75};
-            draw_arrow_3d(m_ca, h.pos, h.pos + up, reach * .5);
-            draw_arrow_3d(m_ca, h.pos, h.pos - up, reach * .5);
+            // one cone pointing up, as dense lines so it reads as solid; it takes the whole object up and down
+            const double r = h.size * .22, height = h.size * .7;
+            const glm::dvec3 apex = h.pos + glm::dvec3(0, 0, height);
+            const int n = 20;
+            glm::dvec3 prev = h.pos + glm::dvec3(r, 0, 0);
+            for (int k = 1; k <= n; k++) {
+                const double t = glm::two_pi<double>() * k / n;
+                const auto p = h.pos + glm::dvec3(std::cos(t) * r, std::sin(t) * r, 0);
+                m_ca.draw_line(prev, p);
+                m_ca.draw_line(apex, p);
+                m_ca.draw_line(h.pos, p);
+                prev = p;
+            }
         }
         else {
             m_ca.draw_point(h.pos, h.kind == 0 ? IconID::POINT_BOX : IconID::POINT_CIRCLE);
