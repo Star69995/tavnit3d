@@ -29,6 +29,7 @@ struct MeasureAxis {
     glm::dvec3 from, to;                       // the measurement line, a bit away from the object
     glm::dvec3 from_on_object, to_on_object;   // where its ends belong on the object
     glm::dvec3 text_pos;
+    std::vector<std::pair<glm::dvec3, glm::dvec3>> arrows; // short strokes at the ends
     std::string text;
     std::string name; // Width, Depth or Height
 };

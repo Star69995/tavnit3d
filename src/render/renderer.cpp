@@ -106,29 +106,34 @@ static void draw_light_symbol(ICanvas &ca, const Light &light)
 std::vector<MeasureAxis> get_measure_axes(const glm::dvec3 &lo, const glm::dvec3 &hi)
 {
     const auto size = hi - lo;
-    const double off = std::max({size.x, size.y, size.z}) * 0.1 + 3;
-    auto make = [off](const char *name, glm::dvec3 from, glm::dvec3 to, glm::dvec3 from_on, glm::dvec3 to_on,
-                      glm::dvec3 outward) {
+    const double off = std::max({size.x, size.y, size.z}) * 0.08 + 3;
+    // a measurement along an edge of the box, pushed out sideways by "out" (a unit vector); the thin
+    // lines from the edge to it stay in one plane, so it reads like a drawing's dimension
+    auto make = [off](const char *name, glm::dvec3 a, glm::dvec3 b, glm::dvec3 out) {
         MeasureAxis ax;
         ax.name = name;
-        ax.from = from;
-        ax.to = to;
-        ax.from_on_object = from_on;
-        ax.to_on_object = to_on;
-        ax.text_pos = (from + to) / 2.0 + outward * off * 0.6;
+        ax.from_on_object = a;
+        ax.to_on_object = b;
+        ax.from = a + out * off;
+        ax.to = b + out * off;
+        const auto len = glm::length(b - a);
+        const auto dir = len > 0 ? (b - a) / len : glm::dvec3(1, 0, 0);
+        const double ah = std::min(off * 0.5, len / 4);
+        for (const auto &[end, sign] : {std::pair{ax.from, 1.}, std::pair{ax.to, -1.}}) {
+            ax.arrows.push_back({end, end + (dir * sign + out) * ah * 0.8});
+            ax.arrows.push_back({end, end + (dir * sign - out) * ah * 0.8});
+        }
+        ax.text_pos = (ax.from + ax.to) / 2.0 + out * off * 1.1;
         std::ostringstream ss;
-        ss << name << " " << std::round(glm::length(to - from) * 10) / 10 << " mm";
+        ss << name << " " << std::round(len * 10) / 10 << " mm";
         ax.text = ss.str();
         return ax;
     };
-    // along X in front of the object, along Y at its right, along Z at the front left corner
     std::vector<MeasureAxis> axes;
-    axes.push_back(make("Width", {lo.x, lo.y - off, lo.z}, {hi.x, lo.y - off, lo.z}, {lo.x, lo.y, lo.z},
-                        {hi.x, lo.y, lo.z}, {0, -1, 0}));
-    axes.push_back(make("Depth", {hi.x + off, lo.y, lo.z}, {hi.x + off, hi.y, lo.z}, {hi.x, lo.y, lo.z},
-                        {hi.x, hi.y, lo.z}, {1, 0, 0}));
-    axes.push_back(make("Height", {lo.x - off, lo.y - off, lo.z}, {lo.x - off, lo.y - off, hi.z}, {lo.x, lo.y, lo.z},
-                        {lo.x, lo.y, hi.z}, {-1, 0, 0}));
+    axes.push_back(make("Width", {lo.x, lo.y, lo.z}, {hi.x, lo.y, lo.z}, {0, -1, 0}));
+    axes.push_back(make("Depth", {hi.x, lo.y, lo.z}, {hi.x, hi.y, lo.z}, {1, 0, 0}));
+    // (at the right side, where the text runs away from the object)
+    axes.push_back(make("Height", {hi.x, hi.y, lo.z}, {hi.x, hi.y, hi.z}, {1, 0, 0}));
     std::erase_if(axes, [](const MeasureAxis &ax) { return glm::length(ax.to - ax.from) < 1e-3; });
     return axes;
 }
@@ -299,6 +304,8 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
             m_ca.draw_line(ax.from, ax.to);
             m_ca.draw_line(ax.from_on_object, ax.from);
             m_ca.draw_line(ax.to_on_object, ax.to);
+            for (const auto &[p, q] : ax.arrows)
+                m_ca.draw_line(p, q);
             m_ca.draw_bitmap_text(ax.text_pos, 1, ax.text);
         }
     }
