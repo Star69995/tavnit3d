@@ -297,6 +297,7 @@ Dune3DAppWindow::Dune3DAppWindow(BaseObjectType *cobject, const Glib::RefPtr<Gtk
     set_icon_name("dune3d");
 
     m_editor.init();
+    set_welcome_box_visible(true); // no document yet: the start screen has the whole window
     const auto automated = Glib::getenv("DUNE3D_AUTOMATION").size() > 0;
     if (!automated && m_app.m_user_config.check_for_updates)
         Glib::signal_timeout().connect_once([this] { m_editor.check_for_updates(false); }, 3000);
@@ -434,6 +435,20 @@ bool Dune3DAppWindow::has_file(const std::filesystem::path &path)
 void Dune3DAppWindow::set_welcome_box_visible(bool v)
 {
     m_welcome_box->set_visible(v);
+    // the start screen has the whole window: no side list, tabs, status bar or view cube around it
+    for (auto w : m_document_only_widgets)
+        w->set_visible(!v);
+    if (auto save = m_save_button->get_parent())
+        save->set_visible(!v);
+    m_left_bar->set_visible(!v);
+    m_workspace_notebook->set_visible(!v);
+    if (auto status = m_key_hint_label->get_parent()) {
+        status->set_visible(!v);
+        if (auto sep = status->get_prev_sibling())
+            sep->set_visible(!v);
+    }
+    if (auto cube = m_view_bar->get_parent())
+        cube->set_visible(!v);
     // nothing to select, rotate or zoom without a document
     get_canvas().set_can_target(!v);
     if (v) {

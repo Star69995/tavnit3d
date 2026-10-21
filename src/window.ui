@@ -150,13 +150,17 @@ dim-label</property>
                       <object class="GtkBox" id="welcome_box">
                         <property name="css-classes">background
 welcome-box</property>
-                        <property name="halign">center</property>
-                        <property name="margin-bottom">100</property>
-                        <property name="margin-top">100</property>
+                        <property name="halign">fill</property>
+                        <property name="hexpand">True</property>
                         <property name="orientation">vertical</property>
-                        <property name="valign">center</property>
+                        <property name="valign">fill</property>
+                        <property name="vexpand">True</property>
                         <child>
                           <object class="GtkBox">
+                            <property name="halign">center</property>
+                            <property name="valign">end</property>
+                            <property name="vexpand">True</property>
+                            <property name="margin-bottom">10</property>
                             <property name="margin-top">24</property>
                             <property name="margin-start">20</property>
                             <property name="margin-end">20</property>
@@ -191,10 +195,13 @@ welcome-box</property>
                         </child>
                         <child>
                           <object class="GtkBox">
+                            <property name="halign">center</property>
+                            <property name="valign">start</property>
+                            <property name="vexpand">True</property>
                             <property name="margin-bottom">20</property>
                             <property name="margin-end">20</property>
                             <property name="margin-start">20</property>
-                            <property name="spacing">20</property>
+                            <property name="spacing">40</property>
                             <child>
                               <object class="GtkBox">
                                 <property name="margin-top">20</property>

@@ -1098,6 +1098,7 @@ void Editor::init_header_bar()
         undo_redo_box->append(*redo_button);
 
         m_win.get_header_bar().pack_start(*undo_redo_box);
+        m_win.add_document_only_widget(*undo_redo_box);
     }
 
     {
@@ -1122,6 +1123,7 @@ void Editor::init_header_bar()
         bu->set_label("Export");
         bu->set_menu_model(menu);
         m_win.get_header_bar().pack_end(*bu);
+        m_win.add_document_only_widget(*bu);
 
         auto find = Gtk::make_managed<Gtk::Button>();
         // a search field look-alike with its key: the way to find any tool, shape or setting
@@ -1158,11 +1160,13 @@ void Editor::init_header_bar()
         render->set_tooltip_text("A photo-like picture of the objects as you see them now (uses Blender)");
         render->signal_clicked().connect([this] { show_render_window(); });
         m_win.get_header_bar().pack_end(*render);
+        m_win.add_document_only_widget(*render);
 
         auto import = Gtk::make_managed<Gtk::Button>("Import");
         import->set_tooltip_text("Add objects from a STEP, IGES, glTF or OBJ file, with their colours and materials");
         import->signal_clicked().connect([this] { on_import_object(); });
         m_win.get_header_bar().pack_end(*import);
+        m_win.add_document_only_widget(*import);
     }
 
     {

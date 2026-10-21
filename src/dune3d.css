@@ -474,3 +474,12 @@ headerbar button.find-pill:hover {border-color: alpha(@accent_bg_color, .6); col
   transition: background-color 160ms ease-out, border-color 160ms ease-out, box-shadow 160ms ease-out,
               color 160ms ease-out;
 }
+
+/* the start screen fills the window */
+.welcome-box {
+  background: @studio_window;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
