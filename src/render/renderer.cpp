@@ -40,8 +40,7 @@ static void draw_circle_3d(ICanvas &ca, const glm::dvec3 &c, const glm::dvec3 &a
     }
 }
 
-// An arrow that reads from any side: the shaft and a pyramid-shaped head (its four edges and the square
-// at its base), so the direction is clear however the view is turned. Used by the drag handles.
+// A plain arrow that reads from any side: a shaft and a head of four barbs. Used by the drag handles.
 static void draw_arrow_3d(ICanvas &ca, const glm::dvec3 &from, const glm::dvec3 &to, double head_len)
 {
     const auto d = to - from;
@@ -51,15 +50,14 @@ static void draw_arrow_3d(ICanvas &ca, const glm::dvec3 &from, const glm::dvec3 
     const auto dir = d / len;
     head_len = std::min(head_len, len * .4);
     const auto helper = std::abs(dir.z) < .9 ? glm::dvec3(0, 0, 1) : glm::dvec3(1, 0, 0);
-    const auto u = glm::normalize(glm::cross(dir, helper)) * head_len * .3;
-    const auto v = glm::normalize(glm::cross(dir, u)) * head_len * .3;
+    const auto u = glm::normalize(glm::cross(dir, helper)) * head_len * .22;
+    const auto v = glm::normalize(glm::cross(dir, u)) * head_len * .22;
     const auto base = to - dir * head_len;
     ca.draw_line(from, base);
     const glm::dvec3 corners[4] = {base + u + v, base - u + v, base - u - v, base + u - v};
-    for (int i = 0; i < 4; i++) {
+    // two crossed "V"s: a plain arrow head that looks the same from any side
+    for (int i = 0; i < 4; i++)
         ca.draw_line(to, corners[i]);
-        ca.draw_line(corners[i], corners[(i + 1) % 4]);
-    }
 }
 
 // What a lamp looks like in the 3D view, so it reads as a light rather than a dot: a bulb (point),
