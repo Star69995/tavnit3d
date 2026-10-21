@@ -143,6 +143,8 @@ private:
 
 public:
     UUID m_highlight_body;
+    // sketch lines only for the highlighted object (none while nothing is picked), not the current step's
+    bool m_only_selected_sketches = false;
     // resize handles on the picked object: where they're attached, where they are
     struct Handle {
         glm::dvec3 face, pos;

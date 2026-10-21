@@ -164,6 +164,10 @@ std::vector<SearchItem> Editor::get_search_items()
                      "perspective orthographic פרספקטיבה", win_action("win.perspective")});
     items.push_back({"Show other objects' sketch lines", std::string(viewmenu) + " > Sketch lines of other objects",
                      "sketch lines קווי שרטוט", win_action("win.show_other_sketches")});
+    items.push_back({"Show the steps (sketch, extrude ...) under each object in the list",
+                     std::string(viewmenu) + " > Steps under each object",
+                     "steps sketch extrude list objects שלבים סקיצה אובייקטים רשימה",
+                     win_action("win.show_steps")});
     items.push_back({"Simple toolbars: hide documents and the tab bar (for beginners)",
                      std::string(viewmenu) + " > Simple toolbars (no documents)",
                      "simple beginner toolbars documents tabs פשוט מתחילים סרגל מסמכים לשוניות",

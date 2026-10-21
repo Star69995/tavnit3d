@@ -1,5 +1,6 @@
 #include "editor.hpp"
 #include "document/object_parts.hpp"
+#include "document/object_folders.hpp"
 #include "document/object_dimensions.hpp"
 #include "group_editor/group_editor.hpp"
 #include "canvas/color_palette.hpp"
@@ -227,6 +228,53 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
             m_workspace_browser->update_current_group(get_current_document_views());
         });
         grid_attach_label_and_widget(*grid, "Visible", *sw, top);
+    }
+
+    // a group of objects: listed together and moved together, nothing is joined
+    {
+        auto en = Gtk::make_managed<Gtk::Entry>();
+        en->set_text(body_group.m_body->m_folder);
+        en->set_placeholder_text("none");
+        en->set_hexpand(true);
+        en->set_tooltip_text("Name of a group of objects. Objects with the same name are listed together and "
+                             "move together, but stay separate shapes. Empty: not in a group.");
+        en->signal_activate().connect([this, en, doc_uu, body_uu, changed] {
+            auto &d = m_core.get_idocument_info(doc_uu).get_document();
+            const std::string name = en->get_text().raw();
+            if (d.get_group(body_uu).m_body->m_folder == name)
+                return;
+            set_body_folder(d, body_uu, name);
+            changed(body_uu, false);
+            Glib::signal_idle().connect_once([this, doc_uu, body_uu] { show_object_editor(doc_uu, body_uu); });
+        });
+        grid_attach_label_and_widget(*grid, "Group", *en, top);
+        if (const auto &folder = body_group.m_body->m_folder; folder.size()) {
+            auto box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 8);
+            auto ren = Gtk::make_managed<Gtk::Entry>();
+            ren->set_text(folder);
+            ren->set_hexpand(true);
+            ren->set_tooltip_text("Rename the group (for all its objects)");
+            ren->signal_activate().connect([this, ren, doc_uu, body_uu, folder, changed] {
+                auto &d = m_core.get_idocument_info(doc_uu).get_document();
+                const std::string name = ren->get_text().raw();
+                if (name.empty() || name == folder)
+                    return;
+                rename_folder(d, folder, name);
+                changed(body_uu, false);
+                Glib::signal_idle().connect_once([this, doc_uu, body_uu] { show_object_editor(doc_uu, body_uu); });
+            });
+            box->append(*ren);
+            auto ungroup = Gtk::make_managed<Gtk::Button>("Ungroup");
+            ungroup->set_tooltip_text("Take every object out of this group (they stay where they are)");
+            ungroup->signal_clicked().connect([this, doc_uu, body_uu, folder, changed] {
+                auto &d = m_core.get_idocument_info(doc_uu).get_document();
+                rename_folder(d, folder, "");
+                changed(body_uu, false);
+                Glib::signal_idle().connect_once([this, doc_uu, body_uu] { show_object_editor(doc_uu, body_uu); });
+            });
+            box->append(*ungroup);
+            grid_attach_label_and_widget(*grid, "Rename group", *box, top);
+        }
     }
 
     // 3D text: what it says and how tall it is

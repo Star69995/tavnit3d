@@ -17,7 +17,7 @@ with tempfile.TemporaryDirectory() as tmp:
         f.write(text)
     env = dict(os.environ, DUNE3D_AUTOMATION=path)
     try:
-        out = subprocess.run([exe], env=env, capture_output=True, text=True, timeout=180).stderr
+        out = subprocess.run([exe], env=env, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=180).stderr
     except subprocess.TimeoutExpired:
         print("timed out (a modal dialog may be blocking)")
         sys.exit(1)

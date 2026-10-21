@@ -226,6 +226,7 @@ void Dune3DApplication::UserConfig::load(const std::filesystem::path &filename)
     show_other_documents = j.value("show_other_documents", false);
     one_document_per_screen = j.value("one_document_per_screen", false);
     simple_ui = j.value("simple_ui", false);
+    show_steps = j.value("show_steps", false);
     if (j.count("panels")) {
         for (const auto &[name, v] : j.at("panels").items())
             panels[name] = {v.value("floating", false), v.value("x", -1), v.value("y", -1)};
@@ -260,6 +261,7 @@ void Dune3DApplication::UserConfig::save(const std::filesystem::path &filename)
     j["show_other_documents"] = show_other_documents;
     j["one_document_per_screen"] = one_document_per_screen;
     j["simple_ui"] = simple_ui;
+    j["show_steps"] = show_steps;
     for (const auto &[name, it] : panels)
         j["panels"][name] = {{"floating", it.floating}, {"x", it.x}, {"y", it.y}};
     if (!documents_dir.empty())

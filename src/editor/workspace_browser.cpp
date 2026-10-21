@@ -5,7 +5,9 @@
 #include "document/group/igroup_source_group.hpp"
 #include "workspace/document_view.hpp"
 #include "util/fs_util.hpp"
+#include <functional>
 #include <iostream>
+#include <map>
 
 namespace dune3d {
 
@@ -73,6 +75,9 @@ public:
     Glib::Property<Gdk::RGBA> m_color;
 
     Glib::RefPtr<Gio::ListStore<GroupItem>> m_group_store;
+    // a row for a group of objects: its objects are the children (m_name is the group's name)
+    bool m_is_folder = false;
+    Glib::RefPtr<Gio::ListStore<BodyItem>> m_children;
 
     // No idea why the ObjectBase::get_type won't work for us but
     // reintroducing the method and using the name used by gtkmm seems
@@ -168,6 +173,7 @@ void WorkspaceBrowser::update_documents(const std::map<UUID, DocumentView> &doc_
             mi->m_screens = m_screens_text(doci->get_uuid());
         mi->m_uuid = doci->get_uuid();
         mi->m_close_sensitive = doci->can_close();
+        std::map<std::string, Glib::RefPtr<BodyItem>> folders; // groups of objects by name
         Glib::RefPtr<BodyItem> body_item = BodyItem::create();
         body_item->m_doc = mi->m_uuid;
         body_item->m_name = "Missing";
@@ -180,7 +186,21 @@ void WorkspaceBrowser::update_documents(const std::map<UUID, DocumentView> &doc_
                     body_item->m_color = rgba_from_color(gr->m_body->m_color.value());
                 body_item->m_uuid = gr->m_uuid;
                 body_item->m_doc = mi->m_uuid;
-                mi->m_body_store->append(body_item);
+                if (gr->m_body->m_folder.size()) {
+                    auto &folder = folders[gr->m_body->m_folder];
+                    if (!folder) {
+                        folder = BodyItem::create();
+                        folder->m_is_folder = true;
+                        folder->m_name = gr->m_body->m_folder;
+                        folder->m_doc = mi->m_uuid;
+                        folder->m_children = Gio::ListStore<BodyItem>::create();
+                        mi->m_body_store->append(folder);
+                    }
+                    folder->m_children->append(body_item);
+                }
+                else {
+                    mi->m_body_store->append(body_item);
+                }
             }
 
             auto gi = GroupItem::create();
@@ -188,6 +208,24 @@ void WorkspaceBrowser::update_documents(const std::map<UUID, DocumentView> &doc_
             gi->m_uuid = gr->m_uuid;
             gi->m_doc = doci->get_uuid();
             body_item->m_group_store->append(gi);
+        }
+        if (!m_show_steps) {
+            // objects only: leave out the base body that holds just the reference plane and sketch
+            auto &bodies = *mi->m_body_store;
+            for (guint i = bodies.get_n_items(); i-- > 0;) {
+                const auto body_uu = bodies.get_item(i)->m_uuid;
+                bool has_reference = false, has_solid = false;
+                for (auto gr : doci->get_document().get_groups_sorted()) {
+                    if (gr->find_body(doci->get_document()).group.m_uuid != body_uu)
+                        continue;
+                    if (gr->get_type() == Group::Type::REFERENCE)
+                        has_reference = true;
+                    else if (gr->get_type() != Group::Type::SKETCH)
+                        has_solid = true;
+                }
+                if (has_reference && !has_solid)
+                    bodies.remove(i);
+            }
         }
         store->append(mi);
     }
@@ -219,6 +257,8 @@ void WorkspaceBrowser::block_signals()
     m_signal_document_checked.block();
     m_signal_body_checked.block();
     m_signal_group_selected.block();
+    m_signal_folder_checked.block();
+    m_signal_folder_selected.block();
     m_signal_body_solid_model_checked.block();
     m_signal_body_expanded.block();
 }
@@ -235,6 +275,8 @@ void WorkspaceBrowser::unblock_signals()
     m_signal_document_checked.unblock();
     m_signal_body_checked.unblock();
     m_signal_group_selected.unblock();
+    m_signal_folder_checked.unblock();
+    m_signal_folder_selected.unblock();
     m_signal_body_solid_model_checked.unblock();
     m_signal_body_expanded.unblock();
 }
@@ -290,8 +332,19 @@ void WorkspaceBrowser::update_current_group(const std::map<UUID, DocumentView> &
         auto body = current_group.find_body(doc);
         UUID body_uu = body.group.m_uuid;
         bool after_active = false;
-        for (size_t i_body = 0; i_body < it_doc.m_body_store->get_n_items(); i_body++) {
-            auto &it_body = *it_doc.m_body_store->get_item(i_body);
+        std::function<void(BodyItem &)> update_body = [&](BodyItem &it_body) {
+            if (it_body.m_is_folder) {
+                // a group of objects: shown when all of its objects are
+                bool all_visible = true;
+                for (size_t i = 0; i < it_body.m_children->get_n_items(); i++) {
+                    auto &child = *it_body.m_children->get_item(i);
+                    update_body(child);
+                    all_visible = all_visible && child.m_check_active.get_value();
+                }
+                it_body.m_check_sensitive = true;
+                it_body.m_check_active = all_visible;
+                return;
+            }
             const bool is_current_body = body_uu == it_body.m_uuid && is_current_doc;
             it_body.m_check_sensitive = true;
             it_body.m_check_active = doc_view.body_is_visible(it_body.m_uuid);
@@ -330,7 +383,10 @@ void WorkspaceBrowser::update_current_group(const std::map<UUID, DocumentView> &
                 if (is_current)
                     after_active = true;
             }
-        }
+        
+        };
+        for (size_t i_body = 0; i_body < it_doc.m_body_store->get_n_items(); i_body++)
+            update_body(*it_doc.m_body_store->get_item(i_body));
         select_group(doci.get_uuid(), doci.get_current_group());
     }
     if (m_core.has_documents()) {
@@ -582,6 +638,9 @@ public:
         m_checkbutton->signal_toggled().connect([this] {
             if (m_body)
                 m_browser.signal_body_checked().emit(m_body->m_doc, m_body->m_uuid, m_checkbutton->get_active());
+            if (m_folder)
+                m_browser.m_signal_folder_checked.emit(m_folder->m_doc, m_folder->m_name.get_value().raw(),
+                                                       m_checkbutton->get_active());
             if (m_group)
                 m_browser.signal_group_checked().emit(m_group->m_doc, m_group->m_uuid, m_checkbutton->get_active());
             if (m_doc)
@@ -648,6 +707,10 @@ public:
                 && m_browser.m_core.get_current_idocument_info().get_uuid() == m_group->m_doc
                 && m_browser.m_core.get_current_group() == m_group->m_uuid)
                 m_browser.m_signal_group_reclicked.emit(m_group->m_doc, m_group->m_uuid);
+            // an object that is already selected: open its panel again (the list wouldn't notify)
+            if (n_press == 1 && m_body && !m_group && get_list_row() && m_browser.m_blocked_count == 0
+                && m_browser.m_selection_model->get_selected_item() == get_list_row())
+                m_browser.m_signal_body_selected.emit(m_body->m_doc, m_body->m_uuid);
         });
         add_controller(again);
     }
@@ -695,8 +758,40 @@ public:
 
         m_browser.unblock_signals();
     }
+    // a group of objects: one row over its objects, its eye switches all of them
+    void bind_folder(BodyItem &it)
+    {
+        m_browser.block_signals();
+        m_folder = &it;
+        m_checkbutton->set_what("Show or hide every object in this group.");
+        m_checkbutton->set_insensitive_reason("");
+        set_tooltip_text("A group of objects: they are listed together and move together, but stay separate "
+                         "shapes.\nClick to open its first object. The Group field in the panel changes it.");
+        m_checkbutton->set_visible(true);
+        m_screens_label->set_visible(false);
+        m_checkbutton->set_sensitive(true);
+        m_solid_toggle->set_visible(false);
+        m_dof_label->set_visible(false);
+        m_status_button->set_visible(false);
+        m_close_button->set_visible(false);
+        m_source_group_image->set_visible(false);
+        m_label->set_attributes(m_attrs_bold);
+        m_bindings.push_back(Glib::Binding::bind_property_value(it.m_name.get_proxy(), m_label->property_label(),
+                                                                Glib::Binding::Flags::SYNC_CREATE));
+        m_bindings.push_back(Glib::Binding::bind_property_value(
+                it.m_check_active.get_proxy(), m_checkbutton->property_active(), Glib::Binding::Flags::SYNC_CREATE));
+        m_bindings.push_back(Glib::Binding::bind_property_value(it.m_check_sensitive.get_proxy(),
+                                                                m_checkbutton->property_sensitive(),
+                                                                Glib::Binding::Flags::SYNC_CREATE));
+        get_list_row()->set_expanded(true);
+        m_browser.unblock_signals();
+    }
     void bind(BodyItem &it)
     {
+        if (it.m_is_folder) {
+            bind_folder(it);
+            return;
+        }
         m_browser.block_signals();
         m_body = &it;
         m_checkbutton->set_what(
@@ -803,6 +898,7 @@ public:
         m_bindings.clear();
         m_group = nullptr;
         m_body = nullptr;
+        m_folder = nullptr;
         m_doc = nullptr;
         remove_css_class("document-row");
         remove_css_class("document-row-current");
@@ -816,6 +912,7 @@ private:
     const DocumentItem *m_doc = nullptr;
     const GroupItem *m_group = nullptr;
     const BodyItem *m_body = nullptr;
+    const BodyItem *m_folder = nullptr;
 
     EyeToggleButton *m_checkbutton = nullptr;
     SolidModelToggleButton *m_solid_toggle = nullptr;
@@ -947,7 +1044,9 @@ WorkspaceBrowser::WorkspaceBrowser(Core &core) : Gtk::Box(Gtk::Orientation::VERT
             m_signal_group_selected.emit(gr->m_doc, gr->m_uuid);
         }
         else if (auto body = std::dynamic_pointer_cast<WorkspaceBrowser::BodyItem>(tr->get_item())) {
-            if (!m_blocked_count)
+            if (!m_blocked_count && body->m_is_folder)
+                m_signal_folder_selected.emit(body->m_doc, body->m_name.get_value().raw());
+            else if (!m_blocked_count)
                 m_signal_body_selected.emit(body->m_doc, body->m_uuid);
         }
     });
@@ -1150,7 +1249,9 @@ Glib::RefPtr<Gio::ListModel> WorkspaceBrowser::create_model(const Glib::RefPtr<G
     if (auto col = std::dynamic_pointer_cast<DocumentItem>(item))
         return col->m_body_store;
     if (auto col = std::dynamic_pointer_cast<BodyItem>(item))
-        return col->m_group_store;
+        return col->m_is_folder ? Glib::RefPtr<Gio::ListModel>(col->m_children)
+                                : m_show_steps ? Glib::RefPtr<Gio::ListModel>(col->m_group_store)
+                                               : Glib::RefPtr<Gio::ListModel>();
     return nullptr;
     /*Glib::RefPtr<Gio::ListModel> result;
     if (!col)
@@ -1183,6 +1284,11 @@ void WorkspaceBrowser::select_group(const UUID &uu)
 
 void WorkspaceBrowser::select_group(const UUID &doc_uu, const UUID &uu)
 {
+    if (!m_show_steps) {
+        // no step rows to select (and the object rows can't be expanded), but the step still becomes the current one
+        m_signal_group_selected.emit(doc_uu, uu);
+        return;
+    }
     {
         const auto n = m_selection_model->get_n_items();
 
@@ -1250,6 +1356,18 @@ bool WorkspaceBrowser::select_row_by_name(const std::string &name, unsigned int 
         else if (auto it = std::dynamic_pointer_cast<GroupItem>(row->get_item()))
             row_name = it->m_name.get_value();
         if (row_name.raw() == name && nth-- == 0) {
+            if (m_selection_model->get_selected() == i) {
+                // already selected: the list wouldn't notify, but a click on it should
+                if (auto it = std::dynamic_pointer_cast<BodyItem>(row->get_item())) {
+                    if (it->m_is_folder)
+                        m_signal_folder_selected.emit(it->m_doc, it->m_name.get_value().raw());
+                    else
+                        m_signal_body_selected.emit(it->m_doc, it->m_uuid);
+                }
+                else if (auto it = std::dynamic_pointer_cast<GroupItem>(row->get_item()))
+                    m_signal_group_selected.emit(it->m_doc, it->m_uuid);
+                return true;
+            }
             m_selection_model->select_item(i, true);
             return true;
         }

@@ -32,6 +32,8 @@ one click.
   a fixed size you can change in View > Grid and floor settings), lift off the floor
   (Z field, or the Lift handle dragged up), duplicate (Ctrl+D), copies in a row, round all edges, hollow
   out (cups, bowls, boxes), join/subtract/intersect
+- Groups of objects (Group field in the object panel): listed together and moved together, still separate shapes;
+  View > Steps under each object shows or hides the step rows (off: just objects)
 - Automatic backups of unsaved work, offered back after a crash
 - Stickers: pictures on an object's surface, also on curved sides; patterns
   (stripes, dots, checker, grid) in a choice of colours that cover the surface

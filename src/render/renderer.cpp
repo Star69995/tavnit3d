@@ -188,7 +188,7 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
         // reference planes (and the grid on them) always show
         // (the object being edited in the panel keeps its lines, or they'd vanish with a click)
         if (!m_workspace_view->show_other_sketches() && group->get_type() != Group::Type::REFERENCE
-            && &group->find_body(doc).group != m_current_body_group
+            && (&group->find_body(doc).group != m_current_body_group || m_only_selected_sketches)
             && !(m_highlight_body && group->find_body(doc).group.m_uuid == m_highlight_body))
             continue;
         set_chunk_from_group(*group);
