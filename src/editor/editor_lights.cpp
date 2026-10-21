@@ -288,7 +288,7 @@ void Editor::show_light_editor(const UUID &doc_uu, const UUID &light_uu)
             items->append(get_light_type_label(t));
         auto dd = Gtk::make_managed<Gtk::DropDown>(items);
         dd->set_selected(static_cast<guint>(light->m_type));
-        dd->set_tooltip_text("A lamp shines all around, a spotlight in a cone, the sun from far away in one direction");
+        dd->set_tooltip_text("A lamp shines all around from where it is, a spotlight in a cone. The sun is so far away that its rays are all parallel: only its direction matters, not how far it is");
         dd->property_selected().signal_changed().connect([dd, edit] {
             edit(
                     "light type",

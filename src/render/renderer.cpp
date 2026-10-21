@@ -13,6 +13,7 @@
 #include "util/util.hpp"
 #include "preferences/preferences.hpp"
 #include "util/glm_util.hpp"
+#include "document/light_shape.hpp"
 #include "icon_texture_id.hpp"
 #include "core/idocument_provider.hpp"
 #include "core/idocument_info.hpp"
@@ -343,16 +344,20 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
         }
     }
 
-    // lights: a marker, and which way it shines
+    // lights: the lamp itself, and for spot and sun which way it shines
     if (!sr) {
         for (const auto &light : doc.m_lights) {
-            draw_light_symbol(m_ca, light);
-            m_ca.draw_point(light.m_position, IconID::POINT_CIRCLE);
+            const double size = get_light_shape_size(light);
+            m_ca.add_face_group(make_light_shape(light, size), {0, 0, 0}, glm::quat_identity<float, glm::defaultp>(),
+                                ICanvas::FaceColor::AS_IS, static_cast<unsigned int>(Body::Material::SATIN));
+            m_ca.add_face_group(make_light_beam(light, size), {0, 0, 0}, glm::quat_identity<float, glm::defaultp>(),
+                                ICanvas::FaceColor::AS_IS,
+                                static_cast<unsigned int>(Body::Material::GLASS) | ICanvas::face_material_beam);
             // the dots below the lamp (and what it's aimed at) change their height when dragged
             m_ca.draw_line(light.m_position, light.get_height_handle(false));
             m_ca.draw_point(light.get_height_handle(false), IconID::POINT_DIAMOND);
             if (light.m_type != Light::Type::POINT) {
-                // a line to what it's aimed at, which can be dragged too
+                // what it's aimed at, which can be dragged too
                 m_ca.draw_line(light.m_position, light.m_target);
                 m_ca.draw_point(light.m_target, IconID::POINT_DIAMOND);
                 m_ca.draw_line(light.m_target, light.get_height_handle(true));
