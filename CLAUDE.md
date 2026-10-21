@@ -290,6 +290,14 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   uncaught C++ exceptions write `%LOCALAPPDATA%/dune3d/crashes/crash-*.txt`
   (module+offset per call; resolve with `addr2line -e build-release/dune3d.exe`
   or the debug build) and show a message box. Automation `crash` tries it.
+- Dark theme: `src/dune3d-dark.css` redefines the studio colour names and is added on top of `dune3d.css`
+  by `Dune3DApplication::set_dark_ui` (called from `Editor::apply_preferences`; follows Preferences > Theme
+  Auto/Light/Dark). The moon/sun button in the header bar (`theme_button`) flips the setting and saves it; also in
+  Find. The canvas colours come from `Default.dark.json`. Test `tests/ui/theme.txt`. Design mockups for what
+  comes next (tool rail with a drawer, object cards, start screen, preferences) were approved as a design canvas.
+- New window (`src/util/new_window.*`, actions NEW_WINDOW Ctrl+Shift+N / OPEN_DOCUMENT_NEW_WINDOW Ctrl+Shift+O, main
+  menu and Find): starts another copy of the program with `DUNE3D_SECONDARY_WINDOW=1`, which makes the application
+  non-unique (own window and documents) and skips offering the first copy's backups.
 - Find (`src/editor/action_search.*`, items in `editor_search.cpp`): Ctrl+K
   both as the FIND action and a window-level capture shortcut. When a
   feature lands, add it there with where it lives.

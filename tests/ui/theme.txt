@@ -1,0 +1,19 @@
+# The dark theme: the header button (also in Find) switches to it and back without errors,
+# objects and their handles keep working in both looks.
+action NEW_DOCUMENT
+wait 800
+button Box
+wait 800
+tree Box
+handles-count 6
+find Dark or light theme
+wait 300
+find-run
+wait 800
+handles-count 6
+find Dark or light theme
+wait 300
+find-run
+wait 800
+handles-count 6
+quit
