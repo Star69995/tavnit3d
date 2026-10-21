@@ -130,7 +130,7 @@ MiscPreferencesEditor::MiscPreferencesEditor(Preferences &prefs) : m_preferences
         auto gr = Gtk::make_managed<PreferencesGroup>("Appearance");
         box->append(*gr);
         {
-            auto r = Gtk::make_managed<PreferencesRowBool>("Dark theme", "Use dark theme variant if available",
+            auto r = Gtk::make_managed<PreferencesRowBool>("Dark when following the system", "Used when Theme is set to Follow system",
                                                            m_preferences, m_preferences.canvas.dark_theme);
             gr->add_row(*r);
         }

@@ -5,7 +5,8 @@
 namespace dune3d {
 class RecentItemBox : public Gtk::Box {
 public:
-    RecentItemBox(const std::string &name, const std::filesystem::path &path, const Glib::DateTime &time);
+    RecentItemBox(const std::string &name, const std::filesystem::path &path, const Glib::DateTime &time,
+                  bool with_thumbnail = false);
     const std::filesystem::path m_path;
     typedef sigc::signal<void()> type_signal_remove;
     type_signal_remove signal_remove()

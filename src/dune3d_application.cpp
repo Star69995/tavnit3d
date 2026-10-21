@@ -1,4 +1,5 @@
 #include "dune3d_application.hpp"
+#include "util/new_window.hpp"
 #include "dune3d_appwindow.hpp"
 #include "util/util.hpp"
 #include "util/fs_util.hpp"
@@ -15,13 +16,38 @@
 
 namespace dune3d {
 
-Dune3DApplication::Dune3DApplication() : Gtk::Application("org.dune3d.dune3d", Gio::Application::Flags::HANDLES_OPEN)
+// a window opened with "New window" is a copy of its own, not a second window of the running one
+static Gio::Application::Flags get_application_flags()
+{
+    auto flags = Gio::Application::Flags::HANDLES_OPEN;
+    if (is_secondary_window())
+        flags |= Gio::Application::Flags::NON_UNIQUE;
+    return flags;
+}
+
+Dune3DApplication::Dune3DApplication() : Gtk::Application("org.dune3d.dune3d", get_application_flags())
 {
 }
 
 Glib::RefPtr<Dune3DApplication> Dune3DApplication::create()
 {
     return Glib::make_refptr_for_instance<Dune3DApplication>(new Dune3DApplication());
+}
+
+void Dune3DApplication::set_dark_ui(bool dark)
+{
+    if (dark == get_dark_ui())
+        return;
+    auto display = Gdk::Display::get_default();
+    if (dark) {
+        m_dark_css = Gtk::CssProvider::create();
+        m_dark_css->load_from_resource("/org/dune3d/dune3d/dune3d-dark.css");
+        Gtk::StyleContext::add_provider_for_display(display, m_dark_css, GTK_STYLE_PROVIDER_PRIORITY_APPLICATION + 1);
+    }
+    else {
+        Gtk::StyleContext::remove_provider_for_display(display, m_dark_css);
+        m_dark_css.reset();
+    }
 }
 
 Dune3DAppWindow *Dune3DApplication::create_appwindow()

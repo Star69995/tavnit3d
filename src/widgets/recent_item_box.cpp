@@ -1,12 +1,28 @@
 #include "recent_item_box.hpp"
 #include "util/gtk_util.hpp"
 #include "util/fs_util.hpp"
+#include "util/util.hpp"
 
 namespace dune3d {
-RecentItemBox::RecentItemBox(const std::string &aname, const std::filesystem::path &pa, const Glib::DateTime &ti)
+RecentItemBox::RecentItemBox(const std::string &aname, const std::filesystem::path &pa, const Glib::DateTime &ti,
+                             bool with_thumbnail)
     : Gtk::Box(Gtk::Orientation::VERTICAL, 6), m_path(pa), m_time(ti), m_name(aname)
 {
     set_margin(12);
+    // the picture of the 3D view when it was last saved here
+    if (with_thumbnail) {
+        std::error_code ec;
+        const auto thumb = get_thumbnail_path(m_path);
+        if (std::filesystem::exists(thumb, ec)) {
+            auto pic = Gtk::make_managed<Gtk::Picture>();
+            pic->set_filename(path_to_string(thumb));
+            pic->set_content_fit(Gtk::ContentFit::COVER);
+            pic->set_size_request(-1, 130);
+            pic->set_can_shrink(true);
+            pic->add_css_class("recent-thumb");
+            append(*pic);
+        }
+    }
     auto tbox = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 12);
     {
         auto la = Gtk::make_managed<Gtk::Label>();

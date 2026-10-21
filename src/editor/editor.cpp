@@ -1,4 +1,5 @@
 #include "editor.hpp"
+#include "util/new_window.hpp"
 #include "render_window.hpp"
 #include "describe_window.hpp"
 #include "screw_window.hpp"
@@ -135,6 +136,17 @@ void Editor::init()
 
     attach_action_button(m_win.get_welcome_open_button(), ActionID::OPEN_DOCUMENT);
     attach_action_button(m_win.get_welcome_new_button(), ActionID::NEW_DOCUMENT);
+    attach_action_button(m_win.get_welcome_window_button(), ActionID::NEW_WINDOW);
+    for (const auto &[name, id] : std::vector<std::pair<std::string, ActionID>>{
+                 {"bowl", ActionID::ADD_BOWL}, {"vase", ActionID::ADD_VASE}, {"screw", ActionID::ADD_SCREW}}) {
+        // a new document with the shape already in it
+        m_win.get_welcome_template_button(name).signal_clicked().connect([this, id] {
+            trigger_action(ActionID::NEW_DOCUMENT);
+            Glib::signal_idle().connect_once([this, id] { trigger_action(id); });
+        });
+    }
+    m_win.get_welcome_import_button().signal_clicked().connect([this] { on_import_object(); });
+    m_win.get_welcome_describe_button().signal_clicked().connect([this] { show_describe_window(); });
 
     // the common ones always; the rest fold away behind "More"
     m_win.add_action_bar_section("Shapes");
@@ -144,8 +156,6 @@ void Editor::init()
     create_action_bar_button(ActionID::ADD_CONE, "Cone");
     create_action_bar_button(ActionID::ADD_WEDGE, "Wedge");
     create_action_bar_button(ActionID::ADD_TEXT, "3D Text");
-    create_action_bar_button(ActionID::ADD_PICTURE_OBJECT, "Picture");
-    create_action_bar_button(ActionID::MAKE_FROM_DESCRIPTION, "Describe");
     auto more = Gtk::make_managed<Gtk::ToggleButton>();
     auto more_img = Gtk::make_managed<Gtk::Image>();
     auto more_la = Gtk::make_managed<Gtk::Label>("More");
@@ -194,13 +204,21 @@ void Editor::init()
     create_action_bar_button(ToolID::DRAW_REGULAR_POLYGON, "Polygon");
     create_action_bar_button(ToolID::DRAW_TEXT, "Text");
     create_action_bar_button(ToolID::DRAW_WORKPLANE, "Plane");
-    m_win.add_action_bar_section("Solid");
+    m_win.add_action_bar_section("Edit");
     create_action_bar_button(ActionID::CREATE_GROUP_EXTRUDE, "Extrude");
     create_action_bar_button(ActionID::CREATE_GROUP_REVOLVE, "Revolve");
     create_action_bar_button(ActionID::CREATE_GROUP_LOFT, "Loft");
     create_action_bar_button(ActionID::CREATE_GROUP_FILLET, "Fillet");
     create_action_bar_button(ActionID::CREATE_GROUP_CHAMFER, "Chamfer");
     create_action_bar_button(ActionID::COMBINE_OBJECTS, "Combine");
+    m_win.add_action_bar_section("Look");
+    create_action_bar_button(ActionID::FOCUS_COLOUR, "Colour");
+    create_action_bar_button(ActionID::FOCUS_MATERIAL, "Material");
+    create_action_bar_button(ActionID::FOCUS_STICKER, "Sticker");
+    m_win.add_action_bar_section("Import");
+    create_action_bar_button(ActionID::IMPORT_OBJECT, "Model");
+    create_action_bar_button(ActionID::ADD_PICTURE_OBJECT, "Picture");
+    create_action_bar_button(ActionID::MAKE_FROM_DESCRIPTION, "Describe");
 
     init_view_options();
 
@@ -486,6 +504,10 @@ Gtk::Button &Editor::create_action_bar_button(ActionToolID action, const std::st
             {ActionID::ADD_SCREW, "action-add-screw-symbolic"},
             {ActionID::ADD_HOLE_SHAPE, "action-add-hole-symbolic"},
             {ActionID::ADD_TEXT, "action-draw-text-symbolic"},
+            {ActionID::IMPORT_OBJECT, "document-open-symbolic"},
+            {ActionID::FOCUS_COLOUR, "color-select-symbolic"},
+            {ActionID::FOCUS_MATERIAL, "applications-graphics-symbolic"},
+            {ActionID::FOCUS_STICKER, "image-x-generic-symbolic"},
             {ActionID::ADD_PICTURE_OBJECT, "action-add-picture-symbolic"},
     };
     auto bu = Gtk::make_managed<Gtk::Button>();
@@ -1089,6 +1111,7 @@ void Editor::init_header_bar()
         undo_redo_box->append(*redo_button);
 
         m_win.get_header_bar().pack_start(*undo_redo_box);
+        m_win.add_document_only_widget(*undo_redo_box);
     }
 
     {
@@ -1113,9 +1136,23 @@ void Editor::init_header_bar()
         bu->set_label("Export");
         bu->set_menu_model(menu);
         m_win.get_header_bar().pack_end(*bu);
+        m_win.add_document_only_widget(*bu);
 
         auto find = Gtk::make_managed<Gtk::Button>();
-        find->set_icon_name("system-search-symbolic");
+        // a search field look-alike with its key: the way to find any tool, shape or setting
+        {
+            auto box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 8);
+            box->append(*Gtk::make_managed<Gtk::Image>(Gio::ThemedIcon::create("system-search-symbolic")));
+            auto la = Gtk::make_managed<Gtk::Label>("Find");
+            la->set_hexpand(true);
+            la->set_xalign(0);
+            box->append(*la);
+            auto key = Gtk::make_managed<Gtk::Label>("Ctrl+K");
+            key->add_css_class("find-pill-key");
+            box->append(*key);
+            find->set_child(*box);
+            find->add_css_class("find-pill");
+        }
         find->set_tooltip_text("Find a command, and where it is (Ctrl+K)");
         find->signal_clicked().connect([this] { show_search(); });
         m_win.get_header_bar().pack_end(*find);
@@ -1136,14 +1173,18 @@ void Editor::init_header_bar()
         render->set_tooltip_text("A photo-like picture of the objects as you see them now (uses Blender)");
         render->signal_clicked().connect([this] { show_render_window(); });
         m_win.get_header_bar().pack_end(*render);
+        m_win.add_document_only_widget(*render);
 
         auto import = Gtk::make_managed<Gtk::Button>("Import");
         import->set_tooltip_text("Add objects from a STEP, IGES, glTF or OBJ file, with their colours and materials");
         import->signal_clicked().connect([this] { on_import_object(); });
         m_win.get_header_bar().pack_end(*import);
+        m_win.add_document_only_widget(*import);
     }
 
     {
+        m_win.add_action("new_window", [this] { trigger_action(ActionID::NEW_WINDOW); });
+        m_win.add_action("open_new_window", [this] { trigger_action(ActionID::OPEN_DOCUMENT_NEW_WINDOW); });
         m_win.add_action("check_updates", [this] { check_for_updates(true); });
         auto auto_check = m_win.add_action_bool("auto_check_updates", m_win.get_app().m_user_config.check_for_updates);
         auto_check->signal_change_state().connect([this, auto_check](const Glib::VariantBase &v) {
@@ -1160,6 +1201,11 @@ void Editor::init_header_bar()
 
     {
         auto top = Gio::Menu::create();
+
+        auto windows = Gio::Menu::create();
+        windows->append("New window", "win.new_window");
+        windows->append("Open in a new window...", "win.open_new_window");
+        top->append_section(windows);
 
         auto updates = Gio::Menu::create();
         updates->append("Check for updates", "win.check_updates");
@@ -1233,6 +1279,11 @@ void Editor::update_view_hints()
 
 void Editor::on_open_document(const ActionConnection &conn)
 {
+    open_document_dialog(false);
+}
+
+void Editor::open_document_dialog(bool new_window)
+{
     auto dialog = Gtk::FileDialog::create();
     dialog->set_initial_folder(Gio::File::create_for_path(path_to_string(get_documents_dir())));
     if (m_core.has_documents()) {
@@ -1253,9 +1304,14 @@ void Editor::on_open_document(const ActionConnection &conn)
     dialog->set_filters(filters);
 
     // Show the dialog and wait for a user response:
-    dialog->open(m_win, [this, dialog](const Glib::RefPtr<Gio::AsyncResult> &result) {
+    dialog->open(m_win, [this, dialog, new_window](const Glib::RefPtr<Gio::AsyncResult> &result) {
         try {
             auto file = dialog->open_finish(result);
+            if (new_window) {
+                if (!launch_new_window(path_from_string(file->get_path())))
+                    m_win.open_file_view(file);
+                return;
+            }
             m_win.open_file_view(file);
             // Notice that this is a std::string, not a Glib::ustring.
             auto filename = file->get_path();
@@ -1305,6 +1361,7 @@ void Editor::on_save_as(const ActionConnection &conn)
             m_win.get_app().add_recent_item(filename);
             m_core.save_as(filename);
             save_workspace_view(m_core.get_current_idocument_info().get_uuid());
+            save_thumbnail(filename);
             m_workspace_browser->update_documents(get_current_document_views());
             update_version_info();
             update_title();
@@ -1548,11 +1605,7 @@ void Editor::apply_preferences()
         }
     }
 
-    auto dark = Gtk::Settings::get_default()->property_gtk_application_prefer_dark_theme().get_value();
-    if (dark != m_preferences.canvas.dark_theme)
-        Gtk::Settings::get_default()->property_gtk_application_prefer_dark_theme().set_value(
-                m_preferences.canvas.dark_theme);
-    dark = Gtk::Settings::get_default()->property_gtk_application_prefer_dark_theme().get_value();
+    auto dark = m_preferences.canvas.dark_theme;
     switch (m_preferences.canvas.theme_variant) {
     case CanvasPreferences::ThemeVariant::AUTO:
         break;
@@ -1563,6 +1616,10 @@ void Editor::apply_preferences()
         dark = false;
         break;
     }
+    // the window follows too: GTK's own widgets and the studio theme's dark variant
+    if (Gtk::Settings::get_default()->property_gtk_application_prefer_dark_theme().get_value() != dark)
+        Gtk::Settings::get_default()->property_gtk_application_prefer_dark_theme().set_value(dark);
+    m_win.get_app().set_dark_ui(dark);
     if (color_themes.contains(m_preferences.canvas.theme)) {
         Appearance appearance = m_preferences.canvas.appearance;
         appearance.colors = color_themes.at(m_preferences.canvas.theme).get(dark);
@@ -1635,6 +1692,7 @@ void Editor::render_document(const IDocumentInfo &doc)
     if (m_object_editor) {
         renderer.m_highlight_body = m_object_editor_body;
         renderer.m_hide_constraints = true; // the object panel lists the dimensions
+        renderer.m_hide_sketch_points = true; // its handles are what can be dragged
         if (!m_object_editor_light && m_object_editor_body && body_is_shown(m_object_editor_body)
             && doc.get_uuid() == m_core.get_current_idocument_info().get_uuid()) {
             if (const auto bounds = get_body_bounds(doc.get_document(), m_object_editor_body))
@@ -1643,8 +1701,9 @@ void Editor::render_document(const IDocumentInfo &doc)
     }
     if (doc.get_uuid() == m_core.get_current_idocument_info().get_uuid()) {
         get_canvas().set_lights(get_canvas_lights(doc.get_document()));
-        for (const auto &h : get_object_handles())
-            renderer.m_handles.push_back({h.face, h.pos, static_cast<int>(h.kind)});
+        const auto handles = get_object_handles();
+        for (const auto &h : handles)
+            renderer.m_handles.push_back({h.face, h.pos, static_cast<int>(h.kind), h.size});
     }
 
     if (doc.get_uuid() == m_core.get_current_idocument_info().get_uuid())

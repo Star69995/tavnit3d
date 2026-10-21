@@ -41,6 +41,26 @@ static void draw_circle_3d(ICanvas &ca, const glm::dvec3 &c, const glm::dvec3 &a
     }
 }
 
+// A plain arrow that reads from any side: a shaft and a head of four barbs. Used by the drag handles.
+static void draw_arrow_3d(ICanvas &ca, const glm::dvec3 &from, const glm::dvec3 &to, double head_len)
+{
+    const auto d = to - from;
+    const double len = glm::length(d);
+    if (len < 1e-6)
+        return;
+    const auto dir = d / len;
+    head_len = std::min(head_len, len * .4);
+    const auto helper = std::abs(dir.z) < .9 ? glm::dvec3(0, 0, 1) : glm::dvec3(1, 0, 0);
+    const auto u = glm::normalize(glm::cross(dir, helper)) * head_len * .22;
+    const auto v = glm::normalize(glm::cross(dir, u)) * head_len * .22;
+    const auto base = to - dir * head_len;
+    ca.draw_line(from, base);
+    const glm::dvec3 corners[4] = {base + u + v, base - u + v, base - u - v, base + u - v};
+    // two crossed "V"s: a plain arrow head that looks the same from any side
+    for (int i = 0; i < 4; i++)
+        ca.draw_line(to, corners[i]);
+}
+
 // What a lamp looks like in the 3D view, so it reads as a light rather than a dot: a bulb (point),
 // a lamp with its beam cone (spot), a sun with rays and parallel arrows (sun). Sized by how far the
 // light is from what it shines at, so it stays in proportion to the scene.
@@ -291,10 +311,16 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
     }
 
     for (const auto &h : m_handles) {
-        m_ca.draw_line(h.face, h.pos);
-        m_ca.draw_point(h.pos, h.kind == 0 || h.kind == 3 ? IconID::POINT_DIAMOND
-                               : h.kind == 1 ? IconID::POINT_TRIANGLE_DOWN
-                                             : IconID::POINT_CIRCLE);
+        // a square on the object for a size, a dot for walls and rounding;
+        // only lifting, which really moves the object, is an arrow (pointing up)
+        if (h.kind == 3) {
+            // one arrow standing on the top, pointing up
+            const glm::dvec3 up{0, 0, h.size * .5};
+            draw_arrow_3d(m_ca, h.pos - up, h.pos + up * 1.1, h.size * .4);
+        }
+        else {
+            m_ca.draw_point(h.pos, h.kind == 0 ? IconID::POINT_BOX : IconID::POINT_CIRCLE);
+        }
     }
 
     // lights: a marker, and which way it shines
@@ -374,8 +400,10 @@ void Renderer::visit(const EntityLine3D &line)
     if (line.m_no_points)
         return;
 
-    m_ca.add_selectable(m_ca.draw_point(line.m_p1), SelectableRef{SelectableRef::Type::ENTITY, line.m_uuid, 1});
-    m_ca.add_selectable(m_ca.draw_point(line.m_p2), SelectableRef{SelectableRef::Type::ENTITY, line.m_uuid, 2});
+    if (!m_hide_sketch_points)
+        m_ca.add_selectable(m_ca.draw_point(line.m_p1), SelectableRef{SelectableRef::Type::ENTITY, line.m_uuid, 1});
+    if (!m_hide_sketch_points)
+        m_ca.add_selectable(m_ca.draw_point(line.m_p2), SelectableRef{SelectableRef::Type::ENTITY, line.m_uuid, 2});
 }
 
 void Renderer::visit(const EntityLine2D &line)
@@ -384,15 +412,18 @@ void Renderer::visit(const EntityLine2D &line)
     const auto p1 = wrkpl.transform(line.m_p1);
     const auto p2 = wrkpl.transform(line.m_p2);
     m_ca.add_selectable(m_ca.draw_line(p1, p2), SelectableRef{SelectableRef::Type::ENTITY, line.m_uuid, 0});
-    m_ca.add_selectable(m_ca.draw_point(p1), SelectableRef{SelectableRef::Type::ENTITY, line.m_uuid, 1});
-    m_ca.add_selectable(m_ca.draw_point(p2), SelectableRef{SelectableRef::Type::ENTITY, line.m_uuid, 2});
+    if (!m_hide_sketch_points)
+        m_ca.add_selectable(m_ca.draw_point(p1), SelectableRef{SelectableRef::Type::ENTITY, line.m_uuid, 1});
+    if (!m_hide_sketch_points)
+        m_ca.add_selectable(m_ca.draw_point(p2), SelectableRef{SelectableRef::Type::ENTITY, line.m_uuid, 2});
 }
 
 void Renderer::visit(const EntityPoint2D &point)
 {
     auto &wrkpl = dynamic_cast<const EntityWorkplane &>(*m_doc->m_entities.at(point.m_wrkpl));
     const auto p = wrkpl.transform(point.m_p);
-    m_ca.add_selectable(m_ca.draw_point(p), SelectableRef{SelectableRef::Type::ENTITY, point.m_uuid, 0});
+    if (!m_hide_sketch_points)
+        m_ca.add_selectable(m_ca.draw_point(p), SelectableRef{SelectableRef::Type::ENTITY, point.m_uuid, 0});
 }
 
 namespace {
@@ -474,12 +505,15 @@ void Renderer::visit(const EntityArc2D &arc)
         }
     }
 
-    m_ca.add_selectable(m_ca.draw_point(wrkpl.transform(arc.m_from)),
-                        SelectableRef{SelectableRef::Type::ENTITY, arc.m_uuid, 1});
-    m_ca.add_selectable(m_ca.draw_point(wrkpl.transform(arc.m_to)),
-                        SelectableRef{SelectableRef::Type::ENTITY, arc.m_uuid, 2});
-    m_ca.add_selectable(m_ca.draw_point(wrkpl.transform(arc.m_center), IconID::POINT_CROSS),
-                        SelectableRef{SelectableRef::Type::ENTITY, arc.m_uuid, 3});
+    if (!m_hide_sketch_points)
+        m_ca.add_selectable(m_ca.draw_point(wrkpl.transform(arc.m_from)),
+                            SelectableRef{SelectableRef::Type::ENTITY, arc.m_uuid, 1});
+    if (!m_hide_sketch_points)
+        m_ca.add_selectable(m_ca.draw_point(wrkpl.transform(arc.m_to)),
+                            SelectableRef{SelectableRef::Type::ENTITY, arc.m_uuid, 2});
+    if (!m_hide_sketch_points)
+        m_ca.add_selectable(m_ca.draw_point(wrkpl.transform(arc.m_center), IconID::POINT_CROSS),
+                            SelectableRef{SelectableRef::Type::ENTITY, arc.m_uuid, 3});
 }
 
 void Renderer::visit(const EntityCircle2D &circle)
@@ -501,8 +535,9 @@ void Renderer::visit(const EntityCircle2D &circle)
         }
     }
 
-    m_ca.add_selectable(m_ca.draw_point(wrkpl.transform(circle.m_center), IconID::POINT_CROSS),
-                        SelectableRef{SelectableRef::Type::ENTITY, circle.m_uuid, 1});
+    if (!m_hide_sketch_points)
+        m_ca.add_selectable(m_ca.draw_point(wrkpl.transform(circle.m_center), IconID::POINT_CROSS),
+                            SelectableRef{SelectableRef::Type::ENTITY, circle.m_uuid, 1});
 }
 void Renderer::visit(const EntityCircle3D &circle)
 {
@@ -521,8 +556,9 @@ void Renderer::visit(const EntityCircle3D &circle)
         }
     }
 
-    m_ca.add_selectable(m_ca.draw_point(circle.m_center, IconID::POINT_CROSS),
-                        SelectableRef{SelectableRef::Type::ENTITY, circle.m_uuid, 1});
+    if (!m_hide_sketch_points)
+        m_ca.add_selectable(m_ca.draw_point(circle.m_center, IconID::POINT_CROSS),
+                            SelectableRef{SelectableRef::Type::ENTITY, circle.m_uuid, 1});
 }
 
 void Renderer::visit(const EntityArc3D &arc)
@@ -560,10 +596,13 @@ void Renderer::visit(const EntityArc3D &arc)
         }
     }
 
-    m_ca.add_selectable(m_ca.draw_point(arc.m_from), SelectableRef{SelectableRef::Type::ENTITY, arc.m_uuid, 1});
-    m_ca.add_selectable(m_ca.draw_point(arc.m_to), SelectableRef{SelectableRef::Type::ENTITY, arc.m_uuid, 2});
-    m_ca.add_selectable(m_ca.draw_point(arc.m_center, IconID::POINT_CROSS),
-                        SelectableRef{SelectableRef::Type::ENTITY, arc.m_uuid, 3});
+    if (!m_hide_sketch_points)
+        m_ca.add_selectable(m_ca.draw_point(arc.m_from), SelectableRef{SelectableRef::Type::ENTITY, arc.m_uuid, 1});
+    if (!m_hide_sketch_points)
+        m_ca.add_selectable(m_ca.draw_point(arc.m_to), SelectableRef{SelectableRef::Type::ENTITY, arc.m_uuid, 2});
+    if (!m_hide_sketch_points)
+        m_ca.add_selectable(m_ca.draw_point(arc.m_center, IconID::POINT_CROSS),
+                            SelectableRef{SelectableRef::Type::ENTITY, arc.m_uuid, 3});
 }
 
 void Renderer::visit(const EntityWorkplane &wrkpl)
@@ -784,8 +823,10 @@ void Renderer::visit(const EntityBezier2D &bezier)
         m_ca.draw_line(p2, c2);
     }
 
-    m_ca.add_selectable(m_ca.draw_point(p1), SelectableRef{SelectableRef::Type::ENTITY, bezier.m_uuid, 1});
-    m_ca.add_selectable(m_ca.draw_point(p2), SelectableRef{SelectableRef::Type::ENTITY, bezier.m_uuid, 2});
+    if (!m_hide_sketch_points)
+        m_ca.add_selectable(m_ca.draw_point(p1), SelectableRef{SelectableRef::Type::ENTITY, bezier.m_uuid, 1});
+    if (!m_hide_sketch_points)
+        m_ca.add_selectable(m_ca.draw_point(p2), SelectableRef{SelectableRef::Type::ENTITY, bezier.m_uuid, 2});
     m_ca.add_selectable(m_ca.draw_point(c1, IconID::POINT_CIRCLE),
                         SelectableRef{SelectableRef::Type::ENTITY, bezier.m_uuid, 3});
     m_ca.add_selectable(m_ca.draw_point(c2, IconID::POINT_CIRCLE),
@@ -804,8 +845,10 @@ void Renderer::visit(const EntityBezier3D &bezier)
         last = p;
     }
 
-    m_ca.add_selectable(m_ca.draw_point(bezier.m_p1), SelectableRef{SelectableRef::Type::ENTITY, bezier.m_uuid, 1});
-    m_ca.add_selectable(m_ca.draw_point(bezier.m_p2), SelectableRef{SelectableRef::Type::ENTITY, bezier.m_uuid, 2});
+    if (!m_hide_sketch_points)
+        m_ca.add_selectable(m_ca.draw_point(bezier.m_p1), SelectableRef{SelectableRef::Type::ENTITY, bezier.m_uuid, 1});
+    if (!m_hide_sketch_points)
+        m_ca.add_selectable(m_ca.draw_point(bezier.m_p2), SelectableRef{SelectableRef::Type::ENTITY, bezier.m_uuid, 2});
 }
 
 

@@ -123,6 +123,8 @@ private:
     void show_update_message(const std::string &text, bool error);
     std::filesystem::path get_autosave_dir() const;
     void autosave_now();
+    // saves a small picture of the 3D view for the recent files list
+    void save_thumbnail(const std::filesystem::path &document);
     void autosave_remove(const UUID &doc_uu);
     void restart_autosave_timer();
     void offer_recovery();
@@ -170,6 +172,7 @@ public:
         double scale = 1;  // shown value = datum * scale
         double per_mm = 1; // shown value change per mm the handle moves
         std::string label;
+        double size = 0; // how big it is drawn, where that matters (Lift)
     };
     std::vector<ObjectHandle> get_object_handles();
 
@@ -193,6 +196,10 @@ private:
     void update_handle_hint();
     std::string get_move_hint();
     std::string m_handle_hint;
+    // turns the object (all its parts) about the upright line through `pivot`; `cache` keeps where the parts were
+    // (filled on the first call, after they have workplanes of their own), so the angle is from the start
+    void turn_object(std::vector<PartPosition> &cache, const std::vector<UUID> &parts, const glm::dvec3 &pivot,
+                     double radians);
     bool begin_handle_drag();
     void update_handle_drag();
     void end_handle_drag();
@@ -255,6 +262,8 @@ private:
     void begin_place_decal(const UUID &doc_uu, const UUID &body_uu, const std::filesystem::path &picture);
     bool place_decal_under_cursor();
     Gtk::Widget *m_object_editor = nullptr;
+    // the panel is a column of cards, a grid each (or a single grid, for a light)
+    std::vector<Gtk::Grid *> get_object_editor_grids() const;
     UUID m_reclicked_group; // a step clicked again (back to the last step): its release selection is ignored
     bool m_object_editor_keep = false; // skip the next refresh, the change came from the panel
     UUID m_object_editor_doc;
@@ -303,6 +312,7 @@ private:
     void on_export_paths(const ActionConnection &conn);
     void on_export_projection(const ActionConnection &conn);
     void on_open_document(const ActionConnection &conn);
+    void open_document_dialog(bool new_window);
     void on_save_as(const ActionConnection &conn);
     void on_create_group_action(const ActionConnection &conn);
     void on_move_group_action(const ActionConnection &conn);

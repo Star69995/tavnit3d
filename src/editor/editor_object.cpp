@@ -65,6 +65,59 @@ bool Editor::go_to_last_group(const UUID &doc_uu)
     return true;
 }
 
+// The panel is built as one grid with a heading row for each section; this splits it at the headings
+// into cards, a grid each (the heading is its first row), so each section stands on its own.
+static Gtk::Box *make_cards(Gtk::Grid &grid)
+{
+    struct Item {
+        Gtk::Widget *w;
+        int col, row, cw, rh;
+    };
+    std::vector<Item> items;
+    for (auto ch = grid.get_first_child(); ch; ch = ch->get_next_sibling()) {
+        Item it{ch, 0, 0, 1, 1};
+        gtk_grid_query_child(grid.gobj(), ch->gobj(), &it.col, &it.row, &it.cw, &it.rh);
+        items.push_back(it);
+    }
+    std::stable_sort(items.begin(), items.end(), [](const Item &a, const Item &b) { return a.row < b.row; });
+    auto outer = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 12);
+    outer->add_css_class("object-editor");
+    outer->add_css_class("object-cards");
+    Gtk::Grid *card = nullptr;
+    int base = 0;
+    for (const auto &it : items) {
+        auto la = dynamic_cast<Gtk::Label *>(it.w);
+        const bool heading = la && la->has_css_class("object-editor-heading");
+        if (heading || !card) {
+            card = Gtk::make_managed<Gtk::Grid>();
+            card->set_row_spacing(8);
+            card->set_column_spacing(10);
+            card->add_css_class("object-card");
+            outer->append(*card);
+            base = it.row;
+        }
+        g_object_ref(it.w->gobj()); // survives being taken out of the old grid
+        grid.remove(*it.w);
+        card->attach(*it.w, it.col, it.row - base, it.cw, it.rh);
+        g_object_unref(it.w->gobj());
+    }
+    return outer;
+}
+
+std::vector<Gtk::Grid *> Editor::get_object_editor_grids() const
+{
+    std::vector<Gtk::Grid *> grids;
+    if (auto grid = dynamic_cast<Gtk::Grid *>(m_object_editor))
+        grids.push_back(grid);
+    else if (m_object_editor) {
+        for (auto ch = m_object_editor->get_first_child(); ch; ch = ch->get_next_sibling()) {
+            if (auto g = dynamic_cast<Gtk::Grid *>(ch))
+                grids.push_back(g);
+        }
+    }
+    return grids;
+}
+
 void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
 {
     if (m_group_editor) {
@@ -78,9 +131,10 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
     double scroll = 0; // and where the panel was scrolled to
     if (m_object_editor && m_object_editor_doc == doc_uu && m_object_editor_body == body_uu) {
         scroll = m_side_panel_scrolled->get_vadjustment()->get_value();
-        if (auto grid = dynamic_cast<Gtk::Grid *>(m_object_editor)) {
+        {
             for (auto focus = m_win.get_focus(); focus && !focus_label.size(); focus = focus->get_parent()) {
-                if (focus->get_parent() != grid)
+                auto grid = dynamic_cast<Gtk::Grid *>(focus->get_parent());
+                if (!grid || grid->get_parent() != m_object_editor)
                     continue;
                 // fields of parts are named: their labels repeat
                 if (focus->get_name().size() && focus->get_name() != G_OBJECT_TYPE_NAME(focus->gobj()))
@@ -210,6 +264,7 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         box->append(*sw);
         if (body_group.m_body->m_hole) {
             auto cut = Gtk::make_managed<Gtk::Button>("Cut");
+            cut->add_css_class("cut-action");
             cut->set_tooltip_text("Remove this hole from every shown object it overlaps");
             cut->signal_clicked().connect([this, doc_uu, body_uu] {
                 Glib::signal_idle().connect_once([this, doc_uu, body_uu] { cut_with_hole(doc_uu, body_uu); });
@@ -344,6 +399,35 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
             changed(group_uu, true);
         });
         grid_attach_label_and_widget(*grid, dim.label, *sp, top).add_css_class("tnum");
+        // a size can also be slid: from tiny to well past what it is now (the field takes any value)
+        if (sp->get_value() > 0 && dim.label != "X" && dim.label != "Y" && dim.label != "Z") {
+            const double v = sp->get_value();
+            const double hi = std::max(100., std::ceil(v * 2.5 / 10) * 10);
+            auto slider = Gtk::make_managed<Gtk::Scale>(Gtk::Orientation::HORIZONTAL);
+            slider->set_range(1, hi);
+            slider->set_value(std::clamp(v, 1., hi));
+            slider->set_draw_value(false);
+            slider->set_round_digits(0);
+            slider->set_hexpand(true);
+            slider->add_css_class("dim-slider");
+            slider->set_tooltip_text("Slide to change the " + dim.label);
+            auto syncing = std::make_shared<bool>(false);
+            slider->signal_value_changed().connect([sp, slider, syncing] {
+                if (*syncing)
+                    return;
+                *syncing = true;
+                sp->set_value(slider->get_value());
+                *syncing = false;
+            });
+            sp->signal_value_changed().connect([sp, slider, syncing, hi] {
+                if (*syncing)
+                    return;
+                *syncing = true;
+                slider->set_value(std::clamp(sp->get_value(), 1., hi));
+                *syncing = false;
+            });
+            grid->attach(*slider, 0, top++, 2, 1);
+        }
     }
 
     // rounding all edges, like a rounded box
@@ -676,23 +760,29 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
     }
 
     add_panel_hints(*grid);
-    m_group_editor_box->append(*grid);
-    wheel_scrolls_past_spinbuttons(*grid);
+    auto cards = make_cards(*grid);
+    m_object_editor = cards;
+    m_group_editor_box->append(*cards);
+    wheel_scrolls_past_spinbuttons(*cards);
     if (focus_name.size()) {
-        for (auto ch = grid->get_first_child(); ch; ch = ch->get_next_sibling()) {
-            if (ch->get_name().raw() == focus_name)
-                ch->grab_focus();
+        for (auto card : get_object_editor_grids()) {
+            for (auto ch = card->get_first_child(); ch; ch = ch->get_next_sibling()) {
+                if (ch->get_name().raw() == focus_name)
+                    ch->grab_focus();
+            }
         }
     }
     else if (focus_label.size()) {
-        for (auto ch = grid->get_first_child(); ch; ch = ch->get_next_sibling()) {
-            auto la = dynamic_cast<Gtk::Label *>(ch);
-            if (!la || la->get_text().raw() != focus_label)
-                continue;
-            int col, row, w, h;
-            gtk_grid_query_child(grid->gobj(), GTK_WIDGET(la->gobj()), &col, &row, &w, &h);
-            if (auto field = grid->get_child_at(col + 1, row))
-                field->grab_focus();
+        for (auto card : get_object_editor_grids()) {
+            for (auto ch = card->get_first_child(); ch; ch = ch->get_next_sibling()) {
+                auto la = dynamic_cast<Gtk::Label *>(ch);
+                if (!la || la->get_text().raw() != focus_label)
+                    continue;
+                int col, row, w, h;
+                gtk_grid_query_child(card->gobj(), GTK_WIDGET(la->gobj()), &col, &row, &w, &h);
+                if (auto field = card->get_child_at(col + 1, row))
+                    field->grab_focus();
+            }
         }
     }
     else {

@@ -1,4 +1,8 @@
 #include "editor.hpp"
+#include "document/object_folders.hpp"
+#include "document/object_parts.hpp"
+#include "preferences/preferences_window.hpp"
+#include "dune3d_application.hpp"
 #include "dune3d_appwindow.hpp"
 #include "canvas/canvas.hpp"
 #include "util/fs_util.hpp"
@@ -74,6 +78,14 @@ static std::map<std::string, glm::dvec3> s_light_marks; // "light-mark": where a
  *   update-check             check for updates as from the menu (feed: DUNE3D_UPDATE_FEED)
  *   panel-scroll F           scroll the side panel to F (0 top ... 1 bottom)
  *   drag-panel NAME X Y      drag the "palette" or "layers" panel by its grip to window pixel X Y
+ *   drag-object NAME DX DY   drag on the middle of that object by DX DY window pixels
+ *   drop NAME before|after|onto TARGET   what a drop in the list of objects does (objects or groups), also rename-group A B and
+ *                            expect-order "A B(Group) C" (the order and groups of the objects)
+ *   recovery                 offer backups found in the documents folder's Autosave folder (the note on the start screen)
+ *   rotate-object DEGREES    turn the picked object about the upright line through its middle
+ *   expect-extent X|Y|Z MM   fail unless the picked object is that long along that world axis (within 0.5)
+ *   preferences [PAGE]       open Preferences (page: canvas, editor, keys, in_tool_keys)
+ *   theme dark|light|auto    the look, as in Preferences > Theme
  *   crash                    crash on purpose, to see the crash report
  *   close TITLE              close the window with this title as with its X button
  *   windows                  print the visible windows and their texts (dialogs aren't in shots)
@@ -241,6 +253,28 @@ void Editor::run_automation(const std::filesystem::path &script)
                 drag_on_canvas(to_canvas(x1, y1), to_canvas(x2, y2));
                 delay = 900;
             }
+            else if (cmd == "drag-object") {
+                // drag-object NAME DX DY: a left-button drag on that object's middle (window pixels, as "drag")
+                std::istringstream is(rest);
+                std::string name;
+                double dx = 0, dy = 0;
+                is >> name >> dx >> dy;
+                auto &doc = m_core.get_current_document();
+                UUID body;
+                for (auto gr : doc.get_groups_sorted()) {
+                    if (gr->m_body && gr->m_body->m_name == name)
+                        body = gr->m_uuid;
+                }
+                const auto b = body ? get_body_bounds(doc, body) : std::nullopt;
+                if (!b)
+                    throw std::runtime_error("no object " + name);
+                const auto p = get_canvas().project_to_window((b->lo + b->hi) / 2.);
+                graphene_point_t in{(float)p.x, (float)p.y}, out;
+                if (!gtk_widget_compute_point(GTK_WIDGET(get_canvas().gobj()), GTK_WIDGET(m_win.gobj()), &in, &out))
+                    out = in;
+                drag_on_canvas(to_canvas(out.x, out.y), to_canvas(out.x + dx, out.y + dy));
+                delay = 900;
+            }
             else if (cmd == "drag-light") {
                 // drag a light's lamp or its aimed-at point from where it is now to window pixel X Y
                 bool target;
@@ -289,6 +323,11 @@ void Editor::run_automation(const std::filesystem::path &script)
             }
             else if (cmd == "save") {
                 m_core.save_as(path_from_string(rest));
+                // DUNE3D_THUMBNAILS=1: as a real save does, add it to the recent files with its picture
+                if (!Glib::getenv("DUNE3D_THUMBNAILS").empty()) {
+                    m_win.get_app().add_recent_item(path_from_string(rest));
+                    save_thumbnail(path_from_string(rest));
+                }
             }
             else if (cmd == "render-window") {
                 show_render_window();
@@ -316,8 +355,8 @@ void Editor::run_automation(const std::filesystem::path &script)
                 Gtk::ScrolledWindow *sc = nullptr;
                 for (Gtk::Widget *w = m_group_editor_box; w && !sc; w = w->get_parent())
                     sc = dynamic_cast<Gtk::ScrolledWindow *>(w);
-                auto grid = dynamic_cast<Gtk::Grid *>(m_object_editor);
-                for (auto ch = grid ? grid->get_first_child() : nullptr; ch; ch = ch->get_next_sibling()) {
+                for (auto grid : get_object_editor_grids())
+                for (auto ch = grid->get_first_child(); ch; ch = ch->get_next_sibling()) {
                     auto sp = dynamic_cast<Gtk::SpinButton *>(ch);
                     if (!sp || !sp->get_mapped())
                         continue;
@@ -542,6 +581,11 @@ void Editor::run_automation(const std::filesystem::path &script)
                 }
                 if (!bu)
                     throw std::runtime_error("no button " + rest);
+                // a tool on another page of the palette: show that page first
+                for (Gtk::Widget *p = bu; p; p = p->get_parent()) {
+                    if (auto stack = dynamic_cast<Gtk::Stack *>(p->get_parent()))
+                        m_win.show_action_bar_category(stack->get_page(*p)->get_name());
+                }
                 bu->activate();
                 delay = 600;
             }
@@ -701,6 +745,116 @@ void Editor::run_automation(const std::filesystem::path &script)
                 is >> name >> x >> y;
                 if (!m_win.drag_panel(name, x, y))
                     std::cerr << "automation: no panel " << name << std::endl;
+            }
+            else if (cmd == "drop" || cmd == "expect-order" || cmd == "rename-group") {
+                // groups of objects, without a mouse: "drop NAME before|after|onto TARGET" does what a drop in the
+                // list does (NAME and TARGET are objects or groups), "rename-group A B", and "expect-order A B(Group) C"
+                auto &doc = m_core.get_current_document();
+                auto body_by_name = [&doc](const std::string &name) {
+                    for (auto gr : doc.get_groups_sorted()) {
+                        if (gr->m_body && gr->m_body->m_name == name)
+                            return gr->m_uuid;
+                    }
+                    return UUID();
+                };
+                const auto doc_uu = m_core.get_current_idocument_info().get_uuid();
+                const auto folders = get_folder_names(doc);
+                auto is_folder = [&folders](const std::string &n) { return std::ranges::find(folders, n) != folders.end(); };
+                if (cmd == "drop") {
+                    std::istringstream is(rest);
+                    std::string name, where, target;
+                    is >> name >> where;
+                    std::getline(is >> std::ws, target);
+                    FolderDrop d;
+                    if (is_folder(name))
+                        d.folder = name;
+                    else
+                        d.body = body_by_name(name);
+                    if (is_folder(target))
+                        d.target_folder = target;
+                    else
+                        d.target_body = body_by_name(target);
+                    if ((!d.folder.size() && !d.body) || (!d.target_folder.size() && !d.target_body))
+                        throw std::runtime_error("drop: no such object or group: " + rest);
+                    d.where = where == "before" ? FolderDrop::Where::BEFORE
+                              : where == "after" ? FolderDrop::Where::AFTER : FolderDrop::Where::INTO;
+                    m_workspace_browser->signal_folder_drop().emit(doc_uu, d);
+                }
+                else if (cmd == "rename-group") {
+                    const auto sp = rest.find(' ');
+                    m_workspace_browser->signal_folder_rename().emit(doc_uu, rest.substr(0, sp), rest.substr(sp + 1));
+                }
+                else {
+                    std::string order;
+                    for (const auto &bg : doc.get_groups_by_body()) {
+                        const auto &n = bg.body.m_name;
+                        if (n.empty() || n == "Body")
+                            continue;
+                        order += (order.size() ? " " : "") + n;
+                        if (bg.body.m_folder.size())
+                            order += "(" + bg.body.m_folder + ")";
+                    }
+                    if (order != rest)
+                        throw std::runtime_error("expected order \"" + rest + "\", it is \"" + order + "\"");
+                }
+                delay = 600;
+            }
+            else if (cmd == "recovery") {
+                // look for backups from last time, as at the start
+                offer_recovery();
+                delay = 500;
+            }
+            else if (cmd == "rotate-object") {
+                // turn the picked object by DEGREES about the upright line through its middle
+                if (!m_object_editor_body)
+                    throw std::runtime_error("rotate-object: pick an object first");
+                auto &doc = m_core.get_current_document();
+                const auto bounds = get_body_bounds(doc, m_object_editor_body);
+                if (!bounds)
+                    throw std::runtime_error("rotate-object: no object");
+                std::vector<PartPosition> cache;
+                turn_object(cache, {m_object_editor_body}, (bounds->lo + bounds->hi) / 2., glm::radians(std::stod(rest)));
+                m_core.set_needs_save();
+                m_core.rebuild("rotate");
+                canvas_update_keep_selection();
+                delay = 800;
+            }
+            else if (cmd == "expect-extent") {
+                // "X 40": fail unless the picked object is that many mm along the world X (or Y, Z), within 0.5
+                std::istringstream is(rest);
+                std::string axis;
+                double mm = 0;
+                is >> axis >> mm;
+                const auto bounds = m_object_editor_body ? get_body_bounds(m_core.get_current_document(), m_object_editor_body)
+                                                         : std::nullopt;
+                if (!bounds)
+                    throw std::runtime_error("expect-extent: no object picked");
+                const auto size = bounds->hi - bounds->lo;
+                const double got = axis == "X" ? size.x : axis == "Y" ? size.y : size.z;
+                if (std::abs(got - mm) > .5)
+                    throw std::runtime_error("expected " + std::to_string(mm) + " mm along " + axis + ", it is "
+                                             + std::to_string(got));
+            }
+            else if (cmd == "preferences") {
+                // open the Preferences window (then "shotwin Preferences PATH")
+                auto win = m_win.get_app().show_preferences_window(0);
+                if (rest.size())
+                    win->show_page(rest);
+                delay = 800;
+            }
+            else if (cmd == "theme") {
+                // the look as chosen in Preferences > Theme
+                auto &variant = m_preferences.canvas.theme_variant;
+                if (rest == "dark")
+                    variant = CanvasPreferences::ThemeVariant::DARK;
+                else if (rest == "light")
+                    variant = CanvasPreferences::ThemeVariant::LIGHT;
+                else if (rest == "auto")
+                    variant = CanvasPreferences::ThemeVariant::AUTO;
+                else
+                    throw std::runtime_error("theme dark, light or auto: " + rest);
+                m_preferences.signal_changed().emit();
+                delay = 600;
             }
             else if (cmd == "crash") {
                 // to see the crash report (util/crash_report.cpp)

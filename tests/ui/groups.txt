@@ -27,7 +27,7 @@ button Top
 wait 600
 button Fit
 wait 1000
-drag 866 474 966 474
+drag-object Cylinder 100 0
 wait 1200
 expect-left Sphere 110
 expect-left Box -30

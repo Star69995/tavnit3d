@@ -19,9 +19,7 @@ void Editor::focus_object_panel_field(const std::string &label)
         m_workspace_browser->show_toast("Click an object first - \"" + label + "\" is in its panel");
         return;
     }
-    auto grid = dynamic_cast<Gtk::Grid *>(m_object_editor);
-    if (!grid)
-        return;
+    for (auto grid : get_object_editor_grids()) {
     for (auto ch = grid->get_first_child(); ch; ch = ch->get_next_sibling()) {
         auto la = dynamic_cast<Gtk::Label *>(ch);
         if (la && la->get_text().raw() == label) {
@@ -39,6 +37,7 @@ void Editor::focus_object_panel_field(const std::string &label)
             bu->grab_focus();
             return;
         }
+    }
     }
     m_workspace_browser->show_toast("This object has no \"" + label + "\"");
 }
@@ -144,6 +143,11 @@ std::vector<SearchItem> Editor::get_search_items()
     items.push_back({"Save", "Header bar > Save - or Ctrl+S", "שמירה", action(ActionID::SAVE), keys(ActionID::SAVE)});
     items.push_back({"Open a document", "Header bar > Open - or Ctrl+O", "load פתיחה", action(ActionID::OPEN_DOCUMENT), keys(ActionID::OPEN_DOCUMENT)});
     items.push_back({"New document", "Header bar, next to Open - or Ctrl+N", "חדש", action(ActionID::NEW_DOCUMENT), keys(ActionID::NEW_DOCUMENT)});
+    items.push_back({"New window", "Main menu (top right) - or Ctrl+Shift+N", "separate second window חלון חדש",
+                     action(ActionID::NEW_WINDOW), keys(ActionID::NEW_WINDOW)});
+    items.push_back({"Open a document in a new window", "Main menu (top right) - or Ctrl+Shift+O",
+                     "separate second window פתיחה בחלון חדש", action(ActionID::OPEN_DOCUMENT_NEW_WINDOW),
+                     keys(ActionID::OPEN_DOCUMENT_NEW_WINDOW)});
     items.push_back({"Undo", "Header bar > arrow left - or Ctrl+Z", "ביטול", action(ActionID::UNDO), keys(ActionID::UNDO)});
     items.push_back({"Redo", "Header bar > arrow right - or Ctrl+Y", "חזרה", action(ActionID::REDO), keys(ActionID::REDO)});
 

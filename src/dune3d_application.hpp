@@ -18,6 +18,13 @@ protected:
 public:
     static Glib::RefPtr<Dune3DApplication> create();
 
+    // the dark variant of the studio theme (dune3d-dark.css) on top of the light one
+    void set_dark_ui(bool dark);
+    bool get_dark_ui() const
+    {
+        return m_dark_css != nullptr;
+    }
+
     Preferences &get_preferences()
     {
         return m_preferences;
@@ -96,6 +103,7 @@ private:
     Dune3DAppWindow *create_appwindow();
 
     Preferences m_preferences;
+    Glib::RefPtr<Gtk::CssProvider> m_dark_css;
 
     class PreferencesWindow *m_preferences_window = nullptr;
 

@@ -105,6 +105,28 @@
         ]
     },
     {
+        "action": "NEW_WINDOW",
+        "keys": [
+            [
+                {
+                    "key": "n",
+                    "mod": 5
+                }
+            ]
+        ]
+    },
+    {
+        "action": "OPEN_DOCUMENT_NEW_WINDOW",
+        "keys": [
+            [
+                {
+                    "key": "o",
+                    "mod": 5
+                }
+            ]
+        ]
+    },
+    {
         "action": "NEW_DOCUMENT",
         "keys": [
             [

@@ -64,6 +64,7 @@ src_common = files(
   'src/document/export_gltf.cpp',
   'src/document/import_objects.cpp',
   'src/util/update_check.cpp',
+  'src/util/new_window.cpp',
   'src/util/http.cpp',
   'src/util/crash_report.cpp',
   'src/util/blender_render.cpp',
@@ -624,7 +625,7 @@ test_recipe_ai = executable('test_recipe_ai',
 test('recipe_ai', test_recipe_ai, timeout: 60)
 # drives the real app through tests/ui/*.txt; needs a display; one at a time:
 # a second instance of the app would hand its work to the first one (single instance)
-foreach ui_test : ['smoke', 'patterns', 'simple', 'screw', 'stress', 'lights', 'lift', 'groups']
+foreach ui_test : ['smoke', 'patterns', 'simple', 'screw', 'stress', 'lights', 'lift', 'theme', 'rotate', 'start', 'groups', 'groups_list']
     test('ui-' + ui_test, prog_python,
         args: [files('tests/run_ui_test.py'), dune3d, files('tests/ui' / ui_test + '.txt')],
         timeout: 240, is_parallel: false)

@@ -2,6 +2,7 @@
 #include "util/uuid.hpp"
 #include "object_dimensions.hpp"
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <map>
 #include <optional>
 #include <string>
@@ -39,10 +40,20 @@ struct PartPosition {
     UUID cx, cy; // ... or these
     glm::dvec2 xy = {0, 0};
     glm::dvec3 ax = {1, 0, 0}, ay = {0, 1, 0}; // the X/Y directions
+    // for turning: its own workplane and the helper planes tied to its sketch, as they were
+    struct Plane {
+        UUID uuid;
+        glm::dvec3 origin;
+        glm::dquat normal;
+    };
+    std::vector<Plane> planes;
 };
 std::optional<PartPosition> get_part_position(const Document &doc, const UUID &body);
 // puts the part where it was then, moved by delta; the caller rebuilds
 void set_part_position(Document &doc, const PartPosition &pos, const glm::dvec3 &delta);
+// puts the part where it was then, turned by `angle` radians about the upright line through `pivot`
+// (only for parts with a workplane of their own); the caller rebuilds
+void set_part_angle(Document &doc, const PartPosition &pos, const glm::dvec3 &pivot, double angle);
 
 struct Bounds {
     glm::dvec3 lo, hi;

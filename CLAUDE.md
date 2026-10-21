@@ -151,6 +151,16 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   are listed under one row (`BodyItem::m_is_folder` with `m_children`; its eye switches all members; clicking it opens
   the first member) and move together when one of them is dragged (`begin_object_drag`: every member's part
   positions). Saved as `"folder"` in the body's JSON. Test: `tests/ui/groups.txt` (`expect-left NAME MM`).
+  Organising them in the list (works with "Steps under each object" on or off): drag an object or a whole group row and drop
+  it before / after (top / bottom third of the row) or onto (middle) another row, or in the empty space below the rows (to
+  the end, out of its group); onto a loose object makes a new group of the two, onto a group's row joins it, groups don't
+  nest. The logic is GUI-free in `apply_folder_drop` (`FolderDrop`, object_folders.cpp; order changes through
+  `Document::reorder_group`, so a join can't come before what it joins; test `test_folders` in test_primitives.cpp);
+  `WorkspaceRow` has the `DragSource`/`DropTarget` (payload `"body|doc|uuid"` / `"folder|doc|name"`, marks `.drop-before`,
+  `.drop-after`, `.drop-into`) and the editor applies it in `init_workspace_browser`. Double-click or right-click a group
+  row to rename or ungroup; the object menu has New group with this object / Move to group / Take out of its group.
+  Automation (the real drag was checked with xdotool): `drop NAME before|after|onto TARGET`, `rename-group A B`,
+  `expect-order A B(Group)`, `drag-object NAME DX DY`; tests `tests/ui/groups_list.txt`, `groups.txt`.
 - Movable panels (`src/dune3d_appwindow_panels.cpp`): the tool palette and the layers list
   (workspace browser, `Dune3DAppWindow::set_layers_panel`) have a grip you drag. One capture
   `GestureDrag` on the window handles all of them (`m_panels`); dragging the layers header out of
@@ -243,6 +253,7 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   `DescribeWindow` and `parse_recipe_text` reads the pasted answer (fences and chatter
   tolerated). `DUNE3D_CLAUDE_URL` overrides the Claude endpoint for tests; tests in
   `tests/test_recipe_ai.cpp`. HTTP: `src/util/http.*` (WinHTTP/libcurl).
+- `give_own_workplane` re-points the extrusion's height dimension: the leader line's uuid is hashed with its workplane, so a new workplane means a new leader (without that the Height field and handle were lost after the first lift).
 - Resize handles (`src/editor/editor_handles.cpp`) use the object panel's
   dimension list (`src/document/object_dimensions.*`; labels like Width/Depth/
   Height come from the constraint type and the plane it's on).
@@ -305,9 +316,53 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   uncaught C++ exceptions write `%LOCALAPPDATA%/dune3d/crashes/crash-*.txt`
   (module+offset per call; resolve with `addr2line -e build-release/dune3d.exe`
   or the debug build) and show a message box. Automation `crash` tries it.
+- Handles: squares on the base edges for width/depth and on top for height, dots for wall thickness and rounding, and ONE plain arrow standing on the top and pointing up for Lift (it still drags the whole object up and down; `draw_arrow_3d` in `renderer.cpp`). While the object panel is open the sketch points are hidden (`Renderer::m_hide_sketch_points`) so only the handles show. No rotate handle (not wanted); turning exists only in the document layer (`Editor::turn_object`, `set_part_angle`, automation `rotate-object DEG`, `expect-extent`, test `tests/ui/rotate.txt`).
+- Dark theme: `src/dune3d-dark.css` redefines the studio colour names and is added on top of `dune3d.css`
+  by `Dune3DApplication::set_dark_ui` (called from `Editor::apply_preferences`; follows Preferences > Theme
+  Auto/Light/Dark). Only Preferences offers the choice (no header button). The canvas colours come from `Default.dark.json`. Tests `tests/ui/theme.txt`, `tests/ui/start.txt`. Design mockups for what
+  comes next (tool rail with a drawer, object cards, start screen, preferences) were approved as a design canvas.
+- Look refresh (approved mockups): the tool palette is a rail of categories (Shapes, Lights, Sketch, Edit, Look - Colour/Material/Sticker, which take you to that field of the picked object's panel, Import - Model/Picture/Describe:
+  `add_action_bar_section` makes a rail button + a `Gtk::Stack` page, `add_action_bar_collapsible_section` adds to
+  the current page) with the chosen category's tools next to it; the object panel is a column of cards (`make_cards` in
+  `editor_object.cpp` splits the built grid at its headings; `get_object_editor_grids()` lists the card grids, use it
+  instead of casting `m_object_editor` to a grid; Delete is a soft red button, Cut amber; each size has a slider under its field, `dim-slider`); the header's Find is a search-field look-alike (`.find-pill`); recent files on the start screen show a picture of the 3D view from when they were saved (`Editor::save_thumbnail`, `get_thumbnail_path` in util.cpp, shown by `RecentItemBox`; automation only with `DUNE3D_THUMBNAILS=1`); backups from last time are offered as a note on the start screen (`welcome_recovery_box`, `Editor::offer_recovery`; a dialog when a document is already open; automation `recovery`); the start screen (`welcome_box` in window.ui) fills the whole window: `set_welcome_box_visible` hides the side list, tabs, status bar, view cube and the header's document-only buttons (`add_document_only_widget`) while no document is open; it has action cards (New document, New
+  window, Open, Import, Describe) and ready-made shapes (Bowl, Vase, Screw: a new document with the shape) styled by `.welcome-card`; Preferences (`.studio-prefs`, `.prefs-nav`) is a
+  bigger window with a navigation list, card-like groups and pill-shaped segmented choices. Theme (light/dark)
+  is chosen only in Preferences > Appearance and theme. Automation: `preferences [PAGE]`, `theme dark|light|auto`.
+- New window (`src/util/new_window.*`, actions NEW_WINDOW Ctrl+Shift+N / OPEN_DOCUMENT_NEW_WINDOW Ctrl+Shift+O, main
+  menu and Find): starts another copy of the program with `DUNE3D_SECONDARY_WINDOW=1`, which makes the application
+  non-unique (own window and documents) and skips offering the first copy's backups.
 - Find (`src/editor/action_search.*`, items in `editor_search.cpp`): Ctrl+K
   both as the FIND action and a window-level capture shortcut. When a
   feature lands, add it there with where it lives.
+
+## Design rules (keep the look consistent)
+
+Every UI change, in the app and on `site/`, keeps one design language. Check these before building and
+again before reporting done:
+
+- One look: the "Studio theme" (`src/dune3d.css`). Colours come only from its named colours
+  (`@studio_panel`, `@studio_window`, `@studio_border`, `@studio_text`, `@studio_dim`, `@studio_field`,
+  `@studio_hover`, `@accent_bg_color`); no new hex or `rgba()` in a widget rule. A colour that has no name
+  yet gets one in both files.
+- Light and dark go together: `src/dune3d.css` (light) and `src/dune3d-dark.css` (dark, loaded by
+  `Dune3DApplication::set_dark_ui`) define the same names, and the canvas colours in
+  `Default.light.json` / `Default.dark.json` / `appearance.cpp` match them. A new widget or
+  colour is checked in both themes (screenshot each) before it is done. The site follows
+  `prefers-color-scheme` the same way (`site/style.css`).
+- One accent (blue), plus meaning colours only for meaning: red = delete, amber = cut / hole,
+  green = ok. Don't add a new decorative colour.
+- Same shapes everywhere: 8px radius for buttons and fields, 12-14px for cards and floating panels,
+  the same three shadow levels (flat, card, floating), the same 160ms ease-out hover/press feedback.
+  Reuse existing classes (`.object-editor`, `.studio-dialog`, `.action-bar`, `.view-bar`, ...) before
+  inventing new ones.
+- Same words and icons for the same thing across menus, panels, the palette, Find (Ctrl+K) and the
+  site. New buttons and panel rows get their hover hint (`src/editor/panel_hints.*`) and a Find item.
+- Text stays readable: normal text at least 4.5:1 against its background in both themes, nothing
+  below 12px on the site, and the layout works from a narrow window and from 320px on the site.
+- Bigger look changes start with a mockup the user approves (a design canvas artifact), then are built
+  to match it; when a look changes, update this file, the README and the site screenshots/pages in
+  the same pass.
 
 ## Gotchas
 

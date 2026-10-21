@@ -43,6 +43,15 @@ std::filesystem::path get_config_dir()
     return path_from_string(Glib::get_user_config_dir()) / "dune3d";
 }
 
+std::filesystem::path get_thumbnail_path(const std::filesystem::path &document)
+{
+    std::error_code ec;
+    auto abs = std::filesystem::absolute(document, ec);
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%016zx", std::hash<std::string>{}(path_to_string(abs.lexically_normal())));
+    return get_config_dir() / "thumbnails" / (std::string(buf) + ".png");
+}
+
 void create_config_dir()
 {
     auto config_dir = path_to_string(get_config_dir());

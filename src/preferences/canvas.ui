@@ -7,150 +7,226 @@
     <child>
       <object class="GtkBox">
         <property name="hexpand-set">True</property>
-        <property name="margin-bottom">20</property>
-        <property name="margin-end">20</property>
-        <property name="margin-start">20</property>
-        <property name="margin-top">20</property>
+        <property name="margin-bottom">24</property>
+        <property name="margin-end">28</property>
+        <property name="margin-start">28</property>
+        <property name="margin-top">24</property>
         <property name="orientation">vertical</property>
+        <property name="spacing">8</property>
+        <property name="width-request">520</property>
         <child>
-          <object class="GtkGrid">
-            <property name="column-spacing">10</property>
-            <property name="row-spacing">10</property>
-            <child>
-              <object class="GtkLabel">
-                <property name="css-classes">dim-label</property>
-                <property name="halign">end</property>
-                <property name="label">Line Width</property>
-                <layout>
-                  <property name="column">0</property>
-                  <property name="column-span">1</property>
-                  <property name="row">0</property>
-                  <property name="row-span">1</property>
-                </layout>
-              </object>
-            </child>
-            <child>
-              <object class="GtkSpinButton" id="line_width_sp">
-                <property name="adjustment">
-                  <object class="GtkAdjustment">
-                    <property name="lower">1.0</property>
-                    <property name="page-increment">0.5</property>
-                    <property name="page-size">0.5</property>
-                    <property name="step-increment">0.5</property>
-                    <property name="upper">5.0</property>
-                    <property name="value">2.0</property>
-                  </object>
-                </property>
-                <property name="digits">1</property>
-                <property name="width-chars">6</property>
-                <layout>
-                  <property name="column">1</property>
-                  <property name="column-span">1</property>
-                  <property name="row">0</property>
-                  <property name="row-span">1</property>
-                </layout>
-              </object>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="css-classes">dim-label</property>
-                <property name="halign">end</property>
-                <property name="label">Antialiasing</property>
-                <layout>
-                  <property name="column">0</property>
-                  <property name="column-span">1</property>
-                  <property name="row">1</property>
-                  <property name="row-span">1</property>
-                </layout>
-              </object>
-            </child>
-            <child>
-              <object class="GtkDropDown" id="msaa_dropdown">
-                <layout>
-                  <property name="column">1</property>
-                  <property name="column-span">1</property>
-                  <property name="row">1</property>
-                  <property name="row-span">1</property>
-                </layout>
-              </object>
-            </child>
-            <child>
-              <object class="GtkBox">
-                <property name="spacing">5</property>
-                <child>
-                  <object class="GtkDropDown" id="theme_dropdown">
-                    <property name="hexpand">True</property>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkButton" id="theme_customize_button">
-                    <property name="icon-name">document-edit-symbolic</property>
-                    <property name="tooltip-text">Customize</property>
-                  </object>
-                </child>
-                <layout>
-                  <property name="column">1</property>
-                  <property name="column-span">1</property>
-                  <property name="row">2</property>
-                  <property name="row-span">1</property>
-                </layout>
-              </object>
-            </child>
-            <child>
-              <object class="GtkBox">
-                <property name="css-classes">linked</property>
-                <child>
-                  <object class="GtkToggleButton" id="theme_variant_auto_button">
-                    <property name="hexpand">True</property>
-                    <property name="label">Auto</property>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkToggleButton" id="theme_variant_light_button">
-                    <property name="group">theme_variant_auto_button</property>
-                    <property name="hexpand">True</property>
-                    <property name="label">Light</property>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkToggleButton" id="theme_variant_dark_button">
-                    <property name="group">theme_variant_auto_button</property>
-                    <property name="hexpand">True</property>
-                    <property name="label">Dark</property>
-                  </object>
-                </child>
-                <layout>
-                  <property name="column">1</property>
-                  <property name="column-span">1</property>
-                  <property name="row">3</property>
-                  <property name="row-span">1</property>
-                </layout>
-              </object>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="css-classes">dim-label</property>
-                <property name="halign">end</property>
-                <property name="label">Color Theme</property>
-                <layout>
-                  <property name="column">0</property>
-                  <property name="row">2</property>
-                </layout>
-              </object>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="css-classes">dim-label</property>
-                <property name="halign">end</property>
-                <property name="label">Variant</property>
-                <layout>
-                  <property name="column">0</property>
-                  <property name="row">3</property>
-                </layout>
-              </object>
-            </child>
+          <object class="GtkLabel">
+            <property name="css-classes">prefs-page-title</property>
+            <property name="label">Appearance and theme</property>
+            <property name="margin-bottom">8</property>
+            <property name="xalign">0.0</property>
           </object>
         </child>
+<child>
+<object class="GtkLabel">
+<property name="css-classes">prefs-card-title</property>
+<property name="label">Look</property>
+<property name="xalign">0.0</property>
+</object>
+</child>
+<child>
+<object class="GtkBox">
+<property name="css-classes">prefs-card</property>
+<property name="orientation">vertical</property>
+<child>
+<object class="GtkBox">
+<property name="css-classes">prefs-row
+prefs-row-last</property>
+<property name="spacing">16</property>
+<child>
+<object class="GtkBox">
+<property name="hexpand">True</property>
+<property name="orientation">vertical</property>
+<property name="valign">center</property>
+<child>
+<object class="GtkLabel">
+<property name="css-classes">prefs-row-title</property>
+<property name="label">Theme</property>
+<property name="xalign">0.0</property>
+</object>
+</child>
+<child>
+<object class="GtkLabel">
+<property name="css-classes">dim-label
+prefs-row-hint</property>
+<property name="label">Light or dark windows and 3D view, or follow your system</property>
+<property name="wrap">True</property>
+<property name="xalign">0.0</property>
+</object>
+</child>
+</object>
+</child>
+<child>
+<object class="GtkBox">
+<property name="css-classes">linked</property>
+<property name="valign">center</property>
+<child>
+<object class="GtkToggleButton" id="theme_variant_auto_button">
+<property name="label">Follow system</property>
+</object>
+</child>
+<child>
+<object class="GtkToggleButton" id="theme_variant_light_button">
+<property name="group">theme_variant_auto_button</property>
+<property name="label">Light</property>
+</object>
+</child>
+<child>
+<object class="GtkToggleButton" id="theme_variant_dark_button">
+<property name="group">theme_variant_auto_button</property>
+<property name="label">Dark</property>
+</object>
+</child>
+</object>
+</child>
+</object>
+</child>
+</object>
+</child>
+<child><object class="GtkBox"><property name="height-request">8</property></object></child>
+<child>
+<object class="GtkLabel">
+<property name="css-classes">prefs-card-title</property>
+<property name="label">3D view</property>
+<property name="xalign">0.0</property>
+</object>
+</child>
+<child>
+<object class="GtkBox">
+<property name="css-classes">prefs-card</property>
+<property name="orientation">vertical</property>
+<child>
+<object class="GtkBox">
+<property name="css-classes">prefs-row</property>
+<property name="spacing">16</property>
+<child>
+<object class="GtkBox">
+<property name="hexpand">True</property>
+<property name="orientation">vertical</property>
+<property name="valign">center</property>
+<child>
+<object class="GtkLabel">
+<property name="css-classes">prefs-row-title</property>
+<property name="label">Line width</property>
+<property name="xalign">0.0</property>
+</object>
+</child>
+<child>
+<object class="GtkLabel">
+<property name="css-classes">dim-label
+prefs-row-hint</property>
+<property name="label">Thickness of outlines and sketch lines</property>
+<property name="wrap">True</property>
+<property name="xalign">0.0</property>
+</object>
+</child>
+</object>
+</child>
+<child>
+<object class="GtkSpinButton" id="line_width_sp">
+<property name="adjustment">
+<object class="GtkAdjustment">
+<property name="lower">1.0</property>
+<property name="page-increment">0.5</property>
+<property name="page-size">0.5</property>
+<property name="step-increment">0.5</property>
+<property name="upper">5.0</property>
+<property name="value">2.0</property>
+</object>
+</property>
+<property name="digits">1</property>
+<property name="valign">center</property>
+<property name="width-chars">7</property>
+</object>
+</child>
+</object>
+</child>
+<child>
+<object class="GtkBox">
+<property name="css-classes">prefs-row</property>
+<property name="spacing">16</property>
+<child>
+<object class="GtkBox">
+<property name="hexpand">True</property>
+<property name="orientation">vertical</property>
+<property name="valign">center</property>
+<child>
+<object class="GtkLabel">
+<property name="css-classes">prefs-row-title</property>
+<property name="label">Smooth edges</property>
+<property name="xalign">0.0</property>
+</object>
+</child>
+<child>
+<object class="GtkLabel">
+<property name="css-classes">dim-label
+prefs-row-hint</property>
+<property name="label">Antialiasing: smoother lines, a little slower</property>
+<property name="wrap">True</property>
+<property name="xalign">0.0</property>
+</object>
+</child>
+</object>
+</child>
+<child>
+<object class="GtkDropDown" id="msaa_dropdown">
+<property name="valign">center</property>
+</object>
+</child>
+</object>
+</child>
+<child>
+<object class="GtkBox">
+<property name="css-classes">prefs-row
+prefs-row-last</property>
+<property name="spacing">16</property>
+<child>
+<object class="GtkBox">
+<property name="hexpand">True</property>
+<property name="orientation">vertical</property>
+<property name="valign">center</property>
+<child>
+<object class="GtkLabel">
+<property name="css-classes">prefs-row-title</property>
+<property name="label">Canvas colours</property>
+<property name="xalign">0.0</property>
+</object>
+</child>
+<child>
+<object class="GtkLabel">
+<property name="css-classes">dim-label
+prefs-row-hint</property>
+<property name="label">The colours used in the 3D view</property>
+<property name="wrap">True</property>
+<property name="xalign">0.0</property>
+</object>
+</child>
+</object>
+</child>
+<child>
+<object class="GtkBox">
+<property name="spacing">6</property>
+<property name="valign">center</property>
+<child>
+<object class="GtkDropDown" id="theme_dropdown"/>
+</child>
+<child>
+<object class="GtkButton" id="theme_customize_button">
+<property name="icon-name">document-edit-symbolic</property>
+<property name="tooltip-text">Customize the colours</property>
+</object>
+</child>
+</object>
+</child>
+</object>
+</child>
+</object>
+</child>
       </object>
     </child>
     <child>

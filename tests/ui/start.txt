@@ -1,0 +1,16 @@
+# The start screen's ready-made shapes make a document with the shape in it; the palette's Look and Import
+# pages take you to the picked object's settings (and say so if nothing is picked) without errors.
+wait 800
+button Bowl
+wait 1500
+check-solids
+button Colour
+wait 300
+button Material
+wait 300
+button Sticker
+wait 300
+find Dark
+wait 300
+escape
+quit

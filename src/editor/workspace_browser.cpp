@@ -78,6 +78,7 @@ public:
     // a row for a group of objects: its objects are the children (m_name is the group's name)
     bool m_is_folder = false;
     Glib::RefPtr<Gio::ListStore<BodyItem>> m_children;
+    std::string m_folder_name; // the group an object is in ("" = loose)
 
     // No idea why the ObjectBase::get_type won't work for us but
     // reintroducing the method and using the name used by gtkmm seems
@@ -186,6 +187,7 @@ void WorkspaceBrowser::update_documents(const std::map<UUID, DocumentView> &doc_
                     body_item->m_color = rgba_from_color(gr->m_body->m_color.value());
                 body_item->m_uuid = gr->m_uuid;
                 body_item->m_doc = mi->m_uuid;
+                body_item->m_folder_name = gr->m_body->m_folder;
                 if (gr->m_body->m_folder.size()) {
                     auto &folder = folders[gr->m_body->m_folder];
                     if (!folder) {
@@ -655,6 +657,10 @@ public:
         auto box2 = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 5);
         box2->set_hexpand(true);
         box->append(*m_checkbutton);
+        m_folder_icon = Gtk::make_managed<Gtk::Image>();
+        m_folder_icon->set_from_icon_name("folder-symbolic");
+        m_folder_icon->set_visible(false);
+        box->append(*m_folder_icon);
         box->append(*m_solid_toggle);
         box2->append(*m_label);
         box2->append(*m_source_group_image);
@@ -670,7 +676,7 @@ public:
         auto controller = Gtk::GestureClick::create();
         controller->set_button(3);
         controller->signal_pressed().connect([this](int n_press, double x, double y) {
-            if (!m_body)
+            if (!m_body && !m_folder)
                 return;
             const graphene_point_t pt_in{(float)x, (float)y};
             graphene_point_t pt_out;
@@ -679,6 +685,28 @@ public:
             Gdk::Rectangle rect;
             rect.set_x(pt_out.x);
             rect.set_y(pt_out.y);
+            if (m_folder) {
+                // a group: rename it or take its objects out
+                m_browser.m_folder_menu_document = m_folder->m_doc;
+                m_browser.m_folder_menu_name = m_folder->m_name.get_value().raw();
+                m_browser.m_folder_menu_rename = [this] { show_rename(); };
+                m_browser.m_folder_popover->set_pointing_to(rect);
+                m_browser.m_folder_popover->popup();
+                return;
+            }
+            m_browser.m_body_menu_folder = m_body->m_folder_name;
+            m_browser.m_remove_from_group_action->set_enabled(m_body->m_folder_name.size());
+            // the groups this object could go to
+            m_browser.m_body_groups_menu->remove_all();
+            for (const auto &name : get_folder_names(m_browser.m_core.get_idocument_info(m_body->m_doc).get_document())) {
+                if (name == m_body->m_folder_name)
+                    continue;
+                auto item = Gio::MenuItem::create(name, "");
+                item->set_action_and_target("body.to_group", Glib::Variant<Glib::ustring>::create(name));
+                m_browser.m_body_groups_menu->append_item(item);
+            }
+            if (!m_browser.m_body_groups_menu->get_n_items())
+                m_browser.m_body_groups_menu->append("No other groups yet", "body.none");
             m_browser.m_body_menu_document = m_body->m_doc;
             m_browser.m_body_menu_body = m_body->m_uuid;
             m_browser.m_reset_body_color_action->set_enabled(m_body->m_has_color);
@@ -711,8 +739,149 @@ public:
             if (n_press == 1 && m_body && !m_group && get_list_row() && m_browser.m_blocked_count == 0
                 && m_browser.m_selection_model->get_selected_item() == get_list_row())
                 m_browser.m_signal_body_selected.emit(m_body->m_doc, m_body->m_uuid);
+            // double click on a group: rename it
+            if (n_press == 2 && m_folder)
+                Glib::signal_idle().connect_once([this] { show_rename(); });
         });
         add_controller(again);
+
+        // dragging an object or a whole group, and dropping on another row: before it, after it, or onto it
+        {
+            auto source = Gtk::DragSource::create();
+            source->set_actions(Gdk::DragAction::MOVE);
+            source->signal_prepare().connect(
+                    [this](double, double) -> Glib::RefPtr<Gdk::ContentProvider> {
+                        std::string payload;
+                        if (m_folder)
+                            payload = "folder|" + static_cast<std::string>(m_folder->m_doc) + "|"
+                                      + m_folder->m_name.get_value().raw();
+                        else if (m_body && !m_group)
+                            payload = "body|" + static_cast<std::string>(m_body->m_doc) + "|"
+                                      + static_cast<std::string>(m_body->m_uuid);
+                        if (payload.empty())
+                            return {};
+                        Glib::Value<Glib::ustring> v;
+                        v.init(Glib::Value<Glib::ustring>::value_type());
+                        v.set(payload);
+                        return Gdk::ContentProvider::create(v);
+                    },
+                    false);
+            source->signal_drag_begin().connect(
+                    [this, source](const Glib::RefPtr<Gdk::Drag> &) {
+                        source->set_icon(Gtk::WidgetPaintable::create(*this), 0, 0);
+                    },
+                    false);
+            add_controller(source);
+
+            auto target = Gtk::DropTarget::create(Glib::Value<Glib::ustring>::value_type(), Gdk::DragAction::MOVE);
+            target->signal_motion().connect(
+                    [this](double, double y) {
+                        if (!(m_folder || (m_body && !m_group)))
+                            return static_cast<Gdk::DragAction>(0);
+                        show_drop_mark(drop_where(y));
+                        return Gdk::DragAction::MOVE;
+                    },
+                    false);
+            target->signal_leave().connect([this] { show_drop_mark(-2); });
+            target->signal_drop().connect(
+                    [this](const Glib::ValueBase &value, double, double y) {
+                        const auto where = drop_where(y);
+                        show_drop_mark(-2);
+                        if (!(m_folder || (m_body && !m_group)))
+                            return false;
+                        const auto &sv = static_cast<const Glib::Value<Glib::ustring> &>(value);
+                        return handle_drop(sv.get(), where);
+                    },
+                    false);
+            add_controller(target);
+        }
+    }
+
+    ~WorkspaceRow()
+    {
+        if (m_rename_popover)
+            m_rename_popover->unparent();
+    }
+
+    // the top part of the row: before it; the bottom part: after it; the middle: onto it
+    int drop_where(double y) const
+    {
+        const auto h = std::max(get_height(), 1);
+        return y < h * .3 ? -1 : y > h * .7 ? 1 : 0;
+    }
+    // -1 before, 1 after, 0 onto, -2: nothing marked
+    void show_drop_mark(int where)
+    {
+        for (const char *c : {"drop-before", "drop-after", "drop-into"})
+            remove_css_class(c);
+        if (where == -1)
+            add_css_class("drop-before");
+        else if (where == 1)
+            add_css_class("drop-after");
+        else if (where == 0)
+            add_css_class("drop-into");
+    }
+    bool handle_drop(const Glib::ustring &payload_u, int where)
+    {
+        const std::string payload = payload_u.raw();
+        const auto a = payload.find('|'), b = payload.find('|', a + 1);
+        if (a == std::string::npos || b == std::string::npos)
+            return false;
+        const auto kind = payload.substr(0, a);
+        const UUID doc(payload.substr(a + 1, b - a - 1));
+        const auto what = payload.substr(b + 1);
+        const UUID target_doc = m_folder ? m_folder->m_doc : m_body->m_doc;
+        if (doc != target_doc)
+            return false;
+        FolderDrop d;
+        if (kind == "body")
+            d.body = UUID(what);
+        else if (kind == "folder")
+            d.folder = what;
+        else
+            return false;
+        if (m_folder)
+            d.target_folder = m_folder->m_name.get_value().raw();
+        else
+            d.target_body = m_body->m_uuid;
+        d.where = where < 0 ? FolderDrop::Where::BEFORE
+                            : where > 0 ? FolderDrop::Where::AFTER : FolderDrop::Where::INTO;
+        // after the drop the rows are made again: not from inside the drop
+        Glib::signal_idle().connect_once([this, doc, d] { m_browser.m_signal_folder_drop.emit(doc, d); });
+        return true;
+    }
+
+    // a small box to type a group's new name in
+    void show_rename()
+    {
+        if (!m_folder)
+            return;
+        m_rename_old = m_folder->m_name.get_value().raw();
+        m_rename_doc = m_folder->m_doc;
+        if (!m_rename_popover) {
+            m_rename_popover = Gtk::make_managed<Gtk::Popover>();
+            auto box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 6);
+            box->set_margin(8);
+            auto la = Gtk::make_managed<Gtk::Label>("Name of the group");
+            la->set_xalign(0);
+            la->add_css_class("dim-label");
+            box->append(*la);
+            m_rename_entry = Gtk::make_managed<Gtk::Entry>();
+            m_rename_entry->set_width_chars(22);
+            m_rename_entry->signal_activate().connect([this] {
+                const std::string name = m_rename_entry->get_text().raw();
+                m_rename_popover->popdown();
+                if (name.size() && name != m_rename_old)
+                    m_browser.m_signal_folder_rename.emit(m_rename_doc, m_rename_old, name);
+            });
+            box->append(*m_rename_entry);
+            m_rename_popover->set_child(*box);
+            m_rename_popover->set_parent(*this);
+        }
+        m_rename_entry->set_text(m_rename_old);
+        m_rename_popover->popup();
+        m_rename_entry->grab_focus();
+        m_rename_entry->select_region(0, -1);
     }
 
     void bind(DocumentItem &it)
@@ -766,7 +935,8 @@ public:
         m_checkbutton->set_what("Show or hide every object in this group.");
         m_checkbutton->set_insensitive_reason("");
         set_tooltip_text("A group of objects: they are listed together and move together, but stay separate "
-                         "shapes.\nClick to open its first object. The Group field in the panel changes it.");
+                         "shapes.\nDouble-click to rename it, right-click for more. Drag objects onto it to add "
+                         "them, or out of it to take them out.");
         m_checkbutton->set_visible(true);
         m_screens_label->set_visible(false);
         m_checkbutton->set_sensitive(true);
@@ -784,6 +954,8 @@ public:
                                                                 m_checkbutton->property_sensitive(),
                                                                 Glib::Binding::Flags::SYNC_CREATE));
         get_list_row()->set_expanded(true);
+        m_folder_icon->set_visible(true);
+        add_css_class("folder-row");
         m_browser.unblock_signals();
     }
     void bind(BodyItem &it)
@@ -900,6 +1072,9 @@ public:
         m_body = nullptr;
         m_folder = nullptr;
         m_doc = nullptr;
+        m_folder_icon->set_visible(false);
+        remove_css_class("folder-row");
+        show_drop_mark(-2);
         remove_css_class("document-row");
         remove_css_class("document-row-current");
         set_tooltip_text("");
@@ -913,12 +1088,17 @@ private:
     const GroupItem *m_group = nullptr;
     const BodyItem *m_body = nullptr;
     const BodyItem *m_folder = nullptr;
+    Gtk::Popover *m_rename_popover = nullptr;
+    Gtk::Entry *m_rename_entry = nullptr;
+    std::string m_rename_old;
+    UUID m_rename_doc;
 
     EyeToggleButton *m_checkbutton = nullptr;
     SolidModelToggleButton *m_solid_toggle = nullptr;
     Gtk::Label *m_label = nullptr;
     Gtk::Label *m_screens_label = nullptr;
     Gtk::Image *m_source_group_image = nullptr;
+    Gtk::Image *m_folder_icon = nullptr;
     Gtk::Label *m_dof_label = nullptr;
     Gtk::MenuButton *m_status_button = nullptr;
     Gtk::Label *m_status_label = nullptr;
@@ -1056,6 +1236,17 @@ WorkspaceBrowser::WorkspaceBrowser(Core &core) : Gtk::Box(Gtk::Orientation::VERT
         sc->set_child(*m_view);
         sc->set_policy(Gtk::PolicyType::NEVER, Gtk::PolicyType::AUTOMATIC);
         sc->set_vexpand(true);
+        {
+            // an object or group dropped in the empty space below the rows: to the end of the list, out of its group
+            auto target = Gtk::DropTarget::create(Glib::Value<Glib::ustring>::value_type(), Gdk::DragAction::MOVE);
+            target->signal_drop().connect(
+                    [this](const Glib::ValueBase &value, double, double) {
+                        drop_at_end(static_cast<const Glib::Value<Glib::ustring> &>(value).get().raw());
+                        return true;
+                    },
+                    false);
+            sc->add_controller(target);
+        }
 
         auto overlay = Gtk::make_managed<Gtk::Overlay>();
         overlay->set_vexpand(true);
@@ -1216,10 +1407,26 @@ WorkspaceBrowser::WorkspaceBrowser(Core &core) : Gtk::Box(Gtk::Orientation::VERT
             "move_up", [this] { signal_move_body().emit(m_body_menu_document, m_body_menu_body, 1); });
     m_move_body_down_action = actions->add_action(
             "move_down", [this] { signal_move_body().emit(m_body_menu_document, m_body_menu_body, -1); });
+    actions->add_action("new_group", [this] { m_signal_new_folder.emit(m_body_menu_document, m_body_menu_body); });
+    actions->add_action_with_parameter(
+            "to_group", Glib::Variant<Glib::ustring>::variant_type(), [this](const Glib::VariantBase &v) {
+                m_signal_object_folder.emit(m_body_menu_document, m_body_menu_body,
+                                            Glib::VariantBase::cast_dynamic<Glib::Variant<Glib::ustring>>(v).get().raw());
+            });
+    m_remove_from_group_action = actions->add_action(
+            "ungroup_object", [this] { m_signal_object_folder.emit(m_body_menu_document, m_body_menu_body, ""); });
     insert_action_group("body", actions);
+    m_body_groups_menu = Gio::Menu::create();
     m_body_menu->append("Set color", "body.set_color");
     m_body_menu->append("Reset color", "body.reset_color");
     m_body_menu->append("Rename", "body.rename");
+    {
+        auto groups = Gio::Menu::create();
+        groups->append("New group with this object", "body.new_group");
+        groups->append_submenu("Move to group", m_body_groups_menu);
+        groups->append("Take out of its group", "body.ungroup_object");
+        m_body_menu->append_section(groups);
+    }
     m_body_menu->append("Move up", "body.move_up");
     m_body_menu->append("Move down", "body.move_down");
     m_body_menu->append("Delete", "body.delete");
@@ -1229,6 +1436,56 @@ WorkspaceBrowser::WorkspaceBrowser(Core &core) : Gtk::Box(Gtk::Orientation::VERT
     m_body_popover->set_menu_model(m_body_menu);
 
     m_body_popover->set_parent(*this);
+
+    // a group's row
+    {
+        auto folder_actions = Gio::SimpleActionGroup::create();
+        folder_actions->add_action("rename", [this] {
+            if (m_folder_menu_rename)
+                m_folder_menu_rename();
+        });
+        folder_actions->add_action("ungroup", [this] {
+            m_signal_ungroup_folder.emit(m_folder_menu_document, m_folder_menu_name);
+        });
+        insert_action_group("folder", folder_actions);
+        auto folder_menu = Gio::Menu::create();
+        folder_menu->append("Rename group", "folder.rename");
+        folder_menu->append("Ungroup (keep the objects)", "folder.ungroup");
+        m_folder_popover = Gtk::make_managed<Gtk::PopoverMenu>();
+        m_folder_popover->set_menu_model(folder_menu);
+        m_folder_popover->set_parent(*this);
+    }
+
+}
+
+void WorkspaceBrowser::drop_at_end(const std::string &payload)
+{
+    const auto a = payload.find('|'), b = payload.find('|', a + 1);
+    if (a == std::string::npos || b == std::string::npos)
+        return;
+    const UUID doc(payload.substr(a + 1, b - a - 1));
+    FolderDrop d;
+    if (payload.substr(0, a) == "body")
+        d.body = UUID(payload.substr(b + 1));
+    else
+        d.folder = payload.substr(b + 1);
+    d.where = FolderDrop::Where::AFTER;
+    // after the last row of that document
+    for (guint i = 0; i < m_document_store->get_n_items(); i++) {
+        auto document = m_document_store->get_item(i);
+        if (document->m_uuid != doc)
+            continue;
+        const auto n = document->m_body_store->get_n_items();
+        if (!n)
+            return;
+        auto last = document->m_body_store->get_item(n - 1);
+        if (last->m_is_folder)
+            d.target_folder = last->m_name.get_value().raw();
+        else
+            d.target_body = last->m_uuid;
+        Glib::signal_idle().connect_once([this, doc, d] { m_signal_folder_drop.emit(doc, d); });
+        return;
+    }
 }
 
 void WorkspaceBrowser::emit_add_group(GroupType type, AddGroupMode add_group_mode)

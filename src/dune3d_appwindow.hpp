@@ -71,6 +71,50 @@ public:
         return *m_open_button;
     }
 
+    // shows the tools of a palette category (Shapes, Lights, ...)
+    void show_action_bar_category(const std::string &name);
+
+    // the note about backups from last time on the start screen (shown only while no document is open)
+    Gtk::Box &get_welcome_recovery_box()
+    {
+        return *m_welcome_recovery_box;
+    }
+    Gtk::Label &get_welcome_recovery_label()
+    {
+        return *m_welcome_recovery_label;
+    }
+    Gtk::Button &get_welcome_recovery_restore()
+    {
+        return *m_welcome_recovery_restore;
+    }
+    Gtk::Button &get_welcome_recovery_discard()
+    {
+        return *m_welcome_recovery_discard;
+    }
+    bool get_welcome_box_visible() const
+    {
+        return m_welcome_box->get_visible();
+    }
+
+    // ready-made shapes on the start screen: "bowl", "vase", "screw"
+    Gtk::Button &get_welcome_template_button(const std::string &name)
+    {
+        return *m_welcome_template_buttons.at(name);
+    }
+
+    Gtk::Button &get_welcome_window_button()
+    {
+        return *m_welcome_window_button;
+    }
+    Gtk::Button &get_welcome_import_button()
+    {
+        return *m_welcome_import_button;
+    }
+    Gtk::Button &get_welcome_describe_button()
+    {
+        return *m_welcome_describe_button;
+    }
+
     Gtk::Button &get_welcome_open_button()
     {
         return *m_welcome_open_button;
@@ -146,6 +190,12 @@ public:
     void set_selection_mode_label_text(const std::string &s);
 
     void set_welcome_box_visible(bool v);
+    // header bar parts that mean nothing without a document: hidden on the start screen
+    void add_document_only_widget(Gtk::Widget &w)
+    {
+        m_document_only_widgets.push_back(&w);
+        w.set_visible(!m_welcome_box->get_visible());
+    }
 
     void add_action_button(Gtk::Widget &widget);
     void add_action_bar_section(const std::string &title);
@@ -249,12 +299,25 @@ private:
     void tool_bar_flash(const std::string &s, bool replace);
 
     Gtk::Box *m_welcome_box = nullptr;
+    std::vector<Gtk::Widget *> m_document_only_widgets;
     Gtk::SearchEntry *m_welcome_recent_search_entry = nullptr;
     Gtk::ListBox *m_welcome_recent_listbox = nullptr;
     Gtk::Button *m_welcome_new_button = nullptr;
     Gtk::Button *m_welcome_open_button = nullptr;
+    Gtk::Box *m_welcome_recovery_box = nullptr;
+    Gtk::Label *m_welcome_recovery_label = nullptr;
+    Gtk::Button *m_welcome_recovery_restore = nullptr;
+    Gtk::Button *m_welcome_recovery_discard = nullptr;
+    std::map<std::string, Gtk::Button *> m_welcome_template_buttons;
+    Gtk::Button *m_welcome_window_button = nullptr;
+    Gtk::Button *m_welcome_import_button = nullptr;
+    Gtk::Button *m_welcome_describe_button = nullptr;
 
     Gtk::Box *m_action_bar_box = nullptr;
+    Gtk::Box *m_action_bar_rail = nullptr;
+    Gtk::Box *m_action_bar_page = nullptr;
+    Gtk::Stack *m_action_bar_stack = nullptr;
+    std::vector<Gtk::ToggleButton *> m_action_bar_categories;
     Gtk::Grid *m_action_bar_grid = nullptr;
     Gtk::Box *m_view_bar = nullptr;
     Gtk::Widget *m_banner = nullptr;

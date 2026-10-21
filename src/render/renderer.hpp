@@ -1,4 +1,6 @@
 #pragma once
+#include <array>
+#include <optional>
 #include "util/uuid.hpp"
 #include <glm/glm.hpp>
 #include <list>
@@ -149,9 +151,12 @@ public:
     struct Handle {
         glm::dvec3 face, pos;
         int kind; // 0: a size, 1: wall thickness, 2: rounding, 3: lift
+        double size = 0;
     };
     std::vector<Handle> m_handles; // drawn tinted, e.g. the object being edited
     bool m_hide_constraints = false;
+    // the object panel is open: the sketch lines stay, but no points on them, so the handles stand out
+    bool m_hide_sketch_points = false;
     // the outer size (lowest and highest corner) of the picked object, drawn as three measurements
     std::optional<std::pair<glm::dvec3, glm::dvec3>> m_measure_box;
 

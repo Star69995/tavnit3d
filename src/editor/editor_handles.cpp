@@ -85,7 +85,7 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
         return handles;
     const auto c = (lo + hi) / 2.;
     const double size = std::max({hi.x - lo.x, hi.y - lo.y, hi.z - lo.z});
-    const double out = std::max(size * .15, 2.); // how far the handle sits out from the face
+    const double out = std::max(size * .3, 4.); // how far the handle sits out from the face (room for its arrow)
     auto world = [&](const glm::dvec3 &l) { return origin + ax * l.x + ay * l.y + az * l.z; };
     auto add_dim = [&](const ObjectDimension *d, glm::dvec3 face, const glm::dvec3 &dir, double per_mm) {
         if (!d)
@@ -93,7 +93,7 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
         ObjectHandle h;
         h.face = world(face);
         h.dir = dir;
-        h.pos = h.face + dir * out;
+        h.pos = h.face; // right on the box, like Tinkercad's squares
         h.constraint = d->constraint;
         h.group = d->group;
         h.scale = d->scale;
@@ -108,8 +108,9 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
     const bool right = glm::dot(ax, towards_eye) >= 0;
     const bool back = glm::dot(ay, towards_eye) >= 0;
     const auto dx = right ? ax : -ax;
-    const glm::dvec3 side_x{right ? hi.x : lo.x, c.y, c.z};
-    const glm::dvec3 side_y{c.x, back ? hi.y : lo.y, c.z};
+    // the size handles sit on the bottom edges, in the middle of the sides facing the camera
+    const glm::dvec3 side_x{right ? hi.x : lo.x, c.y, lo.z};
+    const glm::dvec3 side_y{c.x, back ? hi.y : lo.y, lo.z};
     const double sx = right ? 1 : -1; // towards the shown side, in the object's own x
 
     // up: the height; a ring (no height) grows by its tube's diameter
@@ -148,9 +149,11 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
     if (!m_object_editor_part && can_move_object(doc, body)) {
         ObjectHandle h;
         h.kind = ObjectHandle::Kind::LIFT;
-        h.face = world({side_x.x, side_x.y, lo.z});
+        // an arrow standing on the middle of the top, pointing up: it takes the whole object up and down
+        h.pos = world({c.x, c.y, hi.z}) + az * out * .65;
+        h.face = h.pos;
         h.dir = {0, 0, 1};
-        h.pos = h.face + dx * out * .9;
+        h.size = out;
         h.label = "Lift";
         handles.push_back(h);
     }
@@ -165,7 +168,7 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
         const double t = shell ? shell->m_thickness : 0;
         h.face = edge - dx * t;
         h.dir = -dx;
-        h.pos = h.face + az * out * .9 - dx * out * .9;
+        h.pos = h.face - dx * out * .55; // on the top face, a little in from its edge
         h.label = "Wall thickness";
         handles.push_back(h);
     }
@@ -175,7 +178,7 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
         h.kind = ObjectHandle::Kind::ROUNDING;
         h.face = edge;
         h.dir = glm::normalize(-dx - az);
-        h.pos = edge + glm::normalize(dx + az) * out * 1.1;
+        h.pos = edge + glm::normalize(dx + az) * out * .3; // on the corner where the top meets the side
         h.label = "Round edges";
         handles.push_back(h);
     }
@@ -216,6 +219,27 @@ std::optional<Editor::ObjectHandle> Editor::get_handle_under_cursor()
         }
     }
     return best;
+}
+
+void Editor::turn_object(std::vector<PartPosition> &cache, const std::vector<UUID> &parts, const glm::dvec3 &pivot,
+                         double radians)
+{
+    auto &doc = m_core.get_current_document();
+    if (cache.empty()) {
+        // shapes on a shared plane get one of their own first, so they can turn
+        for (const auto &p : parts) {
+            auto leaves = get_object_parts(doc, p);
+            if (leaves.empty())
+                leaves.push_back(p); // a single shape
+            for (const auto &part : leaves) {
+                give_own_workplane(doc, part);
+                if (auto pos = get_part_position(doc, part))
+                    cache.push_back(*pos);
+            }
+        }
+    }
+    for (const auto &pos : cache)
+        set_part_angle(doc, pos, pivot, radians);
 }
 
 bool Editor::begin_handle_drag()
