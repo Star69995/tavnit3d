@@ -389,3 +389,14 @@ colorbutton > button {padding: 3px;}
   letter-spacing: 1.2px;
   color: @studio_dim;
 }
+
+/* preferences pages: a title, then cards made of rows (a title and hint on the left, the control on the right) */
+.prefs-page-title {font-size: 150%; font-weight: 800;}
+.prefs-card-title {font-size: 75%; font-weight: 700; letter-spacing: 1px; color: @studio_dim; margin-top: 8px;}
+.prefs-card {background: @studio_panel; border: 1px solid @studio_border; border-radius: 12px;}
+.prefs-row {padding: 14px 18px; border-bottom: 1px solid @studio_border;}
+.prefs-row-last {border-bottom: none;}
+.prefs-row-title {font-weight: 600;}
+.prefs-row-hint {font-size: 85%; margin-top: 2px;}
+.studio-prefs .prefs-row .linked {margin: 0;}
+.studio-prefs dropdown > button * {background: none;}
