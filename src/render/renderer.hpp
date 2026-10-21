@@ -155,6 +155,8 @@ public:
     bool m_hide_constraints = false;
     // the object panel is open: the sketch lines stay, but no points on them, so the handles stand out
     bool m_hide_sketch_points = false;
+    // the outer size (lowest and highest corner) of the picked object, drawn as three measurements
+    std::optional<std::pair<glm::dvec3, glm::dvec3>> m_measure_box;
 
 private:
 };

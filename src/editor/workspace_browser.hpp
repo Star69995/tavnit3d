@@ -45,6 +45,12 @@ public:
         return m_signal_group_selected;
     }
 
+    // a click on the step that is already the current one
+    type_signal_group_selected signal_group_reclicked()
+    {
+        return m_signal_group_reclicked;
+    }
+
     type_signal_group_selected signal_rename_body()
     {
         return m_signal_rename_body;
@@ -169,6 +175,7 @@ private:
     Core &m_core;
 
     type_signal_group_selected m_signal_group_selected;
+    type_signal_group_selected m_signal_group_reclicked;
     type_signal_group_checked m_signal_group_checked;
     type_signal_group_checked m_signal_body_checked;
     type_signal_group_checked m_signal_body_solid_model_checked;

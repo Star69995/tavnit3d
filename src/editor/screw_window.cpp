@@ -17,31 +17,34 @@ ScrewWindow::ScrewWindow(Gtk::Window &parent, OnAdd on_add) : m_on_add(std::move
     box->set_margin(14);
     set_child(*box);
 
-    auto row = [&](const char *text, Gtk::Widget &w) {
+    auto row = [&](const char *text, Gtk::Widget &w, const char *hint) {
         auto l = Gtk::make_managed<Gtk::Label>(text);
         l->set_xalign(0);
+        l->set_tooltip_text(hint);
+        w.set_tooltip_text(hint);
         box->append(*l);
         box->append(w);
     };
 
     m_head = Gtk::make_managed<Gtk::DropDown>(Gtk::StringList::create(
             {"Hexagon head", "Socket head (cap)", "Pan head (rounded)", "Countersunk head"}));
-    row("Head", *m_head);
+    row("Head", *m_head, "The shape of the head and how it is turned: hexagon (spanner), socket (Allen key), pan, countersunk");
 
     Glib::RefPtr<Gtk::StringList> size_names = Gtk::StringList::create({});
     for (const auto s : sizes)
         size_names->append("M" + std::to_string(static_cast<int>(s)));
     m_size = Gtk::make_managed<Gtk::DropDown>(size_names);
     m_size->set_selected(4); // M8
-    row("Size (thread diameter)", *m_size);
+    row("Size (thread diameter)", *m_size, "M8 means a thread 8 mm across; the head size follows");
 
     m_length = Gtk::Adjustment::create(30, 4, 300, 1, 5);
     auto length = Gtk::make_managed<Gtk::SpinButton>(m_length);
     length->set_numeric(true);
-    row("Length under the head (mm)", *length);
+    row("Length under the head (mm)", *length, "How long the part that goes into the material is");
 
     m_thread = Gtk::make_managed<Gtk::CheckButton>("Thread ridges");
     m_thread->set_active(true);
+    m_thread->set_tooltip_text("A real spiral thread; off gives a smooth shank (faster to build)");
     box->append(*m_thread);
 
     m_label = Gtk::make_managed<Gtk::Label>();

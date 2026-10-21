@@ -637,6 +637,19 @@ public:
             m_browser.m_body_popover->popup();
         });
         add_controller(controller);
+
+        // clicking the step that is already open again goes back to the finished object
+        auto again = Gtk::GestureClick::create();
+        again->set_button(1);
+        again->set_propagation_phase(Gtk::PropagationPhase::CAPTURE);
+        // acts on press: the list's own click handling claims the sequence, so there is no release
+        again->signal_pressed().connect([this](int n_press, double, double) {
+            if (n_press == 1 && m_group && m_browser.m_core.has_documents()
+                && m_browser.m_core.get_current_idocument_info().get_uuid() == m_group->m_doc
+                && m_browser.m_core.get_current_group() == m_group->m_uuid)
+                m_browser.m_signal_group_reclicked.emit(m_group->m_doc, m_group->m_uuid);
+        });
+        add_controller(again);
     }
 
     void bind(DocumentItem &it)

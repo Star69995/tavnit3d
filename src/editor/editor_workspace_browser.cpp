@@ -29,6 +29,18 @@ void Editor::init_workspace_browser()
 
     m_workspace_browser->signal_group_selected().connect(
             sigc::mem_fun(*this, &Editor::on_workspace_browser_group_selected));
+    m_workspace_browser->signal_group_reclicked().connect([this](const UUID &doc, const UUID &group) {
+        // the list selects the clicked row again on release: that must not reopen the step
+        m_reclicked_group = group;
+        Glib::signal_timeout().connect_once([this] { m_reclicked_group = UUID(); }, 600);
+        // after the click has been handled by the list itself
+        Glib::signal_idle().connect_once([this, doc] {
+            if (m_core.tool_is_active() || !m_core.has_documents())
+                return;
+            if (go_to_last_group(doc))
+                m_workspace_browser->select_group(m_core.get_current_group());
+        });
+    });
     m_workspace_browser->signal_add_group().connect(sigc::mem_fun(*this, &Editor::on_add_group));
     m_workspace_browser->signal_delete_current_group().connect(sigc::mem_fun(*this, &Editor::on_delete_current_group));
     m_workspace_browser->signal_move_group().connect(sigc::mem_fun(*this, &Editor::on_move_group));
@@ -98,6 +110,14 @@ void Editor::on_workspace_browser_group_selected(const UUID &uu_doc, const UUID 
 {
     if (m_core.tool_is_active())
         return;
+    if (m_reclicked_group && m_reclicked_group == uu_group) {
+        m_reclicked_group = UUID();
+        Glib::signal_idle().connect_once([this] {
+            if (m_core.has_documents())
+                m_workspace_browser->select_group(m_core.get_current_group());
+        });
+        return;
+    }
     auto &idoc = m_core.get_current_idocument_info();
     if (idoc.get_uuid() == uu_doc && idoc.get_current_group() == uu_group) {
         if (m_object_editor) // back from the object panel to the group's own

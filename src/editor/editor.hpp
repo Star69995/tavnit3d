@@ -264,6 +264,7 @@ private:
     Gtk::Widget *m_object_editor = nullptr;
     // the panel is a column of cards, a grid each (or a single grid, for a light)
     std::vector<Gtk::Grid *> get_object_editor_grids() const;
+    UUID m_reclicked_group; // a step clicked again (back to the last step): its release selection is ignored
     bool m_object_editor_keep = false; // skip the next refresh, the change came from the panel
     UUID m_object_editor_doc;
     UUID m_object_editor_body;

@@ -64,6 +64,7 @@ PreferencesRow::PreferencesRow(const std::string &title, const std::string &subt
         make_label_small(la);
         box->append(*la);
         label_subtitle = la;
+        set_tooltip_text(subtitle);
     }
 
     append(*box);

@@ -34,7 +34,15 @@ bool Editor::begin_object_drag(const UUID &doc_uu, const UUID &body_uu)
     ObjectDrag drag;
     drag.doc = doc_uu;
     drag.body = body_uu;
+    // a lifted object has a workplane of its own (the square shown under it): move that, or the
+    // object would slide away from it
+    if (auto own = get_part_position(doc, body_uu); own && own->wrkpl) {
+        drag.parts.push_back(*own);
+        drag.wrkpl = doc.get_reference_group().get_workplane_xy_uuid();
+    }
     for (auto gr : it->groups) {
+        if (!drag.parts.empty())
+            break;
         for (auto &[uu, co] : doc.m_constraints) {
             if (co->m_group != gr->m_uuid)
                 continue;
@@ -54,7 +62,7 @@ bool Editor::begin_object_drag(const UUID &doc_uu, const UUID &body_uu)
                 drag.cy = uu;
         }
     }
-    if (!drag.cx || !drag.cy) {
+    if (drag.parts.empty() && (!drag.cx || !drag.cy)) {
         // a joined object: all of its parts move, on the floor
         drag.cx = drag.cy = UUID();
         for (const auto &p : get_object_parts(doc, body_uu)) {

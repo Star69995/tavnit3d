@@ -135,7 +135,7 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   View > Simple toolbars): the list's show/hide switch is an eye (a cairo-drawn toggle, crossed out when
   hidden) with a tooltip per row kind (document / object / step) and a reason when greyed out; the cube
   next to an object's eye hides only the solid, the sketch lines stay. Rows have hover texts too (an
-  object: select + right-click; a step: click goes back to it, later steps wait greyed). A hidden object
+  object: select + right-click; a step: click goes back to it, later steps wait greyed; a click on the step that is already open goes back to the last step again, `signal_group_reclicked`, acted on at press because the list claims the click). A hidden object
   (eye or cube off, `Editor::body_is_shown`) has no resize handles. Simple view: no document rows (the
   tree's root is the current document's objects, `WorkspaceBrowser::set_simple`), other documents not
   drawn, tab bar shown only while there are 2+ tabs (`Editor::update_workspace_tabs_visible`). The
@@ -283,6 +283,12 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   rebuild, or a panel change that set `m_object_editor_keep`) makes the panel
   again only once no mouse button is held. Never rebuild the panel straight
   from a field's handler: GTK crashed when a +/- still getting clicks was gone.
+- Measurements on the model: while an object is picked in the panel, `Renderer::m_measure_box` (set in
+  `Editor::render_document` from `get_body_bounds`) draws Width/Depth/Height lines around it. "Rotate view around it"
+  (object panel) moves the view centre (`Canvas::animate_to_center_abs`) to the object's middle. The picked object
+  keeps its sketch lines even with "Sketch lines of other objects" off; the view hints say when those are hidden.
+- Menu hints: `add_menu_hints` (panel_hints.cpp) sets tooltips on the GtkModelButtons of a popover menu by label
+  (Gio menu models have no tooltip attribute in GTK 4.14); preference rows use their subtitle as tooltip.
 - Hover hints (`src/editor/panel_hints.*`): `get_action_hint` adds a sentence to each palette
   button's tooltip; `add_panel_hints` gives object/light panel rows a hint by their label (a
   row's own tooltip wins). New palette buttons or panel rows: add their hint there.
