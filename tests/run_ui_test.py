@@ -22,6 +22,7 @@ with tempfile.TemporaryDirectory() as tmp:
         print("timed out (a modal dialog may be blocking)")
         sys.exit(1)
 
+sys.stdout.reconfigure(errors="replace")
 lines = [l for l in out.splitlines() if l.startswith("automation:")]
 print("\n".join(lines))
 bad = [l for l in lines if "FAILED" in l or "MessageDialog" in l or "Exception" in l]
