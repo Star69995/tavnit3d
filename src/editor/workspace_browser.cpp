@@ -1287,6 +1287,19 @@ void WorkspaceBrowser::select_group(const UUID &doc_uu, const UUID &uu)
     if (!m_show_steps) {
         // no step rows to select (and the object rows can't be expanded), but the step still becomes the current one
         m_signal_group_selected.emit(doc_uu, uu);
+        // and its object is the highlighted row (without opening the object panel)
+        const auto body_group = m_core.get_idocument_info(doc_uu).get_document().get_group(uu).find_body(
+                m_core.get_idocument_info(doc_uu).get_document()).group.m_uuid;
+        block_signals();
+        for (guint i = 0; i < m_selection_model->get_n_items(); i++) {
+            auto row = std::dynamic_pointer_cast<Gtk::TreeListRow>(m_selection_model->get_object(i));
+            auto it = row ? std::dynamic_pointer_cast<BodyItem>(row->get_item()) : nullptr;
+            if (it && !it->m_is_folder && it->m_doc == doc_uu && it->m_uuid == body_group) {
+                m_selection_model->select_item(i, true);
+                break;
+            }
+        }
+        unblock_signals();
         return;
     }
     {

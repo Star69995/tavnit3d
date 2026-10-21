@@ -1,5 +1,8 @@
 #include "editor.hpp"
 #include "workspace_browser.hpp"
+#include "dune3d_appwindow.hpp"
+#include "dune3d_application.hpp"
+#include "document/object_parts.hpp"
 #include "document/document.hpp"
 #include "document/group/group.hpp"
 #include "document/body_solids.hpp"
@@ -42,6 +45,8 @@ void Editor::add_primitive(Primitive primitive, bool as_hole)
     m_core.rebuild("add " + group.m_name);
     m_workspace_browser->update_documents(get_current_document_views());
     m_workspace_browser->select_group(group.m_uuid);
+    if (!m_win.get_app().m_user_config.show_steps) // working with objects: their panel, not the step's
+        show_object_editor(m_core.get_current_idocument_info().get_uuid(), group.find_body(doc).group.m_uuid);
     zoom_to_fit(!first); // the first one gets framed so it's big enough to work with
 }
 
@@ -139,6 +144,11 @@ void Editor::zoom_to_fit(bool only_if_needed)
             all_visible = all_visible && get_canvas().is_in_view(corner);
         }
         if (all_visible)
+            return;
+        // what was just added is in view: leave the view alone
+        const auto &newest = doc.get_groups_sorted().back()->find_body(doc).group;
+        if (const auto b = get_body_bounds(doc, newest.m_uuid);
+            b && get_canvas().is_in_view(glm::vec3((b->lo + b->hi) / 2.)))
             return;
     }
     get_canvas().zoom_to_fit((lo + hi) / 2.f, std::max(glm::length(hi - lo) / 2, 5.f));
