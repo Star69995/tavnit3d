@@ -72,6 +72,12 @@ dim-label</property>
             <property name="icon-name">open-menu-symbolic</property>
           </object>
         </child>
+        <child type="end">
+          <object class="GtkButton" id="theme_button">
+            <property name="icon-name">weather-clear-night-symbolic</property>
+            <property name="tooltip-text">Switch to the dark theme</property>
+          </object>
+        </child>
         <child type="start">
           <object class="GtkButton" id="new_button">
             <property name="icon-name">document-new-symbolic</property>

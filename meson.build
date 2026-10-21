@@ -63,6 +63,7 @@ src_common = files(
   'src/document/export_gltf.cpp',
   'src/document/import_objects.cpp',
   'src/util/update_check.cpp',
+  'src/util/new_window.cpp',
   'src/util/http.cpp',
   'src/util/crash_report.cpp',
   'src/util/blender_render.cpp',

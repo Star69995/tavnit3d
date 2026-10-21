@@ -1,4 +1,5 @@
 #include "editor.hpp"
+#include "util/new_window.hpp"
 #include "render_window.hpp"
 #include "describe_window.hpp"
 #include "screw_window.hpp"
@@ -1058,6 +1059,15 @@ void Editor::init_header_bar()
     attach_action_button(m_win.get_open_button(), ActionID::OPEN_DOCUMENT);
     attach_action_sensitive(m_win.get_open_menu_button(), ActionID::OPEN_DOCUMENT);
     attach_action_button(m_win.get_new_button(), ActionID::NEW_DOCUMENT);
+    m_win.get_theme_button().signal_clicked().connect([this] {
+        // a click picks the other look for good (Preferences > Theme shows it too)
+        m_preferences.canvas.theme_variant = m_win.get_app().get_dark_ui()
+                                                     ? CanvasPreferences::ThemeVariant::LIGHT
+                                                     : CanvasPreferences::ThemeVariant::DARK;
+        m_preferences.signal_changed().emit();
+        if (Glib::getenv("DUNE3D_AUTOMATION").empty()) // automated runs leave the settings alone
+            m_preferences.save();
+    });
     attach_action_button(m_win.get_save_button(), ActionID::SAVE);
     attach_action_button(m_win.get_save_as_button(), ActionID::SAVE_AS);
 
@@ -1131,6 +1141,8 @@ void Editor::init_header_bar()
     }
 
     {
+        m_win.add_action("new_window", [this] { trigger_action(ActionID::NEW_WINDOW); });
+        m_win.add_action("open_new_window", [this] { trigger_action(ActionID::OPEN_DOCUMENT_NEW_WINDOW); });
         m_win.add_action("check_updates", [this] { check_for_updates(true); });
         auto auto_check = m_win.add_action_bool("auto_check_updates", m_win.get_app().m_user_config.check_for_updates);
         auto_check->signal_change_state().connect([this, auto_check](const Glib::VariantBase &v) {
@@ -1147,6 +1159,11 @@ void Editor::init_header_bar()
 
     {
         auto top = Gio::Menu::create();
+
+        auto windows = Gio::Menu::create();
+        windows->append("New window", "win.new_window");
+        windows->append("Open in a new window...", "win.open_new_window");
+        top->append_section(windows);
 
         auto updates = Gio::Menu::create();
         updates->append("Check for updates", "win.check_updates");
@@ -1216,6 +1233,11 @@ void Editor::update_view_hints()
 
 void Editor::on_open_document(const ActionConnection &conn)
 {
+    open_document_dialog(false);
+}
+
+void Editor::open_document_dialog(bool new_window)
+{
     auto dialog = Gtk::FileDialog::create();
     dialog->set_initial_folder(Gio::File::create_for_path(path_to_string(get_documents_dir())));
     if (m_core.has_documents()) {
@@ -1236,9 +1258,14 @@ void Editor::on_open_document(const ActionConnection &conn)
     dialog->set_filters(filters);
 
     // Show the dialog and wait for a user response:
-    dialog->open(m_win, [this, dialog](const Glib::RefPtr<Gio::AsyncResult> &result) {
+    dialog->open(m_win, [this, dialog, new_window](const Glib::RefPtr<Gio::AsyncResult> &result) {
         try {
             auto file = dialog->open_finish(result);
+            if (new_window) {
+                if (!launch_new_window(path_from_string(file->get_path())))
+                    m_win.open_file_view(file);
+                return;
+            }
             m_win.open_file_view(file);
             // Notice that this is a std::string, not a Glib::ustring.
             auto filename = file->get_path();
@@ -1531,11 +1558,7 @@ void Editor::apply_preferences()
         }
     }
 
-    auto dark = Gtk::Settings::get_default()->property_gtk_application_prefer_dark_theme().get_value();
-    if (dark != m_preferences.canvas.dark_theme)
-        Gtk::Settings::get_default()->property_gtk_application_prefer_dark_theme().set_value(
-                m_preferences.canvas.dark_theme);
-    dark = Gtk::Settings::get_default()->property_gtk_application_prefer_dark_theme().get_value();
+    auto dark = m_preferences.canvas.dark_theme;
     switch (m_preferences.canvas.theme_variant) {
     case CanvasPreferences::ThemeVariant::AUTO:
         break;
@@ -1546,6 +1569,11 @@ void Editor::apply_preferences()
         dark = false;
         break;
     }
+    // the window follows too: GTK's own widgets and the studio theme's dark variant
+    if (Gtk::Settings::get_default()->property_gtk_application_prefer_dark_theme().get_value() != dark)
+        Gtk::Settings::get_default()->property_gtk_application_prefer_dark_theme().set_value(dark);
+    m_win.get_app().set_dark_ui(dark);
+    m_win.set_theme_button_dark(dark);
     if (color_themes.contains(m_preferences.canvas.theme)) {
         Appearance appearance = m_preferences.canvas.appearance;
         appearance.colors = color_themes.at(m_preferences.canvas.theme).get(dark);

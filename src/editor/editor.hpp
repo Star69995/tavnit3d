@@ -302,6 +302,7 @@ private:
     void on_export_paths(const ActionConnection &conn);
     void on_export_projection(const ActionConnection &conn);
     void on_open_document(const ActionConnection &conn);
+    void open_document_dialog(bool new_window);
     void on_save_as(const ActionConnection &conn);
     void on_create_group_action(const ActionConnection &conn);
     void on_move_group_action(const ActionConnection &conn);

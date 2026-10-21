@@ -3,6 +3,7 @@
   <gresource prefix="/org/dune3d/dune3d">
     <file>window.ui</file>
     <file>dune3d.css</file>
+    <file>dune3d-dark.css</file>
     <file>canvas/shaders/background-fragment.glsl</file>
     <file>canvas/shaders/background-vertex.glsl</file>
     <file>canvas/shaders/face-vertex.glsl</file>

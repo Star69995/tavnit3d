@@ -144,6 +144,14 @@ std::vector<SearchItem> Editor::get_search_items()
     items.push_back({"Save", "Header bar > Save - or Ctrl+S", "שמירה", action(ActionID::SAVE), keys(ActionID::SAVE)});
     items.push_back({"Open a document", "Header bar > Open - or Ctrl+O", "load פתיחה", action(ActionID::OPEN_DOCUMENT), keys(ActionID::OPEN_DOCUMENT)});
     items.push_back({"New document", "Header bar, next to Open - or Ctrl+N", "חדש", action(ActionID::NEW_DOCUMENT), keys(ActionID::NEW_DOCUMENT)});
+    items.push_back({"New window", "Main menu (top right) - or Ctrl+Shift+N", "separate second window חלון חדש",
+                     action(ActionID::NEW_WINDOW), keys(ActionID::NEW_WINDOW)});
+    items.push_back({"Open a document in a new window", "Main menu (top right) - or Ctrl+Shift+O",
+                     "separate second window פתיחה בחלון חדש", action(ActionID::OPEN_DOCUMENT_NEW_WINDOW),
+                     keys(ActionID::OPEN_DOCUMENT_NEW_WINDOW)});
+    items.push_back({"Dark or light theme", "Header bar, moon / sun button - or Preferences > Theme",
+                     "dark mode night light theme מצב כהה ערכת נושא",
+                     [this] { m_win.get_theme_button().emit_clicked(); }});
     items.push_back({"Undo", "Header bar > arrow left - or Ctrl+Z", "ביטול", action(ActionID::UNDO), keys(ActionID::UNDO)});
     items.push_back({"Redo", "Header bar > arrow right - or Ctrl+Y", "חזרה", action(ActionID::REDO), keys(ActionID::REDO)});
 

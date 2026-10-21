@@ -14,6 +14,12 @@
 
 namespace dune3d {
 
+void Dune3DAppWindow::set_theme_button_dark(bool dark)
+{
+    m_theme_button->set_icon_name(dark ? "weather-clear-symbolic" : "weather-clear-night-symbolic");
+    m_theme_button->set_tooltip_text(dark ? "Switch to the light theme" : "Switch to the dark theme");
+}
+
 Dune3DAppWindow *Dune3DAppWindow::create(Dune3DApplication &app)
 {
     // Load the Builder file and instantiate its widgets.
@@ -107,6 +113,7 @@ Dune3DAppWindow::Dune3DAppWindow(BaseObjectType *cobject, const Glib::RefPtr<Gtk
     m_open_popover = refBuilder->get_widget<Gtk::Popover>("open_popover");
     m_open_menu_button = refBuilder->get_widget<Gtk::MenuButton>("open_menu_button");
     m_new_button = refBuilder->get_widget<Gtk::Button>("new_button");
+    m_theme_button = refBuilder->get_widget<Gtk::Button>("theme_button");
     m_save_button = refBuilder->get_widget<Gtk::Button>("save_button");
     m_save_as_button = refBuilder->get_widget<Gtk::Button>("save_as_button");
     m_open_recent_listbox = refBuilder->get_widget<Gtk::ListBox>("open_recent_listbox");

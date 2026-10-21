@@ -86,6 +86,14 @@ public:
         return *m_new_button;
     }
 
+    Gtk::Button &get_theme_button()
+    {
+        return *m_theme_button;
+    }
+
+    // the button shows what a click would switch to
+    void set_theme_button_dark(bool dark);
+
     Gtk::Button &get_welcome_new_button()
     {
         return *m_welcome_new_button;
@@ -219,6 +227,7 @@ private:
     Gtk::Button *m_open_button = nullptr;
     Gtk::MenuButton *m_open_menu_button = nullptr;
     Gtk::Button *m_new_button = nullptr;
+    Gtk::Button *m_theme_button = nullptr;
     Gtk::Button *m_undo_button = nullptr;
     Gtk::Button *m_redo_button = nullptr;
     Gtk::Button *m_save_button = nullptr;

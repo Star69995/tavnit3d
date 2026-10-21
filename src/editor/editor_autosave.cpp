@@ -1,4 +1,5 @@
 #include "editor.hpp"
+#include "util/new_window.hpp"
 #include "dune3d_appwindow.hpp"
 #include "dune3d_application.hpp"
 #include "util/fs_util.hpp"
@@ -195,7 +196,8 @@ void Editor::init_autosave()
     });
 
     restart_autosave_timer();
-    if (Glib::getenv("DUNE3D_AUTOMATION").empty())
+    // another window's backups are not this one's to bring back
+    if (Glib::getenv("DUNE3D_AUTOMATION").empty() && !is_secondary_window())
         Glib::signal_timeout().connect_once([this] { offer_recovery(); }, 1500);
 }
 

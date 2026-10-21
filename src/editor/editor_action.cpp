@@ -1,5 +1,6 @@
 #include "util/util.hpp"
 #include "editor.hpp"
+#include "util/new_window.hpp"
 #include "action/action_id.hpp"
 #include "in_tool_action/in_tool_action.hpp"
 #include "workspace_browser.hpp"
@@ -92,6 +93,11 @@ void Editor::init_actions()
         update_workspace_view_names();
     });
     connect_action(ActionID::OPEN_DOCUMENT, sigc::mem_fun(*this, &Editor::on_open_document));
+    connect_action(ActionID::NEW_WINDOW, [this](auto &a) {
+        if (!launch_new_window())
+            Logger::log_warning("Couldn't start a new window", Logger::Domain::EDITOR);
+    });
+    connect_action(ActionID::OPEN_DOCUMENT_NEW_WINDOW, [this](auto &a) { open_document_dialog(true); });
 
 
     connect_action(ActionID::EXPORT_SOLID_MODEL_STL, sigc::mem_fun(*this, &Editor::on_export_solid_model));
@@ -558,6 +564,8 @@ void Editor::update_action_sensitivity(const std::set<SelectableRef> &sel)
     m_action_sensitivity[ActionID::TOGGLE_SOLID_MODEL] = m_core.has_documents();
     m_action_sensitivity[ActionID::TOGGLE_SHOW_ONLY_SOLID_MODEL] = m_core.has_documents();
     m_action_sensitivity[ActionID::NEW_DOCUMENT] = true;
+    m_action_sensitivity[ActionID::NEW_WINDOW] = true;
+    m_action_sensitivity[ActionID::OPEN_DOCUMENT_NEW_WINDOW] = true;
     m_action_sensitivity[ActionID::FIND] = true;
     for (auto act : {ActionID::ADD_BOX, ActionID::ADD_CYLINDER, ActionID::ADD_SPHERE, ActionID::ADD_CONE, ActionID::ADD_TUBE,
                      ActionID::ADD_TORUS, ActionID::ADD_WEDGE, ActionID::ADD_HEXAGON, ActionID::ADD_TRIANGLE,
