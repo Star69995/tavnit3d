@@ -150,7 +150,8 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   at the target; `src/editor/editor_lights.cpp` (palette, panel, picking the
   marker by screen distance, which also starts dragging the lamp or, for spot/sun, its aimed-at
   diamond on a camera-facing plane: `update_light_drag`, one undo step on release); the canvas gets
-  them via `Canvas::set_lights`. Test: `tests/ui/lights.txt` (automation command `lights`).
+  them via `Canvas::set_lights`. In the view a light is a small shaded solid (`light_shape.*`: bulb, lens lamp,
+  sun with rays) plus a see-through tinted beam (halo / cone / parallel column, `face_material_beam`). Test: `tests/ui/lights.txt` (automation command `lights`).
 - glTF export (`src/document/export_gltf.*`): own GLB writer, metres/y-up,
   one primitive per face colour, stickers as textured primitives,
   KHR_lights_punctual, the view as camera.

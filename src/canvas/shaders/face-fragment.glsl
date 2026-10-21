@@ -51,6 +51,11 @@ void main() {
       float rim = pow(1 - facing, 2.5);
       outputColor.rgb = mix(outputColor.rgb, vec3(.25, .52, 1), rim * .55);
   }
+  if((material & 0x200) != 0) {
+      // the beam of a light: its colour, very see-through, a little more at the edges
+      float facing = abs(dot(normalize(normal_to_fragment), normalize(cam_normal)));
+      outputColor = vec4(color_to_fragment, .09 + .14 * pow(1 - facing, 2.));
+  }
   select = outputColor*select_alpha_to_frag;
   pick = pick_base;
 }

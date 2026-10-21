@@ -60,6 +60,7 @@ src_common = files(
   'src/document/decal.cpp',
   'src/document/pattern.cpp',
   'src/document/light.cpp',
+  'src/document/light_shape.cpp',
   'src/document/export_gltf.cpp',
   'src/document/import_objects.cpp',
   'src/util/update_check.cpp',
