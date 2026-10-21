@@ -161,7 +161,7 @@ private:
 public:
     // resize handles on the picked object (editor_handles.cpp)
     struct ObjectHandle {
-        enum class Kind { DIMENSION, WALL, ROUNDING, LIFT };
+        enum class Kind { DIMENSION, WALL, ROUNDING, LIFT, ROTATE };
         Kind kind = Kind::DIMENSION;
         glm::dvec3 face; // where it's attached
         glm::dvec3 pos;  // where it's drawn and grabbed
@@ -190,12 +190,20 @@ private:
         // Kind::LIFT: where the parts were (once they have workplanes of their own, made on the first move)
         std::vector<PartPosition> lift_parts;
         double lift_start = 0; // the underside's height when the drag began
+        // Kind::ROTATE: the middle the object turns about, where the pointer was, and where the parts were
+        glm::dvec3 pivot = {0, 0, 0};
+        double start_angle = 0;
+        std::vector<PartPosition> turn_parts;
     };
     std::optional<HandleDrag> m_handle_drag;
     std::optional<ObjectHandle> get_handle_under_cursor();
     void update_handle_hint();
     std::string get_move_hint();
     std::string m_handle_hint;
+    // turns the object (all its parts) about the upright line through `pivot`; `cache` keeps where the parts were
+    // (filled on the first call, after they have workplanes of their own), so the angle is from the start
+    void turn_object(std::vector<PartPosition> &cache, const std::vector<UUID> &parts, const glm::dvec3 &pivot,
+                     double radians);
     bool begin_handle_drag();
     void update_handle_drag();
     void end_handle_drag();

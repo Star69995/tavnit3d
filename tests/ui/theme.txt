@@ -5,9 +5,9 @@ wait 800
 button Box
 wait 800
 tree Box
-handles-count 6
+handles-count 7
 theme dark
-handles-count 6
+handles-count 7
 theme light
-handles-count 6
+handles-count 7
 quit

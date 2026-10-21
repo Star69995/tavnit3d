@@ -162,6 +162,16 @@ std::optional<PartPosition> get_part_position(const Document &doc, const UUID &b
         pos.origin = wp->m_origin;
         pos.ax = wp->transform_relative({1, 0});
         pos.ay = wp->transform_relative({0, 1});
+        pos.planes.push_back({wp->m_uuid, wp->m_origin, wp->m_normal});
+        for (auto gr : groups_of_body(doc, body)) {
+            for (auto &[uu, en] : doc.m_entities) {
+                if (en->m_group == gr->m_uuid && en->m_kind == ItemKind::USER && uu != wp->m_uuid
+                    && en->get_type() == Entity::Type::WORKPLANE) {
+                    auto &helper = static_cast<EntityWorkplane &>(*en);
+                    pos.planes.push_back({uu, helper.m_origin, helper.m_normal});
+                }
+            }
+        }
         return pos;
     }
     // X/Y dimensions from a workplane's origin, in the first group that has them
@@ -228,6 +238,22 @@ void set_part_position(Document &doc, const PartPosition &pos, const glm::dvec3 
         cx->m_distance = pos.xy.x + glm::dot(delta, pos.ax);
         cy->m_distance = pos.xy.y + glm::dot(delta, pos.ay);
     }
+    doc.set_group_solve_pending(pos.group);
+}
+
+void set_part_angle(Document &doc, const PartPosition &pos, const glm::dvec3 &pivot, double angle)
+{
+    if (!pos.wrkpl)
+        return;
+    const auto turn = glm::angleAxis(angle, glm::dvec3(0, 0, 1));
+    for (const auto &pl : pos.planes) {
+        auto wp = doc.get_entity_ptr<EntityWorkplane>(pl.uuid);
+        if (!wp)
+            continue;
+        wp->m_origin = pivot + turn * (pl.origin - pivot);
+        wp->m_normal = glm::normalize(turn * pl.normal);
+    }
+    doc.set_group_generate_pending(pos.group);
     doc.set_group_solve_pending(pos.group);
 }
 

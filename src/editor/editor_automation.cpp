@@ -1,4 +1,5 @@
 #include "editor.hpp"
+#include "document/object_parts.hpp"
 #include "preferences/preferences_window.hpp"
 #include "dune3d_application.hpp"
 #include "dune3d_appwindow.hpp"
@@ -75,6 +76,8 @@ static std::map<std::string, glm::dvec3> s_light_marks; // "light-mark": where a
  *   update-check             check for updates as from the menu (feed: DUNE3D_UPDATE_FEED)
  *   panel-scroll F           scroll the side panel to F (0 top ... 1 bottom)
  *   drag-panel NAME X Y      drag the "palette" or "layers" panel by its grip to window pixel X Y
+ *   rotate-object DEGREES    turn the picked object about the upright line through its middle
+ *   expect-extent X|Y|Z MM   fail unless the picked object is that long along that world axis (within 0.5)
  *   preferences [PAGE]       open Preferences (page: canvas, editor, keys, in_tool_keys)
  *   theme dark|light|auto    the look, as in Preferences > Theme
  *   crash                    crash on purpose, to see the crash report
@@ -690,6 +693,37 @@ void Editor::run_automation(const std::filesystem::path &script)
                 is >> name >> x >> y;
                 if (!m_win.drag_panel(name, x, y))
                     std::cerr << "automation: no panel " << name << std::endl;
+            }
+            else if (cmd == "rotate-object") {
+                // turn the picked object by DEGREES about the upright line through its middle
+                if (!m_object_editor_body)
+                    throw std::runtime_error("rotate-object: pick an object first");
+                auto &doc = m_core.get_current_document();
+                const auto bounds = get_body_bounds(doc, m_object_editor_body);
+                if (!bounds)
+                    throw std::runtime_error("rotate-object: no object");
+                std::vector<PartPosition> cache;
+                turn_object(cache, {m_object_editor_body}, (bounds->lo + bounds->hi) / 2., glm::radians(std::stod(rest)));
+                m_core.set_needs_save();
+                m_core.rebuild("rotate");
+                canvas_update_keep_selection();
+                delay = 800;
+            }
+            else if (cmd == "expect-extent") {
+                // "X 40": fail unless the picked object is that many mm along the world X (or Y, Z), within 0.5
+                std::istringstream is(rest);
+                std::string axis;
+                double mm = 0;
+                is >> axis >> mm;
+                const auto bounds = m_object_editor_body ? get_body_bounds(m_core.get_current_document(), m_object_editor_body)
+                                                         : std::nullopt;
+                if (!bounds)
+                    throw std::runtime_error("expect-extent: no object picked");
+                const auto size = bounds->hi - bounds->lo;
+                const double got = axis == "X" ? size.x : axis == "Y" ? size.y : size.z;
+                if (std::abs(got - mm) > .5)
+                    throw std::runtime_error("expected " + std::to_string(mm) + " mm along " + axis + ", it is "
+                                             + std::to_string(got));
             }
             else if (cmd == "preferences") {
                 // open the Preferences window (then "shotwin Preferences PATH")

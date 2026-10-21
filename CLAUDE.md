@@ -234,6 +234,7 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   `DescribeWindow` and `parse_recipe_text` reads the pasted answer (fences and chatter
   tolerated). `DUNE3D_CLAUDE_URL` overrides the Claude endpoint for tests; tests in
   `tests/test_recipe_ai.cpp`. HTTP: `src/util/http.*` (WinHTTP/libcurl).
+- `give_own_workplane` re-points the extrusion's height dimension: the leader line's uuid is hashed with its workplane, so a new workplane means a new leader (without that the Height field and handle were lost after the first lift).
 - Resize handles (`src/editor/editor_handles.cpp`) use the object panel's
   dimension list (`src/document/object_dimensions.*`; labels like Width/Depth/
   Height come from the constraint type and the plane it's on).
@@ -290,7 +291,7 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   uncaught C++ exceptions write `%LOCALAPPDATA%/dune3d/crashes/crash-*.txt`
   (module+offset per call; resolve with `addr2line -e build-release/dune3d.exe`
   or the debug build) and show a message box. Automation `crash` tries it.
-- Handles (after a Tinkercad screenshot): the footprint on the floor as a dashed rectangle with dashed lines through its middle and up to the top (`Renderer::m_selection_box`, set from `Editor::m_handle_box`), squares on the base edges for width/depth and on the top for height, dots for wall thickness and rounding, and ONE black cone pointing up above the top for Lift (it still drags the whole object up and down; drawn as dense lines in `Renderer::render`). While the object panel is open the sketch points are hidden (`Renderer::m_hide_sketch_points`) so only the handles show. Not done yet: the white corner squares (width and depth together) and the rotate arrow.
+- Handles (after a Tinkercad screenshot): the footprint on the floor as a dashed rectangle with dashed lines through its middle and up to the top (`Renderer::m_selection_box`, set from `Editor::m_handle_box`), squares on the base edges for width/depth and on the top for height, dots for wall thickness and rounding, and ONE black cone pointing up above the top for Lift (it still drags the whole object up and down; drawn as dense lines in `Renderer::render`). While the object panel is open the sketch points are hidden (`Renderer::m_hide_sketch_points`) so only the handles show. A curved double arrow round the top turns the object about the upright line through its middle (`Kind::ROTATE`, `Editor::turn_object`, `set_part_angle` in `object_parts.cpp`: rotates the part's own workplane and helper planes from a snapshot, so the angle is absolute from the drag start; snaps every 15 degrees; automation `rotate-object DEG`, `expect-extent X|Y|Z MM`, test `tests/ui/rotate.txt`). Only about the vertical; not done yet: the corner squares (width and depth together).
 - Dark theme: `src/dune3d-dark.css` redefines the studio colour names and is added on top of `dune3d.css`
   by `Dune3DApplication::set_dark_ui` (called from `Editor::apply_preferences`; follows Preferences > Theme
   Auto/Light/Dark). Only Preferences offers the choice (no header button). The canvas colours come from `Default.dark.json`. Test `tests/ui/theme.txt`. Design mockups for what

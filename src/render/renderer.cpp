@@ -312,6 +312,28 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
                 prev = p;
             }
         }
+        else if (h.kind == 4) {
+            // a curved double arrow round the top: the object turns about the upright line through h.face
+            const auto rel = h.pos - h.face;
+            const double r = std::hypot(rel.x, rel.y), a0 = std::atan2(rel.y, rel.x), span = .7;
+            const auto pt = [&](double a) { return h.face + glm::dvec3(std::cos(a) * r, std::sin(a) * r, 0); };
+            const int n = 16;
+            auto prev = pt(a0 - span);
+            for (int k = 1; k <= n; k++) {
+                const auto p = pt(a0 - span + 2 * span * k / n);
+                m_ca.draw_line(prev, p);
+                prev = p;
+            }
+            for (const double sign : {-1., 1.}) {
+                const double a = a0 + sign * span;
+                const glm::dvec3 radial{std::cos(a), std::sin(a), 0};
+                const auto along = glm::dvec3(-std::sin(a), std::cos(a), 0) * sign; // out of the arc's end
+                const double head = r * .16;
+                const auto tip = pt(a) + along * head * .6;
+                m_ca.draw_line(tip, pt(a) - radial * head * .5);
+                m_ca.draw_line(tip, pt(a) + radial * head * .5);
+            }
+        }
         else {
             m_ca.draw_point(h.pos, h.kind == 0 ? IconID::POINT_BOX : IconID::POINT_CIRCLE);
         }

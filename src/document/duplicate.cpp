@@ -1,4 +1,6 @@
 #include "duplicate.hpp"
+#include "group/group_extrude.hpp"
+#include <array>
 #include "document/document.hpp"
 #include "document/group/group.hpp"
 #include "document/entity/entity.hpp"
@@ -67,15 +69,28 @@ bool give_own_workplane(Document &doc, const UUID &body)
     auto &lock = doc.add_constraint<ConstraintLockRotation>(UUID::random());
     lock.m_group = body;
     lock.m_entity = wp.m_uuid;
-    const std::map<std::string, std::string> smap{
-            {static_cast<std::string>(old_uu), static_cast<std::string>(wp.m_uuid)}};
+    std::map<std::string, std::string> smap{{static_cast<std::string>(old_uu), static_cast<std::string>(wp.m_uuid)}};
 
     for (const auto &uu : group_set) {
         auto &gr = doc.get_group(uu);
         if (gr.m_active_wrkpl == old_uu)
             gr.m_active_wrkpl = wp.m_uuid;
-        if (auto sweep = dynamic_cast<GroupSweep *>(&gr); sweep && sweep->m_wrkpl == old_uu)
+        if (auto sweep = dynamic_cast<GroupSweep *>(&gr); sweep && sweep->m_wrkpl == old_uu) {
+            // an extrusion's leader line is named after its workplane, so the dimension on it
+            // (the height) must be pointed at the new name or it would be lost
+            auto ex = dynamic_cast<GroupExtrude *>(&gr);
+            std::array<UUID, 2> before;
+            if (ex)
+                before = {ex->get_leader_line_uuid(GroupExtrude::Side::TOP),
+                          ex->get_leader_line_uuid(GroupExtrude::Side::BOTTOM)};
             sweep->m_wrkpl = wp.m_uuid;
+            if (ex) {
+                smap[static_cast<std::string>(before[0])] =
+                        static_cast<std::string>(ex->get_leader_line_uuid(GroupExtrude::Side::TOP));
+                smap[static_cast<std::string>(before[1])] =
+                        static_cast<std::string>(ex->get_leader_line_uuid(GroupExtrude::Side::BOTTOM));
+            }
+        }
     }
     std::vector<UUID> entities, constraints;
     for (const auto &[uu, en] : doc.m_entities) {

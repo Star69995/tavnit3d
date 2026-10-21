@@ -162,6 +162,19 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
         h.size = out;
         h.label = "Lift";
         handles.push_back(h);
+
+        // turning: a curved arrow round the top, on the side facing the camera; it turns about the
+        // upright line through the middle (like Tinkercad's, but about the vertical only)
+        ObjectHandle r;
+        r.kind = ObjectHandle::Kind::ROTATE;
+        const auto toward = glm::normalize(glm::dvec3(towards_eye.x, towards_eye.y, 0) + glm::dvec3(1e-9, 0, 0));
+        const double radius = std::max({hi.x - lo.x, hi.y - lo.y}) * .62 + out * .1;
+        r.face = world({c.x, c.y, hi.z}) + az * out * .35; // a point on the turning line, at the arrow's height
+        r.pos = r.face + toward * radius;
+        r.dir = az;
+        r.size = radius;
+        r.label = "Rotate";
+        handles.push_back(r);
     }
 
     // walls and rounding, at the edge where the top meets the shown side
@@ -227,6 +240,37 @@ std::optional<Editor::ObjectHandle> Editor::get_handle_under_cursor()
     return best;
 }
 
+// the direction (radians, about the upright line through `pivot`) the pointer's ray points at
+static double pointer_angle(const std::pair<glm::dvec3, glm::dvec3> &ray, const glm::dvec3 &pivot)
+{
+    const auto &[o, d] = ray;
+    if (std::abs(d.z) < 1e-9)
+        return 0;
+    const auto p = o + d * ((pivot.z - o.z) / d.z);
+    return std::atan2(p.y - pivot.y, p.x - pivot.x);
+}
+
+void Editor::turn_object(std::vector<PartPosition> &cache, const std::vector<UUID> &parts, const glm::dvec3 &pivot,
+                         double radians)
+{
+    auto &doc = m_core.get_current_document();
+    if (cache.empty()) {
+        // shapes on a shared plane get one of their own first, so they can turn
+        for (const auto &p : parts) {
+            auto leaves = get_object_parts(doc, p);
+            if (leaves.empty())
+                leaves.push_back(p); // a single shape
+            for (const auto &part : leaves) {
+                give_own_workplane(doc, part);
+                if (auto pos = get_part_position(doc, part))
+                    cache.push_back(*pos);
+            }
+        }
+    }
+    for (const auto &pos : cache)
+        set_part_angle(doc, pos, pivot, radians);
+}
+
 bool Editor::begin_handle_drag()
 {
     m_handle_drag.reset();
@@ -270,6 +314,14 @@ bool Editor::begin_handle_drag()
         if (!bounds)
             return false;
         drag.lift_start = bounds->lo.z;
+    } break;
+    case ObjectHandle::Kind::ROTATE: {
+        const auto bounds = get_body_bounds(doc, body);
+        if (!bounds)
+            return false;
+        drag.pivot = (bounds->lo + bounds->hi) / 2.;
+        drag.start_angle = pointer_angle(get_canvas().get_cursor_ray(), drag.pivot);
+        drag.handle.face = drag.pivot;
     } break;
     }
     drag.start_param = param_along(*h, get_canvas().get_cursor_ray());
@@ -317,6 +369,32 @@ void Editor::update_handle_drag()
         drag.moved = true;
         char buf[64];
         snprintf(buf, sizeof(buf), "Height above the floor: %.0f mm", height);
+        m_win.set_key_hint_label_text(buf);
+        doc.update_pending({}, {}, true);
+        canvas_update_keep_selection();
+        schedule_deferred_solid_models();
+        return;
+    }
+
+    if (drag.handle.kind == ObjectHandle::Kind::ROTATE) {
+        // from where the pointer began, whole degrees, and a click into place at the quarter turns' halves
+        double delta = pointer_angle(get_canvas().get_cursor_ray(), drag.pivot) - drag.start_angle;
+        delta = std::remainder(delta, glm::two_pi<double>());
+        double degrees = std::round(glm::degrees(delta));
+        const double snapped = std::round(degrees / 15) * 15;
+        if (std::abs(degrees - snapped) <= 3)
+            degrees = snapped;
+        if (!drag.moved && degrees == 0)
+            return;
+        if (drag.moved && degrees == drag.last_value)
+            return;
+        turn_object(drag.turn_parts, drag.parts, drag.pivot, glm::radians(degrees));
+        if (drag.turn_parts.empty())
+            return;
+        drag.last_value = degrees;
+        drag.moved = true;
+        char buf[64];
+        snprintf(buf, sizeof(buf), "Turned by %.0f degrees", degrees);
         m_win.set_key_hint_label_text(buf);
         doc.update_pending({}, {}, true);
         canvas_update_keep_selection();
@@ -424,6 +502,8 @@ static std::string get_handle_hint(const Editor::ObjectHandle &h)
         return "Wall thickness: drag inwards to hollow the object out, back to the edge for a solid one";
     case Kind::ROUNDING:
         return "Round edges: drag in towards the middle of the object";
+    case Kind::ROTATE:
+        return "Rotate: drag round the object to turn it (it snaps every 15 degrees)";
     case Kind::DIMENSION:
         break;
     }

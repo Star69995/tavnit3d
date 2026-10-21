@@ -1,0 +1,22 @@
+# Also the height (its field and handle) must survive turning and lifting.
+# Turning an object: a 40 x 20 box turned a quarter turn is 20 x 40 in the world, and back; the Rotate
+# handle can be dragged round it (rotation about the upright line through its middle).
+action NEW_DOCUMENT
+wait 800
+button Box
+wait 800
+tree Box
+field Width 40
+wait 600
+expect-extent X 40
+expect-extent Y 20
+rotate-object 90
+expect-extent X 20
+expect-extent Y 40
+expect-extent Z 20
+handles-count 7
+rotate-object -90
+expect-extent X 40
+expect-extent Y 20
+handles-count 7
+quit
