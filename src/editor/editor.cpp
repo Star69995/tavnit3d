@@ -136,6 +136,14 @@ void Editor::init()
     attach_action_button(m_win.get_welcome_open_button(), ActionID::OPEN_DOCUMENT);
     attach_action_button(m_win.get_welcome_new_button(), ActionID::NEW_DOCUMENT);
     attach_action_button(m_win.get_welcome_window_button(), ActionID::NEW_WINDOW);
+    for (const auto &[name, id] : std::vector<std::pair<std::string, ActionID>>{
+                 {"bowl", ActionID::ADD_BOWL}, {"vase", ActionID::ADD_VASE}, {"screw", ActionID::ADD_SCREW}}) {
+        // a new document with the shape already in it
+        m_win.get_welcome_template_button(name).signal_clicked().connect([this, id] {
+            trigger_action(ActionID::NEW_DOCUMENT);
+            Glib::signal_idle().connect_once([this, id] { trigger_action(id); });
+        });
+    }
     m_win.get_welcome_import_button().signal_clicked().connect([this] { on_import_object(); });
     m_win.get_welcome_describe_button().signal_clicked().connect([this] { show_describe_window(); });
 

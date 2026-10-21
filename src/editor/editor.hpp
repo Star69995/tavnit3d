@@ -255,6 +255,8 @@ private:
     void begin_place_decal(const UUID &doc_uu, const UUID &body_uu, const std::filesystem::path &picture);
     bool place_decal_under_cursor();
     Gtk::Widget *m_object_editor = nullptr;
+    // the panel is a column of cards, a grid each (or a single grid, for a light)
+    std::vector<Gtk::Grid *> get_object_editor_grids() const;
     bool m_object_editor_keep = false; // skip the next refresh, the change came from the panel
     UUID m_object_editor_doc;
     UUID m_object_editor_body;

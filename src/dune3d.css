@@ -400,3 +400,23 @@ colorbutton > button {padding: 3px;}
 .prefs-row-hint {font-size: 85%; margin-top: 2px;}
 .studio-prefs .prefs-row .linked {margin: 0;}
 .studio-prefs dropdown > button * {background: none;}
+
+/* object panel as cards: a grey panel with a white card per section (the heading is its first row) */
+.object-cards {background: @studio_window; padding: 6px;}
+.object-card {background: @studio_panel; border: 1px solid @studio_border; border-radius: 12px; padding: 10px;
+  box-shadow: 0 1px 2px alpha(black, .04);}
+.object-card .object-editor-heading {
+  background: none; border: none; border-radius: 0; padding: 0 0 4px 0; margin: 0 0 4px 0;
+  border-bottom: 1px solid @studio_border;
+}
+/* actions with a meaning: delete is red, cutting with a hole is amber */
+.object-editor button.destructive-action {
+  background: alpha(#e5484d, .12); color: #b3261e; border-color: transparent; box-shadow: none;
+}
+.object-editor button.destructive-action:hover {background: alpha(#e5484d, .22);}
+.object-editor button.cut-action {
+  background: alpha(#f59e0b, .16); color: #9a4a06; border-color: transparent; box-shadow: none;
+}
+.object-editor button.cut-action:hover {background: alpha(#f59e0b, .28);}
+.welcome-section {font-size: 75%; font-weight: 700; letter-spacing: 1px; color: @studio_dim;}
+.welcome-template {padding: 8px 10px;}

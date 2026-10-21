@@ -192,6 +192,8 @@ Dune3DAppWindow::Dune3DAppWindow(BaseObjectType *cobject, const Glib::RefPtr<Gtk
     m_welcome_new_button = refBuilder->get_widget<Gtk::Button>("welcome_new_button");
     m_welcome_open_button = refBuilder->get_widget<Gtk::Button>("welcome_open_button");
     m_welcome_window_button = refBuilder->get_widget<Gtk::Button>("welcome_window_button");
+    for (const char *name : {"bowl", "vase", "screw"})
+        m_welcome_template_buttons[name] = refBuilder->get_widget<Gtk::Button>(std::string("welcome_") + name + "_button");
     m_welcome_import_button = refBuilder->get_widget<Gtk::Button>("welcome_import_button");
     m_welcome_describe_button = refBuilder->get_widget<Gtk::Button>("welcome_describe_button");
 

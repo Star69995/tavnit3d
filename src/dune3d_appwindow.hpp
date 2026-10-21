@@ -74,6 +74,12 @@ public:
     // shows the tools of a palette category (Shapes, Lights, ...)
     void show_action_bar_category(const std::string &name);
 
+    // ready-made shapes on the start screen: "bowl", "vase", "screw"
+    Gtk::Button &get_welcome_template_button(const std::string &name)
+    {
+        return *m_welcome_template_buttons.at(name);
+    }
+
     Gtk::Button &get_welcome_window_button()
     {
         return *m_welcome_window_button;
@@ -269,6 +275,7 @@ private:
     Gtk::ListBox *m_welcome_recent_listbox = nullptr;
     Gtk::Button *m_welcome_new_button = nullptr;
     Gtk::Button *m_welcome_open_button = nullptr;
+    std::map<std::string, Gtk::Button *> m_welcome_template_buttons;
     Gtk::Button *m_welcome_window_button = nullptr;
     Gtk::Button *m_welcome_import_button = nullptr;
     Gtk::Button *m_welcome_describe_button = nullptr;

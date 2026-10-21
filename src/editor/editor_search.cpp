@@ -19,9 +19,7 @@ void Editor::focus_object_panel_field(const std::string &label)
         m_workspace_browser->show_toast("Click an object first - \"" + label + "\" is in its panel");
         return;
     }
-    auto grid = dynamic_cast<Gtk::Grid *>(m_object_editor);
-    if (!grid)
-        return;
+    for (auto grid : get_object_editor_grids()) {
     for (auto ch = grid->get_first_child(); ch; ch = ch->get_next_sibling()) {
         auto la = dynamic_cast<Gtk::Label *>(ch);
         if (la && la->get_text().raw() == label) {
@@ -39,6 +37,7 @@ void Editor::focus_object_panel_field(const std::string &label)
             bu->grab_focus();
             return;
         }
+    }
     }
     m_workspace_browser->show_toast("This object has no \"" + label + "\"");
 }

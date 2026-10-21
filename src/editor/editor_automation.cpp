@@ -319,8 +319,8 @@ void Editor::run_automation(const std::filesystem::path &script)
                 Gtk::ScrolledWindow *sc = nullptr;
                 for (Gtk::Widget *w = m_group_editor_box; w && !sc; w = w->get_parent())
                     sc = dynamic_cast<Gtk::ScrolledWindow *>(w);
-                auto grid = dynamic_cast<Gtk::Grid *>(m_object_editor);
-                for (auto ch = grid ? grid->get_first_child() : nullptr; ch; ch = ch->get_next_sibling()) {
+                for (auto grid : get_object_editor_grids())
+                for (auto ch = grid->get_first_child(); ch; ch = ch->get_next_sibling()) {
                     auto sp = dynamic_cast<Gtk::SpinButton *>(ch);
                     if (!sp || !sp->get_mapped())
                         continue;
