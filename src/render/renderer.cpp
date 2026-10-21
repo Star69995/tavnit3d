@@ -21,6 +21,7 @@
 #include "util/template_util.hpp"
 #include "logger/logger.hpp"
 #include <array>
+#include <sstream>
 #include <ranges>
 #include <glm/gtx/io.hpp>
 
@@ -185,8 +186,10 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
             continue;
         // other objects just show their solids, unless asked otherwise; the
         // reference planes (and the grid on them) always show
+        // (the object being edited in the panel keeps its lines, or they'd vanish with a click)
         if (!m_workspace_view->show_other_sketches() && group->get_type() != Group::Type::REFERENCE
-            && &group->find_body(doc).group != m_current_body_group)
+            && &group->find_body(doc).group != m_current_body_group
+            && !(m_highlight_body && group->find_body(doc).group.m_uuid == m_highlight_body))
             continue;
         set_chunk_from_group(*group);
         for (const auto &[uu, el] : doc.m_entities) {
@@ -257,6 +260,35 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
         }
     }
 
+
+    if (m_measure_box) {
+        const auto [lo, hi] = *m_measure_box;
+        const auto size = hi - lo;
+        const double off = std::max({size.x, size.y, size.z}) * 0.2 + 4;
+        // along X in front of the object, along Y at its right, along Z at the front left corner
+        struct Axis {
+            glm::dvec3 from, to, from_on_object, to_on_object;
+            glm::dvec3 outward; // where the text goes, away from the object
+            const char *name;
+        };
+        const Axis axes[] = {
+                {{lo.x, lo.y - off, lo.z}, {hi.x, lo.y - off, lo.z}, {lo.x, lo.y, lo.z}, {hi.x, lo.y, lo.z}, {0, -1, 0}, "Width"},
+                {{hi.x + off, lo.y, lo.z}, {hi.x + off, hi.y, lo.z}, {hi.x, lo.y, lo.z}, {hi.x, hi.y, lo.z}, {1, 0, 0}, "Depth"},
+                {{lo.x - off, lo.y - off, lo.z}, {lo.x - off, lo.y - off, hi.z}, {lo.x, lo.y, lo.z},
+                 {lo.x, lo.y, hi.z}, {-1, 0, 0}, "Height"},
+        };
+        for (const auto &ax : axes) {
+            const auto len = glm::length(ax.to - ax.from);
+            if (len < 1e-3)
+                continue;
+            m_ca.draw_line(ax.from, ax.to);
+            m_ca.draw_line(ax.from_on_object, ax.from);
+            m_ca.draw_line(ax.to_on_object, ax.to);
+            std::ostringstream ss;
+            ss << ax.name << " " << std::round(len * 10) / 10 << " mm";
+            m_ca.draw_bitmap_text((ax.from + ax.to) / 2.0 + glm::normalize(ax.outward) * off * 0.5, 1, ss.str());
+        }
+    }
 
     for (const auto &h : m_handles) {
         m_ca.draw_line(h.face, h.pos);

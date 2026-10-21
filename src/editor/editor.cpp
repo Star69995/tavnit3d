@@ -3,6 +3,7 @@
 #include "describe_window.hpp"
 #include "screw_window.hpp"
 #include "panel_hints.hpp"
+#include "document/object_parts.hpp"
 #include "action_search.hpp"
 #include "util/branding.hpp"
 #include "util/gtk_util.hpp"
@@ -403,6 +404,7 @@ void Editor::init_view_options()
     }
 
     view_options_popover->set_menu_model(m_view_options_menu);
+    add_menu_hints(*view_options_popover);
 
     {
         auto adj = Gtk::Adjustment::create(-1, -1, 5, .01, .1);
@@ -1175,6 +1177,8 @@ void Editor::init_header_bar()
         top->append_item(Gio::MenuItem::create("About", "app.about"));
 
         m_win.get_hamburger_menu_button().set_menu_model(top);
+        if (auto pop = m_win.get_hamburger_menu_button().get_popover())
+            add_menu_hints(*pop);
     }
 }
 
@@ -1204,6 +1208,8 @@ void Editor::update_view_hints()
 
         if (wv.m_show_only_solid_models)
             hints.push_back("only solid models");
+        if (!wv.m_show_other_sketches && m_core.get_current_document().get_groups_by_body().size() > 1)
+            hints.push_back("sketch lines of other objects hidden");
         if (wv.m_show_construction_entities_from_previous_groups)
             hints.push_back("prev. construction entities");
         if (wv.m_hide_irrelevant_workplanes)
@@ -1616,6 +1622,11 @@ void Editor::render_document(const IDocumentInfo &doc)
     if (m_object_editor) {
         renderer.m_highlight_body = m_object_editor_body;
         renderer.m_hide_constraints = true; // the object panel lists the dimensions
+        if (!m_object_editor_light && m_object_editor_body && body_is_shown(m_object_editor_body)
+            && doc.get_uuid() == m_core.get_current_idocument_info().get_uuid()) {
+            if (const auto bounds = get_body_bounds(doc.get_document(), m_object_editor_body))
+                renderer.m_measure_box = std::make_pair(bounds->lo, bounds->hi);
+        }
     }
     if (doc.get_uuid() == m_core.get_current_idocument_info().get_uuid()) {
         get_canvas().set_lights(get_canvas_lights(doc.get_document()));

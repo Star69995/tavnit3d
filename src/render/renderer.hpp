@@ -150,6 +150,8 @@ public:
     };
     std::vector<Handle> m_handles; // drawn tinted, e.g. the object being edited
     bool m_hide_constraints = false;
+    // the outer size (lowest and highest corner) of the picked object, drawn as three measurements
+    std::optional<std::pair<glm::dvec3, glm::dvec3>> m_measure_box;
 
 private:
 };

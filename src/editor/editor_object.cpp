@@ -1,4 +1,5 @@
 #include "editor.hpp"
+#include "document/object_parts.hpp"
 #include "document/object_dimensions.hpp"
 #include "group_editor/group_editor.hpp"
 #include "canvas/color_palette.hpp"
@@ -611,6 +612,19 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
         });
         box->append(*del);
         grid->attach(*box, 0, top++, 2, 1);
+    }
+    {
+        auto orbit = Gtk::make_managed<Gtk::Button>("Rotate view around it");
+        orbit->set_tooltip_text("Make the middle of this object the centre of the view, so dragging with the middle "
+                                "mouse button turns the view around it");
+        orbit->set_margin_top(5);
+        orbit->signal_clicked().connect([this, body_uu] {
+            if (!m_core.has_documents())
+                return;
+            if (const auto bounds = get_body_bounds(m_core.get_current_document(), body_uu))
+                get_canvas().animate_to_center_abs(glm::vec3((bounds->lo + bounds->hi) / 2.0));
+        });
+        grid->attach(*orbit, 0, top++, 2, 1);
     }
 
     add_panel_hints(*grid);

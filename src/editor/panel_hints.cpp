@@ -36,6 +36,11 @@ const std::map<std::string, std::string> row_hints = {
         {"With", "The object to join with, cut out of this one or keep only the overlap of"},
         {"How many", "Number of copies to add"},
         {"Gap", "Space between the copies"},
+        // grid settings
+        {"Cell size", "Distance between the grid lines; Automatic follows the zoom"},
+        {"Snap to grid", "Make points and moves land on grid lines"},
+        {"Opacity %", "How strong the grid lines are drawn"},
+        {"Major opacity %", "How strong the stronger grid lines are drawn"},
         // light panel
         {"Type", "Lamp: shines all around; Spotlight: a cone of light; Sun: parallel light from far away"},
         {"Brightness", "How bright the light is at the point it shines on"},
@@ -75,6 +80,62 @@ void add_panel_hints(Gtk::Grid &grid)
         if (auto field = grid.get_child_at(1, row); field && field->get_tooltip_text().empty())
             field->set_tooltip_text(it->second);
     }
+}
+
+namespace {
+const std::map<std::string, std::string> menu_hints = {
+        // View menu
+        {"Selection filter", "Choose which kinds of things (points, lines, faces...) can be picked"},
+        {"Clipping planes", "Cut the view with planes to look inside objects; nothing is changed in the model"},
+        {"Previous construction entities", "Also show helper lines and points from earlier steps"},
+        {"Only solid models", "Hide sketch lines, show just the finished solids"},
+        {"Hide irrelevant workplanes", "Hide drawing planes that have nothing to do with the current step"},
+        {"Perspective projection", "Far things look smaller, like a camera; off gives a flat technical view"},
+        {"Studio lighting", "Soft studio light in the view instead of flat shading"},
+        {"Sketch lines of other objects",
+         "Show the sketch lines (the drawing a shape is made from) of every object, not just the one being edited"},
+        {"Simple toolbars (no documents)", "A simpler window: no list of documents, just the objects"},
+        {"One document per screen", "Show only the current document in the 3D view"},
+        {"Hidden documents in the list", "Also list documents that are not shown in this tab"},
+        {"Grid size", "Distance between grid lines; Automatic follows the zoom"},
+        {"Snap to grid", "Make points and moves land on grid lines"},
+        {"Grid and floor settings…", "How big the floor is and how the grid looks"},
+        // main menu
+        {"Check for updates", "Look for a newer version now"},
+        {"Check automatically at start", "Look for a newer version every time the program starts"},
+        {"Back up unsaved work", "Keep a copy of unsaved documents so a crash doesn't lose them"},
+        {"Folder for documents...", "Where Open and Save start, and where backups are kept"},
+        {"Website", "Open the project's web page"},
+        {"Source code on GitHub", "Open the program's source code page"},
+        {"Report a problem", "Open the page where you can tell us about a bug or idea"},
+        {"Preferences", "Mouse, keys, colours and other settings"},
+        {"Logger", "Messages the program writes while it runs, useful for finding problems"},
+        {"About", "Version and credits"},
+        {"Off", "No backups"},
+};
+
+void set_menu_hints(Gtk::Widget &w)
+{
+    for (auto ch = w.get_first_child(); ch; ch = ch->get_next_sibling()) {
+        // menu items are GtkModelButtons: private, but their "text" is the label
+        if (std::string(G_OBJECT_TYPE_NAME(ch->gobj())) == "GtkModelButton" && ch->get_tooltip_text().empty()) {
+            gchar *text = nullptr;
+            g_object_get(ch->gobj(), "text", &text, nullptr);
+            if (text) {
+                const auto it = menu_hints.find(text);
+                if (it != menu_hints.end())
+                    ch->set_tooltip_text(it->second);
+                g_free(text);
+            }
+        }
+        set_menu_hints(*ch);
+    }
+}
+} // namespace
+
+void add_menu_hints(Gtk::Popover &popover)
+{
+    popover.signal_map().connect([&popover] { set_menu_hints(popover); });
 }
 
 std::string get_action_hint(const ActionToolID &id)

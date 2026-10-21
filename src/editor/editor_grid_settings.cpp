@@ -1,3 +1,4 @@
+#include "panel_hints.hpp"
 #include "editor.hpp"
 #include "dune3d_appwindow.hpp"
 #include "preferences/preferences.hpp"
@@ -154,6 +155,7 @@ void Editor::show_grid_settings()
         });
         grid->attach(*reset, 0, top++, 2, 1);
     }
+    add_panel_hints(*grid);
     win->set_child(*grid);
     win->present();
 }
