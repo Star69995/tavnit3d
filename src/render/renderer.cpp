@@ -278,6 +278,16 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
     }
 
 
+    if (m_selection_box) {
+        // the box around the picked object, which the handles sit on
+        const auto &b = *m_selection_box;
+        for (int i = 0; i < 8; i++) {
+            for (int bit : {1, 2, 4}) {
+                if (!(i & bit))
+                    m_ca.draw_line(b[i], b[i | bit]);
+            }
+        }
+    }
     for (const auto &h : m_handles) {
         // like Tinkercad: a square on the object for a size, a dot for walls and rounding;
         // only lifting, which really moves the object, has arrows (up and down)

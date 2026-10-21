@@ -173,6 +173,8 @@ public:
         double size = 0; // how big it is drawn, where that matters (Lift)
     };
     std::vector<ObjectHandle> get_object_handles();
+    // the box around the picked object, set by get_object_handles (corner i: bit 0 x, bit 1 y, bit 2 z high)
+    std::optional<std::array<glm::dvec3, 8>> m_handle_box;
 
 private:
     struct HandleDrag {

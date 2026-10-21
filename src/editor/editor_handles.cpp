@@ -34,6 +34,7 @@ namespace dune3d {
 std::vector<Editor::ObjectHandle> Editor::get_object_handles()
 {
     std::vector<ObjectHandle> handles;
+    m_handle_box.reset();
     if (!m_object_editor || m_object_editor_light || !m_object_editor_body || m_core.tool_is_active())
         return handles;
     if (!m_core.has_documents() || m_core.get_current_idocument_info().get_uuid() != m_object_editor_doc)
@@ -84,6 +85,11 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
     if (lo.x > hi.x)
         return handles;
     const auto c = (lo + hi) / 2.;
+    m_handle_box.emplace();
+    for (int i = 0; i < 8; i++) {
+        const glm::dvec3 l{i & 1 ? hi.x : lo.x, i & 2 ? hi.y : lo.y, i & 4 ? hi.z : lo.z};
+        (*m_handle_box)[i] = origin + ax * l.x + ay * l.y + az * l.z;
+    }
     const double size = std::max({hi.x - lo.x, hi.y - lo.y, hi.z - lo.z});
     const double out = std::max(size * .3, 4.); // how far the handle sits out from the face (room for its arrow)
     auto world = [&](const glm::dvec3 &l) { return origin + ax * l.x + ay * l.y + az * l.z; };
@@ -108,8 +114,9 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
     const bool right = glm::dot(ax, towards_eye) >= 0;
     const bool back = glm::dot(ay, towards_eye) >= 0;
     const auto dx = right ? ax : -ax;
-    const glm::dvec3 side_x{right ? hi.x : lo.x, c.y, c.z};
-    const glm::dvec3 side_y{c.x, back ? hi.y : lo.y, c.z};
+    // the size handles sit on the bottom edges, in the middle of the sides facing the camera
+    const glm::dvec3 side_x{right ? hi.x : lo.x, c.y, lo.z};
+    const glm::dvec3 side_y{c.x, back ? hi.y : lo.y, lo.z};
     const double sx = right ? 1 : -1; // towards the shown side, in the object's own x
 
     // up: the height; a ring (no height) grows by its tube's diameter

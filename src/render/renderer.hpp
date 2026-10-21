@@ -1,4 +1,6 @@
 #pragma once
+#include <array>
+#include <optional>
 #include "util/uuid.hpp"
 #include <glm/glm.hpp>
 #include <list>
@@ -149,6 +151,7 @@ public:
         int kind; // 0: a size, 1: wall thickness, 2: rounding, 3: lift
         double size = 0;
     };
+    std::optional<std::array<glm::dvec3, 8>> m_selection_box; // drawn around the picked object
     std::vector<Handle> m_handles; // drawn tinted, e.g. the object being edited
     bool m_hide_constraints = false;
     // the object panel is open: the sketch lines stay, but no points on them, so the handles stand out
