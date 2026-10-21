@@ -290,7 +290,7 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   uncaught C++ exceptions write `%LOCALAPPDATA%/dune3d/crashes/crash-*.txt`
   (module+offset per call; resolve with `addr2line -e build-release/dune3d.exe`
   or the debug build) and show a message box. Automation `crash` tries it.
-- Resize handles are drawn as arrows (`draw_arrow_3d` in `renderer.cpp`: shaft + four barbs, a plain arrow from any side) from the object's side out to the grip; they sit `size * .3` out from the face.
+- Handles (Tinkercad style): a square on the object's side for a size, a dot for wall thickness and rounding, an up/down arrow only for Lift (the one that really moves the object; `draw_arrow_3d` in `renderer.cpp`). While the object panel is open the sketch points are hidden (`Renderer::m_hide_sketch_points`) so only the handles show.
 - Dark theme: `src/dune3d-dark.css` redefines the studio colour names and is added on top of `dune3d.css`
   by `Dune3DApplication::set_dark_ui` (called from `Editor::apply_preferences`; follows Preferences > Theme
   Auto/Light/Dark). Only Preferences offers the choice (no header button). The canvas colours come from `Default.dark.json`. Test `tests/ui/theme.txt`. Design mockups for what

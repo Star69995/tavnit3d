@@ -93,7 +93,7 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
         ObjectHandle h;
         h.face = world(face);
         h.dir = dir;
-        h.pos = h.face + dir * out;
+        h.pos = h.face + dir * out * .25;
         h.constraint = d->constraint;
         h.group = d->group;
         h.scale = d->scale;

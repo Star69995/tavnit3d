@@ -1645,6 +1645,7 @@ void Editor::render_document(const IDocumentInfo &doc)
     if (m_object_editor) {
         renderer.m_highlight_body = m_object_editor_body;
         renderer.m_hide_constraints = true; // the object panel lists the dimensions
+        renderer.m_hide_sketch_points = true; // its handles are what can be dragged
     }
     if (doc.get_uuid() == m_core.get_current_idocument_info().get_uuid()) {
         get_canvas().set_lights(get_canvas_lights(doc.get_document()));
