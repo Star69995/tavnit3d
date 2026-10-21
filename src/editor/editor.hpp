@@ -170,6 +170,7 @@ public:
         double scale = 1;  // shown value = datum * scale
         double per_mm = 1; // shown value change per mm the handle moves
         std::string label;
+        double size = 0; // how big it is drawn, where that matters (Lift)
     };
     std::vector<ObjectHandle> get_object_handles();
 

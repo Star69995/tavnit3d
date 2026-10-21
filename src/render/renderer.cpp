@@ -282,12 +282,11 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
         // like Tinkercad: a square on the object for a size, a dot for walls and rounding;
         // only lifting, which really moves the object, has arrows (up and down)
         if (h.kind == 3) {
-            const auto reach = glm::length(h.pos - h.face);
-            // centred a little above the foot, which is where it is grabbed
-            const auto mid = h.pos + glm::dvec3(0, 0, reach * 1.4);
-            const glm::dvec3 up{0, 0, reach * 1.3};
-            draw_arrow_3d(m_ca, mid, mid + up, reach * .9);
-            draw_arrow_3d(m_ca, mid, mid - up, reach * .9);
+            // two arrows, up and down, around the grip
+            const auto reach = h.size;
+            const glm::dvec3 up{0, 0, reach * .75};
+            draw_arrow_3d(m_ca, h.pos, h.pos + up, reach * .5);
+            draw_arrow_3d(m_ca, h.pos, h.pos - up, reach * .5);
         }
         else {
             m_ca.draw_point(h.pos, h.kind == 0 ? IconID::POINT_BOX : IconID::POINT_CIRCLE);

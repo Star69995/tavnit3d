@@ -148,9 +148,11 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
     if (!m_object_editor_part && can_move_object(doc, body)) {
         ObjectHandle h;
         h.kind = ObjectHandle::Kind::LIFT;
-        h.face = world({side_x.x, side_x.y, lo.z});
+        // above the middle of the top, like Tinkercad's cone: it takes the whole object up and down
+        h.pos = world({c.x, c.y, hi.z}) + az * out * 1.6;
+        h.face = h.pos;
         h.dir = {0, 0, 1};
-        h.pos = h.face + dx * out * .35; // right by the object's foot, on the floor
+        h.size = out;
         h.label = "Lift";
         handles.push_back(h);
     }

@@ -147,6 +147,7 @@ public:
     struct Handle {
         glm::dvec3 face, pos;
         int kind; // 0: a size, 1: wall thickness, 2: rounding, 3: lift
+        double size = 0;
     };
     std::vector<Handle> m_handles; // drawn tinted, e.g. the object being edited
     bool m_hide_constraints = false;
