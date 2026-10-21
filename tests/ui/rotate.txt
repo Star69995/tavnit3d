@@ -14,9 +14,9 @@ rotate-object 90
 expect-extent X 20
 expect-extent Y 40
 expect-extent Z 20
-handles-count 7
+handles-count 6
 rotate-object -90
 expect-extent X 40
 expect-extent Y 20
-handles-count 7
+handles-count 6
 quit

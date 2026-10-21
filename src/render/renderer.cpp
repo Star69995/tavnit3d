@@ -278,61 +278,13 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
     }
 
 
-    if (m_selection_box) {
-        // like Tinkercad: the footprint on the floor, and dashed lines through the middle of it and up to the top
-        const auto &b = *m_selection_box;
-        auto dashed = [this](const glm::dvec3 &from, const glm::dvec3 &to) {
-            const int n = 14;
-            for (int k = 0; k < n; k += 2)
-                m_ca.draw_line(from + (to - from) * (double(k) / n), from + (to - from) * (double(k + 1) / n));
-        };
-        const int base[4] = {0, 1, 3, 2};
-        for (int k = 0; k < 4; k++)
-            dashed(b[base[k]], b[base[(k + 1) % 4]]);
-        const auto mid = [&b](int i, int j) { return (b[i] + b[j]) / 2.; };
-        dashed(mid(0, 2), mid(1, 3));
-        dashed(mid(0, 1), mid(2, 3));
-        dashed(mid(0, 3), mid(4, 7));
-    }
     for (const auto &h : m_handles) {
-        // like Tinkercad: a square on the object for a size, a dot for walls and rounding;
-        // only lifting, which really moves the object, has arrows (up and down)
+        // a square on the object for a size, a dot for walls and rounding;
+        // only lifting, which really moves the object, is an arrow (pointing up)
         if (h.kind == 3) {
-            // one cone pointing up, as dense lines so it reads as solid; it takes the whole object up and down
-            const double r = h.size * .22, height = h.size * .7;
-            const glm::dvec3 apex = h.pos + glm::dvec3(0, 0, height);
-            const int n = 20;
-            glm::dvec3 prev = h.pos + glm::dvec3(r, 0, 0);
-            for (int k = 1; k <= n; k++) {
-                const double t = glm::two_pi<double>() * k / n;
-                const auto p = h.pos + glm::dvec3(std::cos(t) * r, std::sin(t) * r, 0);
-                m_ca.draw_line(prev, p);
-                m_ca.draw_line(apex, p);
-                m_ca.draw_line(h.pos, p);
-                prev = p;
-            }
-        }
-        else if (h.kind == 4) {
-            // a curved double arrow round the top: the object turns about the upright line through h.face
-            const auto rel = h.pos - h.face;
-            const double r = std::hypot(rel.x, rel.y), a0 = std::atan2(rel.y, rel.x), span = .7;
-            const auto pt = [&](double a) { return h.face + glm::dvec3(std::cos(a) * r, std::sin(a) * r, 0); };
-            const int n = 16;
-            auto prev = pt(a0 - span);
-            for (int k = 1; k <= n; k++) {
-                const auto p = pt(a0 - span + 2 * span * k / n);
-                m_ca.draw_line(prev, p);
-                prev = p;
-            }
-            for (const double sign : {-1., 1.}) {
-                const double a = a0 + sign * span;
-                const glm::dvec3 radial{std::cos(a), std::sin(a), 0};
-                const auto along = glm::dvec3(-std::sin(a), std::cos(a), 0) * sign; // out of the arc's end
-                const double head = r * .16;
-                const auto tip = pt(a) + along * head * .6;
-                m_ca.draw_line(tip, pt(a) - radial * head * .5);
-                m_ca.draw_line(tip, pt(a) + radial * head * .5);
-            }
+            // one arrow standing on the top, pointing up
+            const glm::dvec3 up{0, 0, h.size * .5};
+            draw_arrow_3d(m_ca, h.pos - up, h.pos + up * 1.1, h.size * .4);
         }
         else {
             m_ca.draw_point(h.pos, h.kind == 0 ? IconID::POINT_BOX : IconID::POINT_CIRCLE);

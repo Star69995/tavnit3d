@@ -1653,7 +1653,6 @@ void Editor::render_document(const IDocumentInfo &doc)
     if (doc.get_uuid() == m_core.get_current_idocument_info().get_uuid()) {
         get_canvas().set_lights(get_canvas_lights(doc.get_document()));
         const auto handles = get_object_handles();
-        renderer.m_selection_box = m_handle_box;
         for (const auto &h : handles)
             renderer.m_handles.push_back({h.face, h.pos, static_cast<int>(h.kind), h.size});
     }

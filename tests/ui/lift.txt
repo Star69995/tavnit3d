@@ -12,7 +12,7 @@ wait 500
 expect-bottom 30
 check-solids
 # lifting must not lose the height (field and handle): 7 handles
-handles-count 7
+handles-count 6
 # sideways at that height
 field X 40
 wait 500
