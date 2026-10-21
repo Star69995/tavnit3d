@@ -142,6 +142,15 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   installer's toolbars page writes `%APPDATA%/dune3d/install_options.json` (`{"simple_ui": bool}`),
   which the app takes over once at start and deletes. Automation: `hide NAME`, `show NAME`,
   `handles-count N`; test `tests/ui/simple.txt`.
+- Objects, not steps: View > "Steps under each object" (`UserConfig::show_steps`, off by default,
+  `WorkspaceBrowser::set_show_steps`) lists only objects - no step rows (so `create_model` gives body rows no
+  children and `select_group` returns early: expanding a non-expandable row looped forever) and no base body that
+  holds just the reference plane. A click on an already selected object row opens its panel again (the list
+  doesn't notify; also `tree NAME` in automation). Groups of objects (`Body::m_folder`, `src/document/object_folders.*`):
+  objects with the same group name (object panel "Group" field, "Rename group", "Ungroup") stay separate shapes but
+  are listed under one row (`BodyItem::m_is_folder` with `m_children`; its eye switches all members; clicking it opens
+  the first member) and move together when one of them is dragged (`begin_object_drag`: every member's part
+  positions). Saved as `"folder"` in the body's JSON. Test: `tests/ui/groups.txt` (`expect-left NAME MM`).
 - Movable panels (`src/dune3d_appwindow_panels.cpp`): the tool palette and the layers list
   (workspace browser, `Dune3DAppWindow::set_layers_panel`) have a grip you drag. One capture
   `GestureDrag` on the window handles all of them (`m_panels`); dragging the layers header out of

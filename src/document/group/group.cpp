@@ -47,6 +47,7 @@ Body::Body(const json &j) : m_name(j.at("name").get<std::string>())
     if (j.contains("material"))
         m_material = body_material_lut.lookup_opt(j.at("material").get<std::string>()).value_or(Material::SATIN);
     m_hole = j.value("hole", false);
+    m_folder = j.value("folder", std::string());
     if (j.contains("decals")) {
         for (const auto &jd : j.at("decals"))
             m_decals.emplace_back(jd);
@@ -68,6 +69,8 @@ json Body::serialize() const
         j["material"] = body_material_lut.lookup_reverse(m_material);
     if (m_hole)
         j["hole"] = true;
+    if (m_folder.size())
+        j["folder"] = m_folder;
     if (m_decals.size()) {
         auto &jd = j["decals"] = json::array();
         for (const auto &decal : m_decals)

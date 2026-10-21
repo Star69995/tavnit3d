@@ -7,6 +7,7 @@
 #include "document/entity/entity_workplane.hpp"
 #include "document/constraint/constraint_point_distance_hv.hpp"
 #include "document/object_parts.hpp"
+#include "document/object_folders.hpp"
 #include "document/group/group_reference.hpp"
 #include "document/body_solids.hpp"
 #include "document/solid_model/solid_model_occ.hpp"
@@ -34,6 +35,29 @@ bool Editor::begin_object_drag(const UUID &doc_uu, const UUID &body_uu)
     ObjectDrag drag;
     drag.doc = doc_uu;
     drag.body = body_uu;
+    // an object in a group of objects: they all move, each by its own position
+    if (const auto &folder = doc.get_group(body_uu).m_body->m_folder; folder.size()) {
+        for (const auto &member : get_folder_members(doc, folder)) {
+            auto leaves = get_object_parts(doc, member);
+            if (leaves.empty())
+                leaves.push_back(member);
+            for (const auto &leaf : leaves) {
+                auto pos = get_part_position(doc, leaf);
+                if (!pos)
+                    return false;
+                drag.parts.push_back(*pos);
+            }
+        }
+        if (drag.parts.size()) {
+            drag.wrkpl = doc.get_reference_group().get_workplane_xy_uuid();
+            auto &wrkpl = doc.get_entity<EntityWorkplane>(drag.wrkpl);
+            drag.start = wrkpl.project(get_canvas().get_cursor_pos_for_plane(wrkpl.m_origin, wrkpl.get_normal_vector()));
+            drag.x0 = drag.y0 = 0;
+            m_object_drag = drag;
+            get_canvas().inhibit_drag_selection();
+            return true;
+        }
+    }
     // a lifted object has a workplane of its own (the square shown under it): move that, or the
     // object would slide away from it
     if (auto own = get_part_position(doc, body_uu); own && own->wrkpl) {

@@ -345,6 +345,7 @@ void Editor::init_view_options()
         m_workspace_browser->set_show_other_documents(config.show_other_documents);
         m_workspace_browser->set_one_document_per_screen(config.one_document_per_screen);
         m_workspace_browser->set_simple(config.simple_ui);
+        m_workspace_browser->set_show_steps(config.show_steps);
         m_workspace_browser->m_screens_text = [this](const UUID &doc) { return get_document_screens(doc); };
         auto other = m_win.add_action_bool("show_other_documents", config.show_other_documents);
         other->set_enabled(!config.one_document_per_screen);
@@ -364,6 +365,15 @@ void Editor::init_view_options()
             other->set_enabled(!b);
             m_workspace_browser->set_one_document_per_screen(b);
             CanvasUpdater canvas_updater{*this};
+            if (m_core.has_documents())
+                m_workspace_browser->update_documents(get_current_document_views());
+        });
+        auto steps = m_win.add_action_bool("show_steps", config.show_steps);
+        steps->signal_change_state().connect([this, steps](const Glib::VariantBase &v) {
+            const auto b = Glib::VariantBase::cast_dynamic<Glib::Variant<bool>>(v).get();
+            m_win.get_app().m_user_config.show_steps = b;
+            steps->set_state(Glib::Variant<bool>::create(b));
+            m_workspace_browser->set_show_steps(b);
             if (m_core.has_documents())
                 m_workspace_browser->update_documents(get_current_document_views());
         });
@@ -401,6 +411,7 @@ void Editor::init_view_options()
     m_view_options_menu->append("Perspective projection", "win.perspective");
     m_view_options_menu->append("Studio lighting", "win.studio_lighting");
     m_view_options_menu->append("Sketch lines of other objects", "win.show_other_sketches");
+    m_view_options_menu->append("Steps under each object", "win.show_steps");
     m_view_options_menu->append("Simple toolbars (no documents)", "win.simple_ui");
     m_view_options_menu->append("One document per screen", "win.one_document_per_screen");
     m_view_options_menu->append("Hidden documents in the list", "win.show_other_documents");
@@ -1676,6 +1687,8 @@ void Editor::render_document(const IDocumentInfo &doc)
     renderer.m_solid_model_edge_select_mode = m_solid_model_edge_select_mode;
     renderer.m_connect_curvature_comb = m_preferences.canvas.connect_curvature_combs;
     renderer.m_first_group = m_update_groups_after;
+    // working with objects, not steps: only a picked object shows its sketch lines
+    renderer.m_only_selected_sketches = !m_win.get_app().m_user_config.show_steps;
     if (m_object_editor) {
         renderer.m_highlight_body = m_object_editor_body;
         renderer.m_hide_constraints = true; // the object panel lists the dimensions

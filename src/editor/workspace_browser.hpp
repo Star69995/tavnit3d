@@ -34,6 +34,11 @@ public:
     {
         m_simple = simple;
     }
+    // off: objects only, no step rows under them (and no base "Body" with just the reference plane)
+    void set_show_steps(bool show)
+    {
+        m_show_steps = show;
+    }
     // the screens (tabs) a document is shown in, for its row; empty = nothing to show
     std::function<std::string(const UUID &)> m_screens_text;
 
@@ -63,6 +68,18 @@ public:
     type_signal_group_selected signal_body_selected()
     {
         return m_signal_body_selected;
+    }
+
+    // a row of a group of objects (see document/object_folders.hpp): selected / eye switched
+    using type_signal_folder_selected = sigc::signal<void(UUID, std::string)>;
+    using type_signal_folder_checked = sigc::signal<void(UUID, std::string, bool)>;
+    type_signal_folder_selected signal_folder_selected()
+    {
+        return m_signal_folder_selected;
+    }
+    type_signal_folder_checked signal_folder_checked()
+    {
+        return m_signal_folder_checked;
     }
 
     type_signal_group_selected signal_delete_body()
@@ -176,6 +193,8 @@ private:
 
     type_signal_group_selected m_signal_group_selected;
     type_signal_group_selected m_signal_group_reclicked;
+    type_signal_folder_selected m_signal_folder_selected;
+    type_signal_folder_checked m_signal_folder_checked;
     type_signal_group_checked m_signal_group_checked;
     type_signal_group_checked m_signal_body_checked;
     type_signal_group_checked m_signal_body_solid_model_checked;
@@ -205,6 +224,7 @@ private:
     bool m_show_other_documents = false;
     bool m_one_document_per_screen = false;
     bool m_simple = false;
+    bool m_show_steps = true;
 
     void select_group(const UUID &doc_uu, const UUID &uu);
 

@@ -28,6 +28,8 @@ public:
     std::vector<Decal> m_decals; // stickers
     // a "hole": drawn see-through, left out of exports, cuts the objects it overlaps when asked to
     bool m_hole = false;
+    // the group of objects it is listed and moved with ("" = none), see object_folders.hpp
+    std::string m_folder;
 
     json serialize() const;
 };

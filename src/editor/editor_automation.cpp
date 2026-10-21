@@ -63,6 +63,7 @@ static std::map<std::string, glm::dvec3> s_light_marks; // "light-mark": where a
  *   hide NAME / show NAME    the eye of the object called NAME in the list
  *   drag-handle LABEL DX DY  drag the picked object's handle called LABEL (e.g. Lift) by DX DY pixels
  *   expect-bottom MM         fail unless the picked object's underside is MM above the floor (within 0.5)
+ *   expect-left NAME MM      fail unless the object's left side (X) is at MM (within 0.5)
  *   handles-count N          fail unless the picked object has N resize handles (0 when it is hidden)
  *   check-solids             fail if a step that makes a solid has none ("not done")
  *   groups                   print the current document's groups, their solids and messages
@@ -396,6 +397,25 @@ void Editor::run_automation(const std::filesystem::path &script)
                     if (!found)
                         throw std::runtime_error("no handle called " + label);
                 }
+            }
+            else if (cmd == "expect-left") {
+                // expect-left NAME MM: the object's left side (X) is there
+                std::istringstream is(rest);
+                std::string name;
+                double mm;
+                is >> name >> mm;
+                auto &doc = m_core.get_current_document();
+                UUID body;
+                for (auto gr : doc.get_groups_sorted()) {
+                    if (gr->m_body && gr->m_body->m_name == name)
+                        body = gr->m_uuid;
+                }
+                const auto b = body ? get_body_bounds(doc, body) : std::nullopt;
+                if (!b)
+                    throw std::runtime_error("no object " + name);
+                if (std::abs(b->lo.x - mm) > .5)
+                    throw std::runtime_error("expected " + name + " at X " + std::to_string(mm) + ", it is at "
+                                             + std::to_string(b->lo.x));
             }
             else if (cmd == "handles-count") {
                 const auto n = get_object_handles().size();

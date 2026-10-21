@@ -14,6 +14,7 @@
 #include "action/action_id.hpp"
 #include "document/solid_model/solid_model.hpp"
 #include "widgets/select_groups_dialog.hpp"
+#include "document/object_folders.hpp"
 #include "core/tool_data_create_circular_sweep_group.hpp"
 
 namespace dune3d {
@@ -72,6 +73,21 @@ void Editor::init_workspace_browser()
         }
         show_object_editor(doc, body);
     });
+    m_workspace_browser->signal_folder_selected().connect([this](const UUID &doc, const std::string &folder) {
+        // a group of objects: its first object's panel (where the group can be changed)
+        if (m_core.tool_is_active() || !m_core.has_documents())
+            return;
+        const auto members = get_folder_members(m_core.get_idocument_info(doc).get_document(), folder);
+        if (members.size())
+            show_object_editor(doc, members.front());
+    });
+    m_workspace_browser->signal_folder_checked().connect(
+            [this](const UUID &doc, const std::string &folder, bool checked) {
+                CanvasUpdater canvas_updater{*this};
+                for (const auto &body : get_folder_members(m_core.get_idocument_info(doc).get_document(), folder))
+                    get_current_document_views()[doc].m_body_views[body].m_visible = checked;
+                m_workspace_browser->update_current_group(get_current_document_views());
+            });
     m_workspace_browser->signal_delete_body().connect([this](const UUID &doc, const UUID &body) {
         Glib::signal_idle().connect_once([this, doc, body] { delete_body(doc, body); });
     });

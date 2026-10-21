@@ -63,6 +63,8 @@ public:
         // for beginners: no documents in the side list, and no tab bar while there is one tab. The
         // installer's choice (install_options.json in the config folder) is taken over once.
         bool simple_ui = false;
+        // the list shows the steps (sketch, extrude ...) under each object; off: just objects
+        bool show_steps = false;
         // where movable panels ("palette", "layers") were dragged to, in pixels from the 3D view's
         // top left; x < 0: where they start out. "layers" floats over the view or sits in the sidebar
         struct PanelPlace {
