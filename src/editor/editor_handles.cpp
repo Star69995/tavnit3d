@@ -85,7 +85,7 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
         return handles;
     const auto c = (lo + hi) / 2.;
     const double size = std::max({hi.x - lo.x, hi.y - lo.y, hi.z - lo.z});
-    const double out = std::max(size * .15, 2.); // how far the handle sits out from the face
+    const double out = std::max(size * .3, 4.); // how far the handle sits out from the face (room for its arrow)
     auto world = [&](const glm::dvec3 &l) { return origin + ax * l.x + ay * l.y + az * l.z; };
     auto add_dim = [&](const ObjectDimension *d, glm::dvec3 face, const glm::dvec3 &dir, double per_mm) {
         if (!d)

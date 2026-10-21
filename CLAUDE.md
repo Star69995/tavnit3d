@@ -290,6 +290,7 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   uncaught C++ exceptions write `%LOCALAPPDATA%/dune3d/crashes/crash-*.txt`
   (module+offset per call; resolve with `addr2line -e build-release/dune3d.exe`
   or the debug build) and show a message box. Automation `crash` tries it.
+- Resize handles are drawn as arrows (`draw_arrow_3d` in `renderer.cpp`: shaft + pyramid head, readable from any side) from the object's side out to the grip; they sit `size * .3` out from the face.
 - Dark theme: `src/dune3d-dark.css` redefines the studio colour names and is added on top of `dune3d.css`
   by `Dune3DApplication::set_dark_ui` (called from `Editor::apply_preferences`; follows Preferences > Theme
   Auto/Light/Dark). The moon/sun button in the header bar (`theme_button`) flips the setting and saves it; also in

@@ -40,6 +40,28 @@ static void draw_circle_3d(ICanvas &ca, const glm::dvec3 &c, const glm::dvec3 &a
     }
 }
 
+// An arrow that reads from any side: the shaft and a pyramid-shaped head (its four edges and the square
+// at its base), so the direction is clear however the view is turned. Used by the drag handles.
+static void draw_arrow_3d(ICanvas &ca, const glm::dvec3 &from, const glm::dvec3 &to, double head_len)
+{
+    const auto d = to - from;
+    const double len = glm::length(d);
+    if (len < 1e-6)
+        return;
+    const auto dir = d / len;
+    head_len = std::min(head_len, len * .4);
+    const auto helper = std::abs(dir.z) < .9 ? glm::dvec3(0, 0, 1) : glm::dvec3(1, 0, 0);
+    const auto u = glm::normalize(glm::cross(dir, helper)) * head_len * .3;
+    const auto v = glm::normalize(glm::cross(dir, u)) * head_len * .3;
+    const auto base = to - dir * head_len;
+    ca.draw_line(from, base);
+    const glm::dvec3 corners[4] = {base + u + v, base - u + v, base - u - v, base + u - v};
+    for (int i = 0; i < 4; i++) {
+        ca.draw_line(to, corners[i]);
+        ca.draw_line(corners[i], corners[(i + 1) % 4]);
+    }
+}
+
 // What a lamp looks like in the 3D view, so it reads as a light rather than a dot: a bulb (point),
 // a lamp with its beam cone (spot), a sun with rays and parallel arrows (sun). Sized by how far the
 // light is from what it shines at, so it stays in proportion to the scene.
@@ -259,7 +281,8 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
 
 
     for (const auto &h : m_handles) {
-        m_ca.draw_line(h.face, h.pos);
+        // an arrow from the object's side out to the grip, so it's clear which way it pulls
+        draw_arrow_3d(m_ca, h.face, h.pos, glm::length(h.pos - h.face) * .4);
         m_ca.draw_point(h.pos, h.kind == 0 || h.kind == 3 ? IconID::POINT_DIAMOND
                                : h.kind == 1 ? IconID::POINT_TRIANGLE_DOWN
                                              : IconID::POINT_CIRCLE);
