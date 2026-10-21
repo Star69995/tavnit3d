@@ -350,6 +350,35 @@ void Editor::show_object_editor(const UUID &doc_uu, const UUID &body_uu)
             changed(group_uu, true);
         });
         grid_attach_label_and_widget(*grid, dim.label, *sp, top).add_css_class("tnum");
+        // a size can also be slid: from tiny to well past what it is now (the field takes any value)
+        if (sp->get_value() > 0 && dim.label != "X" && dim.label != "Y" && dim.label != "Z") {
+            const double v = sp->get_value();
+            const double hi = std::max(100., std::ceil(v * 2.5 / 10) * 10);
+            auto slider = Gtk::make_managed<Gtk::Scale>(Gtk::Orientation::HORIZONTAL);
+            slider->set_range(1, hi);
+            slider->set_value(std::clamp(v, 1., hi));
+            slider->set_draw_value(false);
+            slider->set_round_digits(0);
+            slider->set_hexpand(true);
+            slider->add_css_class("dim-slider");
+            slider->set_tooltip_text("Slide to change the " + dim.label);
+            auto syncing = std::make_shared<bool>(false);
+            slider->signal_value_changed().connect([sp, slider, syncing] {
+                if (*syncing)
+                    return;
+                *syncing = true;
+                sp->set_value(slider->get_value());
+                *syncing = false;
+            });
+            sp->signal_value_changed().connect([sp, slider, syncing, hi] {
+                if (*syncing)
+                    return;
+                *syncing = true;
+                slider->set_value(std::clamp(sp->get_value(), 1., hi));
+                *syncing = false;
+            });
+            grid->attach(*slider, 0, top++, 2, 1);
+        }
     }
 
     // rounding all edges, like a rounded box

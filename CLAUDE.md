@@ -295,11 +295,11 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   by `Dune3DApplication::set_dark_ui` (called from `Editor::apply_preferences`; follows Preferences > Theme
   Auto/Light/Dark). Only Preferences offers the choice (no header button). The canvas colours come from `Default.dark.json`. Test `tests/ui/theme.txt`. Design mockups for what
   comes next (tool rail with a drawer, object cards, start screen, preferences) were approved as a design canvas.
-- Look refresh (approved mockups): the tool palette is a rail of categories (Shapes, Lights, Sketch, Solid:
+- Look refresh (approved mockups): the tool palette is a rail of categories (Shapes, Lights, Sketch, Solid, Import - Model/Picture/Describe:
   `add_action_bar_section` makes a rail button + a `Gtk::Stack` page, `add_action_bar_collapsible_section` adds to
   the current page) with the chosen category's tools next to it; the object panel is a column of cards (`make_cards` in
   `editor_object.cpp` splits the built grid at its headings; `get_object_editor_grids()` lists the card grids, use it
-  instead of casting `m_object_editor` to a grid; Delete is a soft red button, Cut amber); the start screen (`welcome_box` in window.ui) has action cards (New document, New
+  instead of casting `m_object_editor` to a grid; Delete is a soft red button, Cut amber; each size has a slider under its field, `dim-slider`); the start screen (`welcome_box` in window.ui) has action cards (New document, New
   window, Open, Import, Describe) and ready-made shapes (Bowl, Vase, Screw: a new document with the shape) styled by `.welcome-card`; Preferences (`.studio-prefs`, `.prefs-nav`) is a
   bigger window with a navigation list, card-like groups and pill-shaped segmented choices. Theme (light/dark)
   is chosen only in Preferences > Appearance and theme. Automation: `preferences [PAGE]`, `theme dark|light|auto`.

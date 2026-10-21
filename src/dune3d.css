@@ -420,3 +420,17 @@ colorbutton > button {padding: 3px;}
 .object-editor button.cut-action:hover {background: alpha(#f59e0b, .28);}
 .welcome-section {font-size: 75%; font-weight: 700; letter-spacing: 1px; color: @studio_dim;}
 .welcome-template {padding: 8px 10px;}
+
+/* sliders next to the number fields */
+scale.dim-slider {margin: -2px 2px 4px 2px; min-height: 18px;}
+scale.dim-slider trough {min-height: 4px; border-radius: 2px; background: @studio_border;}
+scale.dim-slider highlight {background: @accent_bg_color; border-radius: 2px;}
+scale.dim-slider slider {min-width: 14px; min-height: 14px; border-radius: 50%; background: @studio_panel;
+  border: 2px solid @accent_bg_color; box-shadow: 0 1px 3px alpha(black, .25);}
+scale.dim-slider slider:hover {background: alpha(@accent_bg_color, .12);}
+
+/* recent files on the start screen: soft rows */
+.welcome-box scrolledwindow {border-radius: 12px; background: @studio_field; border: 1px solid @studio_border;}
+.welcome-box list {background: none;}
+.welcome-box list > row {border-radius: 9px; margin: 3px 6px; padding: 6px 8px;}
+.welcome-box list > row:hover {background: alpha(@accent_bg_color, .10);}

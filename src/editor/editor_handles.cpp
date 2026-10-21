@@ -150,7 +150,7 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
         h.kind = ObjectHandle::Kind::LIFT;
         h.face = world({side_x.x, side_x.y, lo.z});
         h.dir = {0, 0, 1};
-        h.pos = h.face + dx * out * .9;
+        h.pos = h.face + dx * out * .35; // right by the object's foot, on the floor
         h.label = "Lift";
         handles.push_back(h);
     }
@@ -165,7 +165,7 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
         const double t = shell ? shell->m_thickness : 0;
         h.face = edge - dx * t;
         h.dir = -dx;
-        h.pos = h.face + az * out * .9 - dx * out * .9;
+        h.pos = h.face - dx * out * .55; // on the top face, a little in from its edge
         h.label = "Wall thickness";
         handles.push_back(h);
     }
@@ -175,7 +175,7 @@ std::vector<Editor::ObjectHandle> Editor::get_object_handles()
         h.kind = ObjectHandle::Kind::ROUNDING;
         h.face = edge;
         h.dir = glm::normalize(-dx - az);
-        h.pos = edge + glm::normalize(dx + az) * out * 1.1;
+        h.pos = edge + glm::normalize(dx + az) * out * .3; // on the corner where the top meets the side
         h.label = "Round edges";
         handles.push_back(h);
     }

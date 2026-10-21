@@ -155,8 +155,6 @@ void Editor::init()
     create_action_bar_button(ActionID::ADD_CONE, "Cone");
     create_action_bar_button(ActionID::ADD_WEDGE, "Wedge");
     create_action_bar_button(ActionID::ADD_TEXT, "3D Text");
-    create_action_bar_button(ActionID::ADD_PICTURE_OBJECT, "Picture");
-    create_action_bar_button(ActionID::MAKE_FROM_DESCRIPTION, "Describe");
     auto more = Gtk::make_managed<Gtk::ToggleButton>();
     auto more_img = Gtk::make_managed<Gtk::Image>();
     auto more_la = Gtk::make_managed<Gtk::Label>("More");
@@ -212,6 +210,10 @@ void Editor::init()
     create_action_bar_button(ActionID::CREATE_GROUP_FILLET, "Fillet");
     create_action_bar_button(ActionID::CREATE_GROUP_CHAMFER, "Chamfer");
     create_action_bar_button(ActionID::COMBINE_OBJECTS, "Combine");
+    m_win.add_action_bar_section("Import");
+    create_action_bar_button(ActionID::IMPORT_OBJECT, "Model");
+    create_action_bar_button(ActionID::ADD_PICTURE_OBJECT, "Picture");
+    create_action_bar_button(ActionID::MAKE_FROM_DESCRIPTION, "Describe");
 
     init_view_options();
 
@@ -485,6 +487,7 @@ Gtk::Button &Editor::create_action_bar_button(ActionToolID action, const std::st
             {ActionID::ADD_SCREW, "action-add-screw-symbolic"},
             {ActionID::ADD_HOLE_SHAPE, "action-add-hole-symbolic"},
             {ActionID::ADD_TEXT, "action-draw-text-symbolic"},
+            {ActionID::IMPORT_OBJECT, "document-open-symbolic"},
             {ActionID::ADD_PICTURE_OBJECT, "action-add-picture-symbolic"},
     };
     auto bu = Gtk::make_managed<Gtk::Button>();
