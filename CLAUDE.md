@@ -135,7 +135,7 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   View > Simple toolbars): the list's show/hide switch is an eye (a cairo-drawn toggle, crossed out when
   hidden) with a tooltip per row kind (document / object / step) and a reason when greyed out; the cube
   next to an object's eye hides only the solid, the sketch lines stay. Rows have hover texts too (an
-  object: select + right-click; a step: click goes back to it, later steps wait greyed). A hidden object
+  object: select + right-click; a step: click goes back to it, later steps wait greyed; a click on the step that is already open goes back to the last step again, `signal_group_reclicked`, acted on at press because the list claims the click). A hidden object
   (eye or cube off, `Editor::body_is_shown`) has no resize handles. Simple view: no document rows (the
   tree's root is the current document's objects, `WorkspaceBrowser::set_simple`), other documents not
   drawn, tab bar shown only while there are 2+ tabs (`Editor::update_workspace_tabs_visible`). The

@@ -255,6 +255,7 @@ private:
     void begin_place_decal(const UUID &doc_uu, const UUID &body_uu, const std::filesystem::path &picture);
     bool place_decal_under_cursor();
     Gtk::Widget *m_object_editor = nullptr;
+    UUID m_reclicked_group; // a step clicked again (back to the last step): its release selection is ignored
     bool m_object_editor_keep = false; // skip the next refresh, the change came from the panel
     UUID m_object_editor_doc;
     UUID m_object_editor_body;
