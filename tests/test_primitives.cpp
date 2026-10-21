@@ -14,6 +14,7 @@
 #include "util/step_exporter.hpp"
 #include "document/hollow.hpp"
 #include "document/object_parts.hpp"
+#include "document/object_folders.hpp"
 #include "document/object_dimensions.hpp"
 #include "document/constraint/iconstraint_datum.hpp"
 #include "document/group/group_fillet.hpp"
@@ -841,6 +842,85 @@ static void test_limits()
     }
 }
 
+// Groups of objects: dropping objects before / after / onto each other in the list changes the document's
+// order and the groups as the drop says.
+static std::string body_order(const Document &doc)
+{
+    std::string s;
+    for (const auto &bg : doc.get_groups_by_body()) {
+        if (!bg.body.m_name.size() || bg.body.m_name == "Body")
+            continue;
+        s += (s.size() ? " " : "") + bg.body.m_name;
+        if (bg.body.m_folder.size())
+            s += "(" + bg.body.m_folder + ")";
+    }
+    return s;
+}
+
+static void test_folders()
+{
+    std::cout << "groups of objects" << std::endl;
+    Document doc;
+    std::map<std::string, UUID> id;
+    for (const char *name : {"A", "B", "C", "D"}) {
+        auto &g = add_primitive(doc, doc.get_groups_sorted().back()->m_uuid, Primitive::BOX, {0, 0});
+        const auto body = g.find_body(doc).group.m_uuid;
+        doc.get_group(body).m_body->m_name = name;
+        id[name] = body;
+    }
+    doc.update_pending();
+    check(body_order(doc) == "A B C D", "four loose objects: " + body_order(doc));
+    using Where = FolderDrop::Where;
+    std::string created;
+    // C onto A: a new group of the two, C next to A
+    FolderDrop d;
+    d.body = id["C"];
+    d.target_body = id["A"];
+    d.where = Where::INTO;
+    check(apply_folder_drop(doc, d, &created), "C onto A works");
+    check(created == "Group", "the new group is called Group");
+    check(body_order(doc) == "A(Group) C(Group) B D", "C joins A: " + body_order(doc));
+    // D before A: D joins the group, first
+    d = {};
+    d.body = id["D"];
+    d.target_body = id["A"];
+    d.where = Where::BEFORE;
+    check(apply_folder_drop(doc, d), "D before A works");
+    check(body_order(doc) == "D(Group) A(Group) C(Group) B", "D joins the group: " + body_order(doc));
+    // C onto the group's row: stays in it, at its end
+    d = {};
+    d.body = id["C"];
+    d.target_folder = "Group";
+    d.where = Where::INTO;
+    check(apply_folder_drop(doc, d), "C onto the group works");
+    check(body_order(doc) == "D(Group) A(Group) C(Group) B", "still the same: " + body_order(doc));
+    // B after the group's row: loose, after its last object
+    d = {};
+    d.body = id["B"];
+    d.target_folder = "Group";
+    d.where = Where::AFTER;
+    check(apply_folder_drop(doc, d), "B after the group works");
+    check(body_order(doc) == "D(Group) A(Group) C(Group) B", "B stays loose behind it: " + body_order(doc));
+    // C out of the group: before B (loose)
+    d = {};
+    d.body = id["C"];
+    d.target_body = id["B"];
+    d.where = Where::BEFORE;
+    check(apply_folder_drop(doc, d), "C before B works");
+    check(body_order(doc) == "D(Group) A(Group) C B", "C leaves the group: " + body_order(doc));
+    // the whole group after B (a group on a loose object's middle does not nest, it goes beside it)
+    d = {};
+    d.folder = "Group";
+    d.target_body = id["B"];
+    d.where = Where::INTO;
+    check(apply_folder_drop(doc, d), "the group onto B works");
+    check(body_order(doc) == "C B D(Group) A(Group)", "the group goes after B: " + body_order(doc));
+    // renaming and ungrouping still work on top of that
+    rename_folder(doc, "Group", "Legs");
+    check(body_order(doc) == "C B D(Legs) A(Legs)", "renamed: " + body_order(doc));
+    check(!apply_folder_drop(doc, FolderDrop{id["A"], "", id["A"], "", Where::AFTER}), "onto itself does nothing");
+}
+
 int main()
 {
     constexpr double pi = std::numbers::pi;
@@ -863,6 +943,7 @@ int main()
     test_looks_survive_rounding_and_hollow();
     test_object_parts();
     test_limits();
+    test_folders();
     std::cout << (failures ? "FAILED" : "PASSED") << " (" << failures << " failures)" << std::endl;
     return failures ? 1 : 0;
 }

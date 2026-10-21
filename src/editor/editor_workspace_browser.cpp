@@ -88,6 +88,63 @@ void Editor::init_workspace_browser()
                     get_current_document_views()[doc].m_body_views[body].m_visible = checked;
                 m_workspace_browser->update_current_group(get_current_document_views());
             });
+    // organising objects in groups: drops in the list, renaming, ungrouping, putting objects in and out
+    {
+        // shared: the document changed (order or groups), so rebuild, redraw, and refresh a panel that shows it
+        auto done = [this](const char *what) {
+            m_core.set_needs_save();
+            m_core.rebuild(what);
+            m_workspace_browser->update_documents(get_current_document_views());
+            if (m_object_editor && !m_object_editor_light && m_object_editor_body) {
+                Glib::signal_idle().connect_once([this] {
+                    if (m_object_editor && !m_object_editor_light && m_object_editor_body)
+                        show_object_editor(m_object_editor_doc, m_object_editor_body);
+                });
+            }
+        };
+        m_workspace_browser->signal_folder_drop().connect([this, done](const UUID &doc_uu, const FolderDrop &drop) {
+            if (m_core.tool_is_active())
+                return;
+            CanvasUpdater canvas_updater{*this};
+            std::string created;
+            if (!apply_folder_drop(m_core.get_idocument_info(doc_uu).get_document(), drop, &created)) {
+                m_workspace_browser->show_toast("It can't go there");
+                return;
+            }
+            done("move objects");
+            if (created.size())
+                m_workspace_browser->show_toast("Made the group \"" + created + "\" - double-click it to rename");
+        });
+        m_workspace_browser->signal_folder_rename().connect(
+                [this, done](const UUID &doc_uu, const std::string &from, const std::string &to) {
+                    auto &d = m_core.get_idocument_info(doc_uu).get_document();
+                    const auto names = get_folder_names(d);
+                    if (to.empty() || std::ranges::find(names, to) != names.end()) {
+                        m_workspace_browser->show_toast(to.empty() ? "A group needs a name"
+                                                                   : "There is already a group called that");
+                        return;
+                    }
+                    rename_folder(d, from, to);
+                    done("rename group");
+                });
+        m_workspace_browser->signal_ungroup_folder().connect(
+                [this, done](const UUID &doc_uu, const std::string &name) {
+                    rename_folder(m_core.get_idocument_info(doc_uu).get_document(), name, "");
+                    done("ungroup");
+                });
+        m_workspace_browser->signal_new_folder().connect([this, done](const UUID &doc_uu, const UUID &body) {
+            auto &d = m_core.get_idocument_info(doc_uu).get_document();
+            const auto name = new_folder_name(d);
+            set_body_folder(d, body, name);
+            done("new group");
+            m_workspace_browser->show_toast("Made the group \"" + name + "\" - double-click it to rename");
+        });
+        m_workspace_browser->signal_object_folder().connect(
+                [this, done](const UUID &doc_uu, const UUID &body, const std::string &name) {
+                    set_body_folder(m_core.get_idocument_info(doc_uu).get_document(), body, name);
+                    done(name.size() ? "move to group" : "take out of group");
+                });
+    }
     m_workspace_browser->signal_delete_body().connect([this](const UUID &doc, const UUID &body) {
         Glib::signal_idle().connect_once([this, doc, body] { delete_body(doc, body); });
     });

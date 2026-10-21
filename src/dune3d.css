@@ -483,3 +483,14 @@ headerbar button.find-pill:hover {border-color: alpha(@accent_bg_color, .6); col
   box-shadow: none;
   padding: 0;
 }
+
+/* groups of objects in the layers list: a tinted band with a folder, and a mark where a drag will land */
+.folder-row {
+  background: alpha(@studio_dim, .10);
+  border-radius: 8px;
+  font-weight: 600;
+}
+.folder-row image {color: @accent_bg_color;}
+.drop-before {box-shadow: inset 0 3px 0 0 @accent_bg_color;}
+.drop-after {box-shadow: inset 0 -3px 0 0 @accent_bg_color;}
+.drop-into {background: alpha(@accent_bg_color, .22); box-shadow: inset 0 0 0 2px @accent_bg_color; border-radius: 8px;}

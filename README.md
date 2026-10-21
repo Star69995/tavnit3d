@@ -38,6 +38,7 @@ one click.
   out (cups, bowls, boxes), join/subtract/intersect
 - Groups of objects (Group field in the object panel): listed together and moved together, still separate shapes;
   View > Steps under each object shows or hides the step rows (off: just objects)
+- Groups of objects in the list: drag objects onto each other or onto a group to group them, out of it to ungroup, before or after a row to reorder; double-click a group to rename it
 - Automatic backups of unsaved work, offered back after a crash
 - Stickers: pictures on an object's surface, also on curved sides; patterns
   (stripes, dots, checker, grid) in a choice of colours that cover the surface

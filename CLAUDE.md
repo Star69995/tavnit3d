@@ -151,6 +151,16 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   are listed under one row (`BodyItem::m_is_folder` with `m_children`; its eye switches all members; clicking it opens
   the first member) and move together when one of them is dragged (`begin_object_drag`: every member's part
   positions). Saved as `"folder"` in the body's JSON. Test: `tests/ui/groups.txt` (`expect-left NAME MM`).
+  Organising them in the list (works with "Steps under each object" on or off): drag an object or a whole group row and drop
+  it before / after (top / bottom third of the row) or onto (middle) another row, or in the empty space below the rows (to
+  the end, out of its group); onto a loose object makes a new group of the two, onto a group's row joins it, groups don't
+  nest. The logic is GUI-free in `apply_folder_drop` (`FolderDrop`, object_folders.cpp; order changes through
+  `Document::reorder_group`, so a join can't come before what it joins; test `test_folders` in test_primitives.cpp);
+  `WorkspaceRow` has the `DragSource`/`DropTarget` (payload `"body|doc|uuid"` / `"folder|doc|name"`, marks `.drop-before`,
+  `.drop-after`, `.drop-into`) and the editor applies it in `init_workspace_browser`. Double-click or right-click a group
+  row to rename or ungroup; the object menu has New group with this object / Move to group / Take out of its group.
+  Automation (the real drag was checked with xdotool): `drop NAME before|after|onto TARGET`, `rename-group A B`,
+  `expect-order A B(Group)`, `drag-object NAME DX DY`; tests `tests/ui/groups_list.txt`, `groups.txt`.
 - Movable panels (`src/dune3d_appwindow_panels.cpp`): the tool palette and the layers list
   (workspace browser, `Dune3DAppWindow::set_layers_panel`) have a grip you drag. One capture
   `GestureDrag` on the window handles all of them (`m_panels`); dragging the layers header out of

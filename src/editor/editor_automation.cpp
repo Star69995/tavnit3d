@@ -1,4 +1,5 @@
 #include "editor.hpp"
+#include "document/object_folders.hpp"
 #include "document/object_parts.hpp"
 #include "preferences/preferences_window.hpp"
 #include "dune3d_application.hpp"
@@ -77,6 +78,9 @@ static std::map<std::string, glm::dvec3> s_light_marks; // "light-mark": where a
  *   update-check             check for updates as from the menu (feed: DUNE3D_UPDATE_FEED)
  *   panel-scroll F           scroll the side panel to F (0 top ... 1 bottom)
  *   drag-panel NAME X Y      drag the "palette" or "layers" panel by its grip to window pixel X Y
+ *   drag-object NAME DX DY   drag on the middle of that object by DX DY window pixels
+ *   drop NAME before|after|onto TARGET   what a drop in the list of objects does (objects or groups), also rename-group A B and
+ *                            expect-order "A B(Group) C" (the order and groups of the objects)
  *   recovery                 offer backups found in the documents folder's Autosave folder (the note on the start screen)
  *   rotate-object DEGREES    turn the picked object about the upright line through its middle
  *   expect-extent X|Y|Z MM   fail unless the picked object is that long along that world axis (within 0.5)
@@ -247,6 +251,28 @@ void Editor::run_automation(const std::filesystem::path &script)
                 double x1, y1, x2, y2;
                 std::istringstream(rest) >> x1 >> y1 >> x2 >> y2;
                 drag_on_canvas(to_canvas(x1, y1), to_canvas(x2, y2));
+                delay = 900;
+            }
+            else if (cmd == "drag-object") {
+                // drag-object NAME DX DY: a left-button drag on that object's middle (window pixels, as "drag")
+                std::istringstream is(rest);
+                std::string name;
+                double dx = 0, dy = 0;
+                is >> name >> dx >> dy;
+                auto &doc = m_core.get_current_document();
+                UUID body;
+                for (auto gr : doc.get_groups_sorted()) {
+                    if (gr->m_body && gr->m_body->m_name == name)
+                        body = gr->m_uuid;
+                }
+                const auto b = body ? get_body_bounds(doc, body) : std::nullopt;
+                if (!b)
+                    throw std::runtime_error("no object " + name);
+                const auto p = get_canvas().project_to_window((b->lo + b->hi) / 2.);
+                graphene_point_t in{(float)p.x, (float)p.y}, out;
+                if (!gtk_widget_compute_point(GTK_WIDGET(get_canvas().gobj()), GTK_WIDGET(m_win.gobj()), &in, &out))
+                    out = in;
+                drag_on_canvas(to_canvas(out.x, out.y), to_canvas(out.x + dx, out.y + dy));
                 delay = 900;
             }
             else if (cmd == "drag-light") {
@@ -719,6 +745,59 @@ void Editor::run_automation(const std::filesystem::path &script)
                 is >> name >> x >> y;
                 if (!m_win.drag_panel(name, x, y))
                     std::cerr << "automation: no panel " << name << std::endl;
+            }
+            else if (cmd == "drop" || cmd == "expect-order" || cmd == "rename-group") {
+                // groups of objects, without a mouse: "drop NAME before|after|onto TARGET" does what a drop in the
+                // list does (NAME and TARGET are objects or groups), "rename-group A B", and "expect-order A B(Group) C"
+                auto &doc = m_core.get_current_document();
+                auto body_by_name = [&doc](const std::string &name) {
+                    for (auto gr : doc.get_groups_sorted()) {
+                        if (gr->m_body && gr->m_body->m_name == name)
+                            return gr->m_uuid;
+                    }
+                    return UUID();
+                };
+                const auto doc_uu = m_core.get_current_idocument_info().get_uuid();
+                const auto folders = get_folder_names(doc);
+                auto is_folder = [&folders](const std::string &n) { return std::ranges::find(folders, n) != folders.end(); };
+                if (cmd == "drop") {
+                    std::istringstream is(rest);
+                    std::string name, where, target;
+                    is >> name >> where;
+                    std::getline(is >> std::ws, target);
+                    FolderDrop d;
+                    if (is_folder(name))
+                        d.folder = name;
+                    else
+                        d.body = body_by_name(name);
+                    if (is_folder(target))
+                        d.target_folder = target;
+                    else
+                        d.target_body = body_by_name(target);
+                    if ((!d.folder.size() && !d.body) || (!d.target_folder.size() && !d.target_body))
+                        throw std::runtime_error("drop: no such object or group: " + rest);
+                    d.where = where == "before" ? FolderDrop::Where::BEFORE
+                              : where == "after" ? FolderDrop::Where::AFTER : FolderDrop::Where::INTO;
+                    m_workspace_browser->signal_folder_drop().emit(doc_uu, d);
+                }
+                else if (cmd == "rename-group") {
+                    const auto sp = rest.find(' ');
+                    m_workspace_browser->signal_folder_rename().emit(doc_uu, rest.substr(0, sp), rest.substr(sp + 1));
+                }
+                else {
+                    std::string order;
+                    for (const auto &bg : doc.get_groups_by_body()) {
+                        const auto &n = bg.body.m_name;
+                        if (n.empty() || n == "Body")
+                            continue;
+                        order += (order.size() ? " " : "") + n;
+                        if (bg.body.m_folder.size())
+                            order += "(" + bg.body.m_folder + ")";
+                    }
+                    if (order != rest)
+                        throw std::runtime_error("expected order \"" + rest + "\", it is \"" + order + "\"");
+                }
+                delay = 600;
             }
             else if (cmd == "recovery") {
                 // look for backups from last time, as at the start

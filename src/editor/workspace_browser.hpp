@@ -4,6 +4,7 @@
 #include "util/uuid.hpp"
 #include "document/group/group.hpp"
 #include "document/document.hpp"
+#include "document/object_folders.hpp"
 
 namespace dune3d {
 
@@ -80,6 +81,33 @@ public:
     type_signal_folder_checked signal_folder_checked()
     {
         return m_signal_folder_checked;
+    }
+
+    // organising objects in groups: drops in the list, renaming and ungrouping a group, putting one object in a
+    // group (a new one if the name is empty and signal_new_folder is used), taking it out
+    using type_signal_folder_drop = sigc::signal<void(UUID, FolderDrop)>;
+    using type_signal_folder_rename = sigc::signal<void(UUID, std::string, std::string)>;
+    using type_signal_folder_name = sigc::signal<void(UUID, std::string)>;
+    using type_signal_object_folder = sigc::signal<void(UUID, UUID, std::string)>;
+    type_signal_folder_drop signal_folder_drop()
+    {
+        return m_signal_folder_drop;
+    }
+    type_signal_folder_rename signal_folder_rename()
+    {
+        return m_signal_folder_rename;
+    }
+    type_signal_folder_name signal_ungroup_folder()
+    {
+        return m_signal_ungroup_folder;
+    }
+    type_signal_group_selected signal_new_folder()
+    {
+        return m_signal_new_folder;
+    }
+    type_signal_object_folder signal_object_folder()
+    {
+        return m_signal_object_folder;
     }
 
     type_signal_group_selected signal_delete_body()
@@ -195,6 +223,11 @@ private:
     type_signal_group_selected m_signal_group_reclicked;
     type_signal_folder_selected m_signal_folder_selected;
     type_signal_folder_checked m_signal_folder_checked;
+    type_signal_folder_drop m_signal_folder_drop;
+    type_signal_folder_rename m_signal_folder_rename;
+    type_signal_folder_name m_signal_ungroup_folder;
+    type_signal_group_selected m_signal_new_folder;
+    type_signal_object_folder m_signal_object_folder;
     type_signal_group_checked m_signal_group_checked;
     type_signal_group_checked m_signal_body_checked;
     type_signal_group_checked m_signal_body_solid_model_checked;
@@ -237,8 +270,20 @@ private:
     Glib::RefPtr<Gio::Menu> m_body_menu = nullptr;
     UUID m_body_menu_document;
     UUID m_body_menu_body;
+    std::string m_body_menu_folder; // the group the object the menu is for is in
     Glib::RefPtr<Gio::SimpleAction> m_reset_body_color_action;
     Glib::RefPtr<Gio::SimpleAction> m_move_body_up_action;
     Glib::RefPtr<Gio::SimpleAction> m_move_body_down_action;
+    // the object menu's group entries are made again each time it opens
+    Glib::RefPtr<Gio::Menu> m_body_groups_menu;
+    Glib::RefPtr<Gio::SimpleAction> m_remove_from_group_action;
+    // a group's row menu
+    Gtk::PopoverMenu *m_folder_popover = nullptr;
+    UUID m_folder_menu_document;
+    std::string m_folder_menu_name;
+    std::function<void()> m_folder_menu_rename; // opens the rename box of the row the menu is for
+
+    // an object or group dropped below the last row: it goes to the end of the list, out of its group
+    void drop_at_end(const std::string &payload);
 };
 } // namespace dune3d

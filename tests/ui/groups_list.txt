@@ -1,0 +1,35 @@
+# Organising groups of objects in the list without a mouse: a drop onto a loose object makes a group, objects
+# go in and out by dropping, a group can be renamed and moved as a whole, and it all can be undone.
+action NEW_DOCUMENT
+wait 800
+button Box
+wait 1000
+button Cylinder
+wait 1000
+button Sphere
+wait 1000
+button Cone
+wait 1000
+expect-order Box Cylinder Sphere Cone
+drop Sphere onto Box
+wait 600
+expect-order Box(Group) Sphere(Group) Cylinder Cone
+drop Cone before Box
+wait 600
+expect-order Cone(Group) Box(Group) Sphere(Group) Cylinder
+rename-group Group Set
+wait 600
+expect-order Cone(Set) Box(Set) Sphere(Set) Cylinder
+drop Box after Cylinder
+wait 600
+expect-order Cone(Set) Sphere(Set) Cylinder Box
+drop Set after Box
+wait 600
+expect-order Cylinder Box Cone(Set) Sphere(Set)
+drop Cylinder onto Set
+wait 600
+expect-order Box Cone(Set) Sphere(Set) Cylinder(Set)
+action UNDO
+wait 800
+expect-order Cylinder Box Cone(Set) Sphere(Set)
+quit
