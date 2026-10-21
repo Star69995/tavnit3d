@@ -1,4 +1,6 @@
 #include "editor.hpp"
+#include "preferences/preferences_window.hpp"
+#include "dune3d_application.hpp"
 #include "dune3d_appwindow.hpp"
 #include "canvas/canvas.hpp"
 #include "util/fs_util.hpp"
@@ -73,6 +75,8 @@ static std::map<std::string, glm::dvec3> s_light_marks; // "light-mark": where a
  *   update-check             check for updates as from the menu (feed: DUNE3D_UPDATE_FEED)
  *   panel-scroll F           scroll the side panel to F (0 top ... 1 bottom)
  *   drag-panel NAME X Y      drag the "palette" or "layers" panel by its grip to window pixel X Y
+ *   preferences [PAGE]       open Preferences (page: canvas, editor, keys, in_tool_keys)
+ *   theme dark|light|auto    the look, as in Preferences > Theme
  *   crash                    crash on purpose, to see the crash report
  *   close TITLE              close the window with this title as with its X button
  *   windows                  print the visible windows and their texts (dialogs aren't in shots)
@@ -522,6 +526,11 @@ void Editor::run_automation(const std::filesystem::path &script)
                 }
                 if (!bu)
                     throw std::runtime_error("no button " + rest);
+                // a tool on another page of the palette: show that page first
+                for (Gtk::Widget *p = bu; p; p = p->get_parent()) {
+                    if (auto stack = dynamic_cast<Gtk::Stack *>(p->get_parent()))
+                        m_win.show_action_bar_category(stack->get_page(*p)->get_name());
+                }
                 bu->activate();
                 delay = 600;
             }
@@ -681,6 +690,27 @@ void Editor::run_automation(const std::filesystem::path &script)
                 is >> name >> x >> y;
                 if (!m_win.drag_panel(name, x, y))
                     std::cerr << "automation: no panel " << name << std::endl;
+            }
+            else if (cmd == "preferences") {
+                // open the Preferences window (then "shotwin Preferences PATH")
+                auto win = m_win.get_app().show_preferences_window(0);
+                if (rest.size())
+                    win->show_page(rest);
+                delay = 800;
+            }
+            else if (cmd == "theme") {
+                // the look as chosen in Preferences > Theme
+                auto &variant = m_preferences.canvas.theme_variant;
+                if (rest == "dark")
+                    variant = CanvasPreferences::ThemeVariant::DARK;
+                else if (rest == "light")
+                    variant = CanvasPreferences::ThemeVariant::LIGHT;
+                else if (rest == "auto")
+                    variant = CanvasPreferences::ThemeVariant::AUTO;
+                else
+                    throw std::runtime_error("theme dark, light or auto: " + rest);
+                m_preferences.signal_changed().emit();
+                delay = 600;
             }
             else if (cmd == "crash") {
                 // to see the crash report (util/crash_report.cpp)

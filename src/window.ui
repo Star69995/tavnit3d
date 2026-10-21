@@ -72,12 +72,6 @@ dim-label</property>
             <property name="icon-name">open-menu-symbolic</property>
           </object>
         </child>
-        <child type="end">
-          <object class="GtkButton" id="theme_button">
-            <property name="icon-name">weather-clear-night-symbolic</property>
-            <property name="tooltip-text">Switch to the dark theme</property>
-          </object>
-        </child>
         <child type="start">
           <object class="GtkButton" id="new_button">
             <property name="icon-name">document-new-symbolic</property>
@@ -240,65 +234,237 @@ welcome-box</property>
                                 <property name="orientation">vertical</property>
                                 <property name="spacing">10</property>
                                 <child>
-                                  <object class="GtkButton" id="welcome_new_button">
-                                    <property name="child">
-                                      <object class="GtkBox">
-                                        <property name="spacing">10</property>
-                                        <child>
-                                          <object class="GtkImage">
-                                            <property name="icon-name">document-new-symbolic</property>
-                                            <property name="icon-size">large</property>
-                                          </object>
-                                        </child>
-                                        <child>
-                                          <object class="GtkBox">
-                                            <property name="orientation">vertical</property>
-                                            <property name="spacing">10</property>
-                                            <property name="vexpand-set">True</property>
-                                            <child>
-                                              <object class="GtkLabel">
-                                                <property name="label">&lt;b&gt;Create a new document&lt;/b&gt;</property>
-                                                <property name="use-markup">True</property>
-                                                <property name="vexpand">True</property>
-                                                <property name="xalign">0.0</property>
-                                              </object>
-                                            </child>
-                                          </object>
-                                        </child>
-                                      </object>
-                                    </property>
-                                  </object>
-                                </child>
-                                <child>
-                                  <object class="GtkButton" id="welcome_open_button">
-                                    <property name="child">
-                                      <object class="GtkBox">
-                                        <property name="spacing">10</property>
-                                        <child>
-                                          <object class="GtkImage">
-                                            <property name="icon-name">document-open-symbolic</property>
-                                            <property name="icon-size">large</property>
-                                          </object>
-                                        </child>
-                                        <child>
-                                          <object class="GtkBox">
-                                            <property name="orientation">vertical</property>
-                                            <property name="spacing">10</property>
-                                            <property name="vexpand-set">True</property>
-                                            <child>
-                                              <object class="GtkLabel">
-                                                <property name="label">&lt;b&gt;Open existing document&lt;/b&gt;</property>
-                                                <property name="use-markup">True</property>
-                                                <property name="vexpand">True</property>
-                                                <property name="xalign">0.0</property>
-                                              </object>
-                                            </child>
-                                          </object>
-                                        </child>
-                                      </object>
-                                    </property>
-                                  </object>
-                                </child>
+<object class="GtkGrid">
+<property name="column-spacing">10</property>
+<property name="row-spacing">10</property>
+<property name="column-homogeneous">True</property>
+<child>
+<object class="GtkButton" id="welcome_new_button">
+<property name="css-classes">welcome-card</property>
+<property name="hexpand">True</property>
+<property name="child">
+<object class="GtkBox">
+<property name="spacing">12</property>
+<child>
+<object class="GtkImage">
+<property name="css-classes">welcome-card-icon</property>
+<property name="icon-name">document-new-symbolic</property>
+<property name="pixel-size">22</property>
+<property name="valign">center</property>
+</object>
+</child>
+<child>
+<object class="GtkBox">
+<property name="orientation">vertical</property>
+<property name="valign">center</property>
+<child>
+<object class="GtkLabel">
+<property name="css-classes">welcome-card-title</property>
+<property name="label">New document</property>
+<property name="xalign">0.0</property>
+</object>
+</child>
+<child>
+<object class="GtkLabel">
+<property name="css-classes">dim-label
+welcome-card-sub</property>
+<property name="label">An empty scene in a new tab</property>
+<property name="xalign">0.0</property>
+</object>
+</child>
+</object>
+</child>
+</object>
+</property>
+<layout>
+<property name="column">0</property>
+<property name="row">0</property>
+<property name="column-span">1</property>
+</layout>
+</object>
+</child>
+<child>
+<object class="GtkButton" id="welcome_window_button">
+<property name="css-classes">welcome-card</property>
+<property name="hexpand">True</property>
+<property name="child">
+<object class="GtkBox">
+<property name="spacing">12</property>
+<child>
+<object class="GtkImage">
+<property name="css-classes">welcome-card-icon</property>
+<property name="icon-name">window-new-symbolic</property>
+<property name="pixel-size">22</property>
+<property name="valign">center</property>
+</object>
+</child>
+<child>
+<object class="GtkBox">
+<property name="orientation">vertical</property>
+<property name="valign">center</property>
+<child>
+<object class="GtkLabel">
+<property name="css-classes">welcome-card-title</property>
+<property name="label">New window</property>
+<property name="xalign">0.0</property>
+</object>
+</child>
+<child>
+<object class="GtkLabel">
+<property name="css-classes">dim-label
+welcome-card-sub</property>
+<property name="label">A separate window, side by side</property>
+<property name="xalign">0.0</property>
+</object>
+</child>
+</object>
+</child>
+</object>
+</property>
+<layout>
+<property name="column">1</property>
+<property name="row">0</property>
+<property name="column-span">1</property>
+</layout>
+</object>
+</child>
+<child>
+<object class="GtkButton" id="welcome_open_button">
+<property name="css-classes">welcome-card</property>
+<property name="hexpand">True</property>
+<property name="child">
+<object class="GtkBox">
+<property name="spacing">12</property>
+<child>
+<object class="GtkImage">
+<property name="css-classes">welcome-card-icon</property>
+<property name="icon-name">document-open-symbolic</property>
+<property name="pixel-size">22</property>
+<property name="valign">center</property>
+</object>
+</child>
+<child>
+<object class="GtkBox">
+<property name="orientation">vertical</property>
+<property name="valign">center</property>
+<child>
+<object class="GtkLabel">
+<property name="css-classes">welcome-card-title</property>
+<property name="label">Open a file</property>
+<property name="xalign">0.0</property>
+</object>
+</child>
+<child>
+<object class="GtkLabel">
+<property name="css-classes">dim-label
+welcome-card-sub</property>
+<property name="label">Tavnit 3D documents</property>
+<property name="xalign">0.0</property>
+</object>
+</child>
+</object>
+</child>
+</object>
+</property>
+<layout>
+<property name="column">0</property>
+<property name="row">1</property>
+<property name="column-span">1</property>
+</layout>
+</object>
+</child>
+<child>
+<object class="GtkButton" id="welcome_import_button">
+<property name="css-classes">welcome-card</property>
+<property name="hexpand">True</property>
+<property name="child">
+<object class="GtkBox">
+<property name="spacing">12</property>
+<child>
+<object class="GtkImage">
+<property name="css-classes">welcome-card-icon</property>
+<property name="icon-name">document-save-symbolic</property>
+<property name="pixel-size">22</property>
+<property name="valign">center</property>
+</object>
+</child>
+<child>
+<object class="GtkBox">
+<property name="orientation">vertical</property>
+<property name="valign">center</property>
+<child>
+<object class="GtkLabel">
+<property name="css-classes">welcome-card-title</property>
+<property name="label">Import</property>
+<property name="xalign">0.0</property>
+</object>
+</child>
+<child>
+<object class="GtkLabel">
+<property name="css-classes">dim-label
+welcome-card-sub</property>
+<property name="label">STEP, IGES, glTF, OBJ</property>
+<property name="xalign">0.0</property>
+</object>
+</child>
+</object>
+</child>
+</object>
+</property>
+<layout>
+<property name="column">1</property>
+<property name="row">1</property>
+<property name="column-span">1</property>
+</layout>
+</object>
+</child>
+<child>
+<object class="GtkButton" id="welcome_describe_button">
+<property name="css-classes">welcome-card</property>
+<property name="hexpand">True</property>
+<property name="child">
+<object class="GtkBox">
+<property name="spacing">12</property>
+<child>
+<object class="GtkImage">
+<property name="css-classes">welcome-card-icon</property>
+<property name="icon-name">starred-symbolic</property>
+<property name="pixel-size">22</property>
+<property name="valign">center</property>
+</object>
+</child>
+<child>
+<object class="GtkBox">
+<property name="orientation">vertical</property>
+<property name="valign">center</property>
+<child>
+<object class="GtkLabel">
+<property name="css-classes">welcome-card-title</property>
+<property name="label">Describe it</property>
+<property name="xalign">0.0</property>
+</object>
+</child>
+<child>
+<object class="GtkLabel">
+<property name="css-classes">dim-label
+welcome-card-sub</property>
+<property name="label">Let Tavnit 3D draft it for you</property>
+<property name="xalign">0.0</property>
+</object>
+</child>
+</object>
+</child>
+</object>
+</property>
+<layout>
+<property name="column">0</property>
+<property name="row">2</property>
+<property name="column-span">2</property>
+</layout>
+</object>
+</child>
+</object>
+</child>
                                 <child>
                                   <object class="GtkBox">
                                     <property name="spacing">10</property>

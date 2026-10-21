@@ -41,3 +41,5 @@ button.destructive-action:active {background: #b13136;}
 
 .update-banner-error {background: alpha(#ff6b6b, .14); border-bottom-color: alpha(#ff6b6b, .40);}
 colorbutton colorswatch {box-shadow: inset 0 0 0 1px alpha(white, .12);}
+
+.studio-prefs .linked > button.toggle:checked {box-shadow: 0 1px 3px alpha(black, .5);}

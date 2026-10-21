@@ -24,7 +24,7 @@
                 <layout>
                   <property name="column">0</property>
                   <property name="column-span">1</property>
-                  <property name="row">0</property>
+                  <property name="row">1</property>
                   <property name="row-span">1</property>
                 </layout>
               </object>
@@ -46,7 +46,7 @@
                 <layout>
                   <property name="column">1</property>
                   <property name="column-span">1</property>
-                  <property name="row">0</property>
+                  <property name="row">1</property>
                   <property name="row-span">1</property>
                 </layout>
               </object>
@@ -59,7 +59,7 @@
                 <layout>
                   <property name="column">0</property>
                   <property name="column-span">1</property>
-                  <property name="row">1</property>
+                  <property name="row">2</property>
                   <property name="row-span">1</property>
                 </layout>
               </object>
@@ -69,7 +69,7 @@
                 <layout>
                   <property name="column">1</property>
                   <property name="column-span">1</property>
-                  <property name="row">1</property>
+                  <property name="row">2</property>
                   <property name="row-span">1</property>
                 </layout>
               </object>
@@ -91,7 +91,7 @@
                 <layout>
                   <property name="column">1</property>
                   <property name="column-span">1</property>
-                  <property name="row">2</property>
+                  <property name="row">3</property>
                   <property name="row-span">1</property>
                 </layout>
               </object>
@@ -102,7 +102,7 @@
                 <child>
                   <object class="GtkToggleButton" id="theme_variant_auto_button">
                     <property name="hexpand">True</property>
-                    <property name="label">Auto</property>
+                    <property name="label">Follow system</property>
                   </object>
                 </child>
                 <child>
@@ -122,7 +122,7 @@
                 <layout>
                   <property name="column">1</property>
                   <property name="column-span">1</property>
-                  <property name="row">3</property>
+                  <property name="row">0</property>
                   <property name="row-span">1</property>
                 </layout>
               </object>
@@ -131,10 +131,10 @@
               <object class="GtkLabel">
                 <property name="css-classes">dim-label</property>
                 <property name="halign">end</property>
-                <property name="label">Color Theme</property>
+                <property name="label">Canvas colours</property>
                 <layout>
                   <property name="column">0</property>
-                  <property name="row">2</property>
+                  <property name="row">3</property>
                 </layout>
               </object>
             </child>
@@ -142,10 +142,10 @@
               <object class="GtkLabel">
                 <property name="css-classes">dim-label</property>
                 <property name="halign">end</property>
-                <property name="label">Variant</property>
+                <property name="label">Theme</property>
                 <layout>
                   <property name="column">0</property>
-                  <property name="row">3</property>
+                  <property name="row">0</property>
                 </layout>
               </object>
             </child>

@@ -149,9 +149,6 @@ std::vector<SearchItem> Editor::get_search_items()
     items.push_back({"Open a document in a new window", "Main menu (top right) - or Ctrl+Shift+O",
                      "separate second window פתיחה בחלון חדש", action(ActionID::OPEN_DOCUMENT_NEW_WINDOW),
                      keys(ActionID::OPEN_DOCUMENT_NEW_WINDOW)});
-    items.push_back({"Dark or light theme", "Header bar, moon / sun button - or Preferences > Theme",
-                     "dark mode night light theme מצב כהה ערכת נושא",
-                     [this] { m_win.get_theme_button().activate(); }});
     items.push_back({"Undo", "Header bar > arrow left - or Ctrl+Z", "ביטול", action(ActionID::UNDO), keys(ActionID::UNDO)});
     items.push_back({"Redo", "Header bar > arrow right - or Ctrl+Y", "חזרה", action(ActionID::REDO), keys(ActionID::REDO)});
 

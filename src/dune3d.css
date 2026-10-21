@@ -317,3 +317,75 @@ colorbutton colorswatch, colorbutton colorswatch > overlay {border-radius: 7px; 
 colorbutton colorswatch {box-shadow: inset 0 0 0 1px alpha(black, .08);}
 colorbutton > button > colorswatch {min-width: 0;}
 colorbutton > button {padding: 3px;}
+
+/* ---------------------------------------------------------------
+ * Preferences: a navigation list on the left, settings in cards on the right
+ * (rows with a title and a hint, a switch or a segmented choice at the end).
+ * --------------------------------------------------------------- */
+.studio-prefs {background: @studio_window;}
+.studio-prefs .prefs-nav {background: @studio_panel; border-right: 1px solid @studio_border; padding: 12px 8px;}
+.studio-prefs .prefs-nav list {background: none;}
+.studio-prefs .prefs-nav row {border-radius: 9px; margin: 2px 0; padding: 8px 10px; font-weight: 500;}
+.studio-prefs .prefs-nav row:hover {background: @studio_hover;}
+.studio-prefs .prefs-nav row:selected {background: alpha(@accent_bg_color, .14); color: @accent_bg_color; font-weight: 600;}
+.studio-prefs stack > * {background: @studio_window;}
+.studio-prefs .boxed-list {
+  background: @studio_panel;
+  border: 1px solid @studio_border;
+  border-radius: 12px;
+}
+.studio-prefs .boxed-list > row {padding: 8px 6px; border-bottom: 1px solid @studio_border; background: none;}
+.studio-prefs .boxed-list > row:last-child {border-bottom: none;}
+.studio-prefs .boxed-list > row:hover {background: none;}
+.studio-prefs label.title-4, .studio-prefs .heading {font-weight: 700;}
+/* a group of buttons that act as one choice: a pill with the chosen part lifted */
+.studio-prefs .linked {background: @studio_field; border: 1px solid @studio_border; border-radius: 9px; padding: 3px;}
+.studio-prefs .linked > button.toggle, .studio-prefs .linked > button {
+  border: none; box-shadow: none; background: none; border-radius: 7px; min-height: 26px; padding: 0 14px; color: @studio_dim; font-weight: 500;
+}
+.studio-prefs .linked > button.toggle:checked {background: @studio_panel; color: @accent_bg_color; font-weight: 600;
+  box-shadow: 0 1px 3px alpha(black, .18);}
+.studio-prefs .linked > button.toggle:hover:not(:checked) {color: @studio_text;}
+
+/* start screen: big action cards (window.ui, welcome_box) */
+.welcome-box {padding: 20px;}
+.welcome-title {font-size: 190%; font-weight: 800;}
+.welcome-card {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: @studio_panel;
+  border: 1px solid @studio_border;
+  box-shadow: 0 1px 2px alpha(black, .05);
+}
+.welcome-card:hover {border-color: alpha(@accent_bg_color, .65); background: alpha(@accent_bg_color, .06);
+  box-shadow: 0 4px 14px alpha(@accent_bg_color, .16);}
+.welcome-card-icon {color: @accent_bg_color; background: alpha(@accent_bg_color, .12); border-radius: 10px; padding: 9px;}
+.welcome-card-title {font-weight: 700;}
+.welcome-card-sub {font-size: 85%;}
+
+/* tool palette: categories in a column on the left, the tools of the chosen one in a drawer next to it */
+.action-bar-rail {padding-right: 6px; border-right: 1px solid @studio_border; margin: 2px 0;}
+.action-bar-category {
+  padding: 8px 8px;
+  min-height: 0;
+  border-radius: 10px;
+  font-size: 80%;
+  font-weight: 700;
+  color: @studio_dim;
+  background: none;
+  box-shadow: none;
+}
+.action-bar-category:hover {background: @studio_hover; color: @studio_text;}
+.action-bar-category:checked {background: alpha(@accent_bg_color, .14); color: @accent_bg_color;}
+
+/* object panel: each section starts with a tinted header band, like the top of a card */
+.object-editor-heading {
+  background: alpha(@studio_dim, .10);
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-top: 16px;
+  margin-bottom: 2px;
+  letter-spacing: 1.2px;
+  color: @studio_dim;
+}

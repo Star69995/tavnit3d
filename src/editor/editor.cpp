@@ -135,6 +135,9 @@ void Editor::init()
 
     attach_action_button(m_win.get_welcome_open_button(), ActionID::OPEN_DOCUMENT);
     attach_action_button(m_win.get_welcome_new_button(), ActionID::NEW_DOCUMENT);
+    attach_action_button(m_win.get_welcome_window_button(), ActionID::NEW_WINDOW);
+    m_win.get_welcome_import_button().signal_clicked().connect([this] { on_import_object(); });
+    m_win.get_welcome_describe_button().signal_clicked().connect([this] { show_describe_window(); });
 
     // the common ones always; the rest fold away behind "More"
     m_win.add_action_bar_section("Shapes");
@@ -1059,15 +1062,6 @@ void Editor::init_header_bar()
     attach_action_button(m_win.get_open_button(), ActionID::OPEN_DOCUMENT);
     attach_action_sensitive(m_win.get_open_menu_button(), ActionID::OPEN_DOCUMENT);
     attach_action_button(m_win.get_new_button(), ActionID::NEW_DOCUMENT);
-    m_win.get_theme_button().signal_clicked().connect([this] {
-        // a click picks the other look for good (Preferences > Theme shows it too)
-        m_preferences.canvas.theme_variant = m_win.get_app().get_dark_ui()
-                                                     ? CanvasPreferences::ThemeVariant::LIGHT
-                                                     : CanvasPreferences::ThemeVariant::DARK;
-        m_preferences.signal_changed().emit();
-        if (Glib::getenv("DUNE3D_AUTOMATION").empty()) // automated runs leave the settings alone
-            m_preferences.save();
-    });
     attach_action_button(m_win.get_save_button(), ActionID::SAVE);
     attach_action_button(m_win.get_save_as_button(), ActionID::SAVE_AS);
 
@@ -1573,7 +1567,6 @@ void Editor::apply_preferences()
     if (Gtk::Settings::get_default()->property_gtk_application_prefer_dark_theme().get_value() != dark)
         Gtk::Settings::get_default()->property_gtk_application_prefer_dark_theme().set_value(dark);
     m_win.get_app().set_dark_ui(dark);
-    m_win.set_theme_button_dark(dark);
     if (color_themes.contains(m_preferences.canvas.theme)) {
         Appearance appearance = m_preferences.canvas.appearance;
         appearance.colors = color_themes.at(m_preferences.canvas.theme).get(dark);

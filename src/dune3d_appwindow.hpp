@@ -71,6 +71,22 @@ public:
         return *m_open_button;
     }
 
+    // shows the tools of a palette category (Shapes, Lights, ...)
+    void show_action_bar_category(const std::string &name);
+
+    Gtk::Button &get_welcome_window_button()
+    {
+        return *m_welcome_window_button;
+    }
+    Gtk::Button &get_welcome_import_button()
+    {
+        return *m_welcome_import_button;
+    }
+    Gtk::Button &get_welcome_describe_button()
+    {
+        return *m_welcome_describe_button;
+    }
+
     Gtk::Button &get_welcome_open_button()
     {
         return *m_welcome_open_button;
@@ -85,14 +101,6 @@ public:
     {
         return *m_new_button;
     }
-
-    Gtk::Button &get_theme_button()
-    {
-        return *m_theme_button;
-    }
-
-    // the button shows what a click would switch to
-    void set_theme_button_dark(bool dark);
 
     Gtk::Button &get_welcome_new_button()
     {
@@ -227,7 +235,6 @@ private:
     Gtk::Button *m_open_button = nullptr;
     Gtk::MenuButton *m_open_menu_button = nullptr;
     Gtk::Button *m_new_button = nullptr;
-    Gtk::Button *m_theme_button = nullptr;
     Gtk::Button *m_undo_button = nullptr;
     Gtk::Button *m_redo_button = nullptr;
     Gtk::Button *m_save_button = nullptr;
@@ -262,8 +269,15 @@ private:
     Gtk::ListBox *m_welcome_recent_listbox = nullptr;
     Gtk::Button *m_welcome_new_button = nullptr;
     Gtk::Button *m_welcome_open_button = nullptr;
+    Gtk::Button *m_welcome_window_button = nullptr;
+    Gtk::Button *m_welcome_import_button = nullptr;
+    Gtk::Button *m_welcome_describe_button = nullptr;
 
     Gtk::Box *m_action_bar_box = nullptr;
+    Gtk::Box *m_action_bar_rail = nullptr;
+    Gtk::Box *m_action_bar_page = nullptr;
+    Gtk::Stack *m_action_bar_stack = nullptr;
+    std::vector<Gtk::ToggleButton *> m_action_bar_categories;
     Gtk::Grid *m_action_bar_grid = nullptr;
     Gtk::Box *m_view_bar = nullptr;
     Gtk::Widget *m_banner = nullptr;

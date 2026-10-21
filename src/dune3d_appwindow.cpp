@@ -14,12 +14,6 @@
 
 namespace dune3d {
 
-void Dune3DAppWindow::set_theme_button_dark(bool dark)
-{
-    m_theme_button->set_icon_name(dark ? "weather-clear-symbolic" : "weather-clear-night-symbolic");
-    m_theme_button->set_tooltip_text(dark ? "Switch to the light theme" : "Switch to the dark theme");
-}
-
 Dune3DAppWindow *Dune3DAppWindow::create(Dune3DApplication &app)
 {
     // Load the Builder file and instantiate its widgets.
@@ -113,7 +107,6 @@ Dune3DAppWindow::Dune3DAppWindow(BaseObjectType *cobject, const Glib::RefPtr<Gtk
     m_open_popover = refBuilder->get_widget<Gtk::Popover>("open_popover");
     m_open_menu_button = refBuilder->get_widget<Gtk::MenuButton>("open_menu_button");
     m_new_button = refBuilder->get_widget<Gtk::Button>("new_button");
-    m_theme_button = refBuilder->get_widget<Gtk::Button>("theme_button");
     m_save_button = refBuilder->get_widget<Gtk::Button>("save_button");
     m_save_as_button = refBuilder->get_widget<Gtk::Button>("save_as_button");
     m_open_recent_listbox = refBuilder->get_widget<Gtk::ListBox>("open_recent_listbox");
@@ -198,6 +191,9 @@ Dune3DAppWindow::Dune3DAppWindow(BaseObjectType *cobject, const Glib::RefPtr<Gtk
     m_welcome_recent_search_entry = refBuilder->get_widget<Gtk::SearchEntry>("welcome_recent_search_entry");
     m_welcome_new_button = refBuilder->get_widget<Gtk::Button>("welcome_new_button");
     m_welcome_open_button = refBuilder->get_widget<Gtk::Button>("welcome_open_button");
+    m_welcome_window_button = refBuilder->get_widget<Gtk::Button>("welcome_window_button");
+    m_welcome_import_button = refBuilder->get_widget<Gtk::Button>("welcome_import_button");
+    m_welcome_describe_button = refBuilder->get_widget<Gtk::Button>("welcome_describe_button");
 
     {
         auto sg = Gtk::SizeGroup::create(Gtk::SizeGroup::Mode::VERTICAL);
@@ -222,7 +218,17 @@ Dune3DAppWindow::Dune3DAppWindow(BaseObjectType *cobject, const Glib::RefPtr<Gtk
         outer->append(*toggle);
         auto content_revealer = Gtk::make_managed<Gtk::Revealer>();
         content_revealer->set_transition_type(Gtk::RevealerTransitionType::SLIDE_UP);
-        m_action_bar_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 5);
+        // a column of categories on the left, the tools of the chosen one next to it
+        m_action_bar_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 8);
+        m_action_bar_rail = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 2);
+        m_action_bar_rail->add_css_class("action-bar-rail");
+        m_action_bar_rail->set_valign(Gtk::Align::START);
+        m_action_bar_stack = Gtk::make_managed<Gtk::Stack>();
+        m_action_bar_stack->set_transition_type(Gtk::StackTransitionType::CROSSFADE);
+        m_action_bar_stack->set_transition_duration(140);
+        m_action_bar_stack->set_vhomogeneous(false);
+        m_action_bar_box->append(*m_action_bar_rail);
+        m_action_bar_box->append(*m_action_bar_stack);
         content_revealer->set_child(*m_action_bar_box);
         outer->append(*content_revealer);
         auto update = [this, toggle, img, label, content_revealer] {
@@ -441,16 +447,29 @@ void Dune3DAppWindow::add_action_button(Gtk::Widget &widget)
 
 void Dune3DAppWindow::add_action_bar_section(const std::string &title)
 {
-    auto label = Gtk::make_managed<Gtk::Label>(title);
-    label->add_css_class("action-bar-section");
-    label->set_xalign(0.5);
-    if (title.size())
-        m_action_bar_box->append(*label);
+    // each titled section is a category: a button in the rail and a page with its tools
+    if (title.size()) {
+        m_action_bar_page = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 5);
+        m_action_bar_stack->add(*m_action_bar_page, title);
+        auto button = Gtk::make_managed<Gtk::ToggleButton>(title);
+        button->add_css_class("action-bar-category");
+        button->set_has_frame(false);
+        if (m_action_bar_categories.size())
+            button->set_group(*m_action_bar_categories.front());
+        else
+            button->set_active(true);
+        button->signal_toggled().connect([this, button, title] {
+            if (button->get_active())
+                m_action_bar_stack->set_visible_child(title);
+        });
+        m_action_bar_categories.push_back(button);
+        m_action_bar_rail->append(*button);
+    }
     m_action_bar_grid = Gtk::make_managed<Gtk::Grid>();
     m_action_bar_grid->set_column_homogeneous(true);
     m_action_bar_grid->set_row_spacing(2);
     m_action_bar_grid->set_column_spacing(2);
-    m_action_bar_box->append(*m_action_bar_grid);
+    m_action_bar_page->append(*m_action_bar_grid);
     m_action_bar_grid_n = 0;
 }
 
@@ -471,9 +490,17 @@ Gtk::Revealer &Dune3DAppWindow::add_action_bar_collapsible_section(const std::st
     m_action_bar_grid->set_column_spacing(2);
     box->append(*m_action_bar_grid);
     revealer->set_child(*box);
-    m_action_bar_box->append(*revealer);
+    m_action_bar_page->append(*revealer);
     m_action_bar_grid_n = 0;
     return *revealer;
+}
+
+void Dune3DAppWindow::show_action_bar_category(const std::string &name)
+{
+    for (auto button : m_action_bar_categories) {
+        if (button->get_label().raw() == name)
+            button->set_active(true);
+    }
 }
 
 void Dune3DAppWindow::set_action_bar_visible(bool v)

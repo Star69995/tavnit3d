@@ -293,9 +293,15 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
 - Resize handles are drawn as arrows (`draw_arrow_3d` in `renderer.cpp`: shaft + pyramid head, readable from any side) from the object's side out to the grip; they sit `size * .3` out from the face.
 - Dark theme: `src/dune3d-dark.css` redefines the studio colour names and is added on top of `dune3d.css`
   by `Dune3DApplication::set_dark_ui` (called from `Editor::apply_preferences`; follows Preferences > Theme
-  Auto/Light/Dark). The moon/sun button in the header bar (`theme_button`) flips the setting and saves it; also in
-  Find. The canvas colours come from `Default.dark.json`. Test `tests/ui/theme.txt`. Design mockups for what
+  Auto/Light/Dark). Only Preferences offers the choice (no header button). The canvas colours come from `Default.dark.json`. Test `tests/ui/theme.txt`. Design mockups for what
   comes next (tool rail with a drawer, object cards, start screen, preferences) were approved as a design canvas.
+- Look refresh (approved mockups): the tool palette is a rail of categories (Shapes, Lights, Sketch, Solid:
+  `add_action_bar_section` makes a rail button + a `Gtk::Stack` page, `add_action_bar_collapsible_section` adds to
+  the current page) with the chosen category's tools next to it; the object panel's sections start with a tinted band
+  (`.object-editor-heading`); the start screen (`welcome_box` in window.ui) has action cards (New document, New
+  window, Open, Import, Describe) styled by `.welcome-card`; Preferences (`.studio-prefs`, `.prefs-nav`) is a
+  bigger window with a navigation list, card-like groups and pill-shaped segmented choices. Theme (light/dark)
+  is chosen only in Preferences > Appearance and theme. Automation: `preferences [PAGE]`, `theme dark|light|auto`.
 - New window (`src/util/new_window.*`, actions NEW_WINDOW Ctrl+Shift+N / OPEN_DOCUMENT_NEW_WINDOW Ctrl+Shift+O, main
   menu and Find): starts another copy of the program with `DUNE3D_SECONDARY_WINDOW=1`, which makes the application
   non-unique (own window and documents) and skips offering the first copy's backups.

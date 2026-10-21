@@ -9,7 +9,8 @@ namespace dune3d {
 
 PreferencesWindow::PreferencesWindow(Preferences &prefs) : Gtk::Window(), m_preferences(prefs)
 {
-    set_default_size(600, 500);
+    set_default_size(900, 680);
+    add_css_class("studio-prefs");
     // set_type_hint();
     auto header = Gtk::make_managed<Gtk::HeaderBar>();
     header->set_show_title_buttons(true);
@@ -19,6 +20,8 @@ PreferencesWindow::PreferencesWindow(Preferences &prefs) : Gtk::Window(), m_pref
 
     auto box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 0);
     auto sidebar = Gtk::make_managed<Gtk::StackSidebar>();
+    sidebar->add_css_class("prefs-nav");
+    sidebar->set_size_request(200, -1);
     box->append(*sidebar);
 
     m_stack = Gtk::make_managed<Gtk::Stack>();
@@ -28,21 +31,21 @@ PreferencesWindow::PreferencesWindow(Preferences &prefs) : Gtk::Window(), m_pref
 
     {
         auto ed = CanvasPreferencesEditor::create(m_preferences);
-        m_stack->add(*ed, "canvas", "Appearance");
+        m_stack->add(*ed, "canvas", "Appearance and theme");
         ed->unreference();
     }
     {
         auto ed = Gtk::make_managed<MiscPreferencesEditor>(m_preferences);
-        m_stack->add(*ed, "editor", "Editor");
+        m_stack->add(*ed, "editor", "Tools and panels");
     }
     {
         auto ed = KeySequencesPreferencesEditor::create(m_preferences);
-        m_stack->add(*ed, "keys", "Keys");
+        m_stack->add(*ed, "keys", "Keyboard");
         ed->unreference();
     }
     {
         auto ed = InToolKeySequencesPreferencesEditor::create(m_preferences);
-        m_stack->add(*ed, "in_tool_keys", "In-tool Keys");
+        m_stack->add(*ed, "in_tool_keys", "Keys inside tools");
         ed->unreference();
     }
 
