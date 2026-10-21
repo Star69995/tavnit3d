@@ -336,6 +336,15 @@ void Editor::init_view_options()
         set_hide_irrelevant_workplanes(b);
     });
 
+    {
+        auto act = m_win.add_action_bool("show_measurements", m_win.get_app().m_user_config.show_measurements);
+        act->signal_change_state().connect([this, act](const Glib::VariantBase &v) {
+            const auto b = Glib::VariantBase::cast_dynamic<Glib::Variant<bool>>(v).get();
+            m_win.get_app().m_user_config.show_measurements = b;
+            act->set_state(Glib::Variant<bool>::create(b));
+            update_measure_hover();
+        });
+    }
     m_show_other_sketches_action = m_win.add_action_bool("show_other_sketches", false);
     m_show_other_sketches_action->signal_change_state().connect([this](const Glib::VariantBase &v) {
         set_show_other_sketches(Glib::VariantBase::cast_dynamic<Glib::Variant<bool>>(v).get());
@@ -412,6 +421,7 @@ void Editor::init_view_options()
     m_view_options_menu->append("Studio lighting", "win.studio_lighting");
     m_view_options_menu->append("Sketch lines of other objects", "win.show_other_sketches");
     m_view_options_menu->append("Steps under each object", "win.show_steps");
+    m_view_options_menu->append("Sizes on the object", "win.show_measurements");
     m_view_options_menu->append("Simple toolbars (no documents)", "win.simple_ui");
     m_view_options_menu->append("One document per screen", "win.one_document_per_screen");
     m_view_options_menu->append("Hidden documents in the list", "win.show_other_documents");
@@ -1693,7 +1703,7 @@ void Editor::render_document(const IDocumentInfo &doc)
         renderer.m_highlight_body = m_object_editor_body;
         renderer.m_hide_constraints = true; // the object panel lists the dimensions
         renderer.m_hide_sketch_points = true; // its handles are what can be dragged
-        if (!m_object_editor_light && m_object_editor_body && body_is_shown(m_object_editor_body)
+        if (m_measure_hover && !m_object_editor_light && m_object_editor_body && body_is_shown(m_object_editor_body)
             && doc.get_uuid() == m_core.get_current_idocument_info().get_uuid()) {
             if (const auto bounds = get_body_bounds(doc.get_document(), m_object_editor_body))
                 renderer.m_measure_box = std::make_pair(bounds->lo, bounds->hi);
@@ -1824,10 +1834,12 @@ void Editor::handle_cursor_move()
     }
     else {
         if (m_object_drag) {
+            update_measure_hover();
             update_object_drag();
             return;
         }
         if (m_handle_drag) {
+            update_measure_hover();
             update_handle_drag();
             return;
         }
@@ -1890,6 +1902,8 @@ void Editor::handle_click(unsigned int button, unsigned int n)
     }
     else if (button == 1) {
         if (place_decal_under_cursor())
+            return;
+        if (click_measure_label())
             return;
         if (begin_handle_drag())
             return;

@@ -16,6 +16,8 @@
 #include "document/constraint/constraint.hpp"
 #include "document/constraint/iconstraint_datum.hpp"
 #include "document/solid_model/solid_model_occ.hpp"
+#include "render/renderer.hpp"
+#include "dune3d_application.hpp"
 #include <algorithm>
 #include <ranges>
 #include <limits>
@@ -458,8 +460,116 @@ static std::string get_handle_hint(const Editor::ObjectHandle &h)
 }
 
 // how to move what the pointer is over: a light, or the picked object
+// where the text of a size line is on the window, and which size row of the panel it belongs to
+static const char *const axis_fields[][4] = {
+        {"Width", "Width", "Diameter", "Outer diameter"},
+        {"Depth", "Depth", "Diameter", "Outer diameter"},
+        {"Height", "Height", nullptr, nullptr},
+};
+
+std::optional<std::string> Editor::get_measure_label_under_cursor()
+{
+    if (!m_measure_hover || !m_core.has_documents())
+        return {};
+    const auto bounds = get_body_bounds(m_core.get_current_document(), m_object_editor_body);
+    if (!bounds)
+        return {};
+    const auto cursor = glm::dvec2(get_canvas().get_cursor_pos_win());
+    for (const auto &ax : get_measure_axes(bounds->lo, bounds->hi)) {
+        const auto p = get_canvas().project_to_window(ax.text_pos);
+        // the text starts at its anchor and runs to the right
+        if (cursor.x > p.x - 12 && cursor.x < p.x + 9. * ax.text.size() + 12 && cursor.y > p.y - 16
+            && cursor.y < p.y + 16)
+            return ax.name;
+    }
+    return {};
+}
+
+static Gtk::Widget *find_row_field(Gtk::Widget &w, const std::string &label)
+{
+    if (auto grid = dynamic_cast<Gtk::Grid *>(&w)) {
+        for (auto ch = grid->get_first_child(); ch; ch = ch->get_next_sibling()) {
+            auto la = dynamic_cast<Gtk::Label *>(ch);
+            if (!la || std::string(la->get_text()) != label)
+                continue;
+            int col, row, wd, ht;
+            gtk_grid_query_child(grid->gobj(), ch->gobj(), &col, &row, &wd, &ht);
+            if (col == 0)
+                return grid->get_child_at(1, row);
+        }
+    }
+    for (auto ch = w.get_first_child(); ch; ch = ch->get_next_sibling()) {
+        if (auto f = find_row_field(*ch, label))
+            return f;
+    }
+    return nullptr;
+}
+
+Gtk::SpinButton *Editor::find_object_field(const std::string &axis)
+{
+    if (!m_object_editor)
+        return nullptr;
+    for (const auto &row : axis_fields) {
+        if (axis != row[0])
+            continue;
+        for (int i = 1; i < 4 && row[i]; i++) {
+            if (auto f = find_row_field(*m_object_editor, row[i])) {
+                if (auto sp = dynamic_cast<Gtk::SpinButton *>(f))
+                    return sp;
+                // a field made of a spin button in a box
+                for (auto ch = f->get_first_child(); ch; ch = ch->get_next_sibling()) {
+                    if (auto sp = dynamic_cast<Gtk::SpinButton *>(ch))
+                        return sp;
+                }
+            }
+        }
+    }
+    return nullptr;
+}
+
+// a click on a size text goes to its field in the panel, ready for typing
+bool Editor::click_measure_label()
+{
+    const auto axis = get_measure_label_under_cursor();
+    if (!axis)
+        return false;
+    auto sp = find_object_field(*axis);
+    if (!sp)
+        return false;
+    sp->grab_focus();
+    sp->select_region(0, -1);
+    return true;
+}
+
+void Editor::update_measure_hover()
+{
+    bool want = false;
+    if (m_object_editor && !m_object_editor_light && m_object_editor_body && !m_core.tool_is_active()
+        && m_core.has_documents() && m_win.get_app().m_user_config.show_measurements) {
+        auto &doc = m_core.get_current_document();
+        if (m_handle_drag || m_object_drag) {
+            want = true;
+        }
+        else if (m_measure_hover && get_measure_label_under_cursor()) {
+            want = true; // on its way to click a size
+        }
+        else if (get_canvas().is_face_under_cursor()) {
+            const auto [origin, dir] = get_canvas().get_cursor_ray();
+            const auto body = pick_body(doc, m_core.get_current_group(), origin, dir,
+                                        [this](const UUID &b) { return body_is_shown(b); });
+            want = body && *body == m_object_editor_body;
+        }
+    }
+    if (want == m_measure_hover)
+        return;
+    m_measure_hover = want;
+    canvas_update_keep_selection();
+}
+
 std::string Editor::get_move_hint()
 {
+    if (const auto axis = get_measure_label_under_cursor(); axis && find_object_field(*axis))
+        return "Click to type a new " + *axis;
     auto &doc = m_core.get_current_document();
     const auto cursor = glm::dvec2(get_canvas().get_cursor_pos_win());
     auto close_to = [this, &cursor](const glm::dvec3 &p) {
@@ -488,6 +598,7 @@ std::string Editor::get_move_hint()
 // what's under the pointer, shown at the bottom
 void Editor::update_handle_hint()
 {
+    update_measure_hover();
     if (m_handle_drag)
         return;
     const auto h = get_handle_under_cursor();

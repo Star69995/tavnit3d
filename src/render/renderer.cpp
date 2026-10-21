@@ -123,6 +123,41 @@ static void draw_light_symbol(ICanvas &ca, const Light &light)
     }
 }
 
+std::vector<MeasureAxis> get_measure_axes(const glm::dvec3 &lo, const glm::dvec3 &hi)
+{
+    const auto size = hi - lo;
+    const double off = std::max({size.x, size.y, size.z}) * 0.08 + 3;
+    // a measurement along an edge of the box, pushed out sideways by "out" (a unit vector); the thin
+    // lines from the edge to it stay in one plane, so it reads like a drawing's dimension
+    auto make = [off](const char *name, glm::dvec3 a, glm::dvec3 b, glm::dvec3 out) {
+        MeasureAxis ax;
+        ax.name = name;
+        ax.from_on_object = a;
+        ax.to_on_object = b;
+        ax.from = a + out * off;
+        ax.to = b + out * off;
+        const auto len = glm::length(b - a);
+        const auto dir = len > 0 ? (b - a) / len : glm::dvec3(1, 0, 0);
+        const double ah = std::min(off * 0.5, len / 4);
+        for (const auto &[end, sign] : {std::pair{ax.from, 1.}, std::pair{ax.to, -1.}}) {
+            ax.arrows.push_back({end, end + (dir * sign + out) * ah * 0.8});
+            ax.arrows.push_back({end, end + (dir * sign - out) * ah * 0.8});
+        }
+        ax.text_pos = (ax.from + ax.to) / 2.0 + out * off * 1.1;
+        std::ostringstream ss;
+        ss << name << " " << std::round(len * 10) / 10 << " mm";
+        ax.text = ss.str();
+        return ax;
+    };
+    std::vector<MeasureAxis> axes;
+    axes.push_back(make("Width", {lo.x, lo.y, lo.z}, {hi.x, lo.y, lo.z}, {0, -1, 0}));
+    axes.push_back(make("Depth", {hi.x, lo.y, lo.z}, {hi.x, hi.y, lo.z}, {1, 0, 0}));
+    // (at the right side, where the text runs away from the object)
+    axes.push_back(make("Height", {hi.x, hi.y, lo.z}, {hi.x, hi.y, hi.z}, {1, 0, 0}));
+    std::erase_if(axes, [](const MeasureAxis &ax) { return glm::length(ax.to - ax.from) < 1e-3; });
+    return axes;
+}
+
 class Renderer::AutoSaveRestore {
 public:
     [[nodiscard]]
@@ -282,31 +317,16 @@ void Renderer::render(const Document &doc, const UUID &current_group, const IDoc
 
 
     if (m_measure_box) {
-        const auto [lo, hi] = *m_measure_box;
-        const auto size = hi - lo;
-        const double off = std::max({size.x, size.y, size.z}) * 0.2 + 4;
-        // along X in front of the object, along Y at its right, along Z at the front left corner
-        struct Axis {
-            glm::dvec3 from, to, from_on_object, to_on_object;
-            glm::dvec3 outward; // where the text goes, away from the object
-            const char *name;
-        };
-        const Axis axes[] = {
-                {{lo.x, lo.y - off, lo.z}, {hi.x, lo.y - off, lo.z}, {lo.x, lo.y, lo.z}, {hi.x, lo.y, lo.z}, {0, -1, 0}, "Width"},
-                {{hi.x + off, lo.y, lo.z}, {hi.x + off, hi.y, lo.z}, {hi.x, lo.y, lo.z}, {hi.x, hi.y, lo.z}, {1, 0, 0}, "Depth"},
-                {{lo.x - off, lo.y - off, lo.z}, {lo.x - off, lo.y - off, hi.z}, {lo.x, lo.y, lo.z},
-                 {lo.x, lo.y, hi.z}, {-1, 0, 0}, "Height"},
-        };
-        for (const auto &ax : axes) {
-            const auto len = glm::length(ax.to - ax.from);
-            if (len < 1e-3)
-                continue;
+        // thin lines in the dimension colour, so they don't look like part of the object
+        AutoSaveRestore asr{*this};
+        m_ca.set_vertex_constraint(true);
+        for (const auto &ax : get_measure_axes(m_measure_box->first, m_measure_box->second)) {
             m_ca.draw_line(ax.from, ax.to);
             m_ca.draw_line(ax.from_on_object, ax.from);
             m_ca.draw_line(ax.to_on_object, ax.to);
-            std::ostringstream ss;
-            ss << ax.name << " " << std::round(len * 10) / 10 << " mm";
-            m_ca.draw_bitmap_text((ax.from + ax.to) / 2.0 + glm::normalize(ax.outward) * off * 0.5, 1, ss.str());
+            for (const auto &[p, q] : ax.arrows)
+                m_ca.draw_line(p, q);
+            m_ca.draw_bitmap_text(ax.text_pos, 1, ax.text);
         }
     }
 

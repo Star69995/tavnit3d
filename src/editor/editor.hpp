@@ -200,6 +200,13 @@ private:
     // (filled on the first call, after they have workplanes of their own), so the angle is from the start
     void turn_object(std::vector<PartPosition> &cache, const std::vector<UUID> &parts, const glm::dvec3 &pivot,
                      double radians);
+    // size lines on the picked object: shown while the pointer is over it or a drag is going on
+    bool m_measure_hover = false;
+    void update_measure_hover();
+    // the Width/Depth/Height text under the pointer, if the lines are shown
+    std::optional<std::string> get_measure_label_under_cursor();
+    Gtk::SpinButton *find_object_field(const std::string &axis);
+    bool click_measure_label();
     bool begin_handle_drag();
     void update_handle_drag();
     void end_handle_drag();

@@ -26,6 +26,17 @@ class IWorkspaceView;
 class SelectableRef;
 enum class ConstraintType;
 
+// the three measurement lines drawn around an object's outer box (lowest and highest corner)
+struct MeasureAxis {
+    glm::dvec3 from, to;                       // the measurement line, a bit away from the object
+    glm::dvec3 from_on_object, to_on_object;   // where its ends belong on the object
+    glm::dvec3 text_pos;
+    std::vector<std::pair<glm::dvec3, glm::dvec3>> arrows; // short strokes at the ends
+    std::string text;
+    std::string name; // Width, Depth or Height
+};
+std::vector<MeasureAxis> get_measure_axes(const glm::dvec3 &lo, const glm::dvec3 &hi);
+
 class Renderer : private EntityVisitor, private ConstraintVisitor {
 public:
     Renderer(ICanvas &ca, IDocumentProvider &docprv);

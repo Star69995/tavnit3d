@@ -92,6 +92,7 @@ const std::map<std::string, std::string> menu_hints = {
         {"Hide irrelevant workplanes", "Hide drawing planes that have nothing to do with the current step"},
         {"Perspective projection", "Far things look smaller, like a camera; off gives a flat technical view"},
         {"Studio lighting", "Soft studio light in the view instead of flat shading"},
+        {"Sizes on the object", "Show Width, Depth and Height on the picked object while the pointer is over it; click a size to type a new one"},
         {"Sketch lines of other objects",
          "Show the sketch lines (the drawing a shape is made from) of every object, not just the one being edited"},
         {"Simple toolbars (no documents)", "A simpler window: no list of documents, just the objects"},
