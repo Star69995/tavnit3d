@@ -294,6 +294,34 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   both as the FIND action and a window-level capture shortcut. When a
   feature lands, add it there with where it lives.
 
+## Design rules (keep the look consistent)
+
+Every UI change, in the app and on `site/`, keeps one design language. Check these before building and
+again before reporting done:
+
+- One look: the "Studio theme" (`src/dune3d.css`). Colours come only from its named colours
+  (`@studio_panel`, `@studio_window`, `@studio_border`, `@studio_text`, `@studio_dim`, `@studio_field`,
+  `@studio_hover`, `@accent_bg_color`); no new hex or `rgba()` in a widget rule. A colour that has no name
+  yet gets one in both files.
+- Light and dark go together: `src/dune3d.css` (light) and `src/dune3d-dark.css` (dark, loaded by
+  `Dune3DApplication::set_dark_ui`) define the same names, and the canvas colours in
+  `Default.light.json` / `Default.dark.json` / `appearance.cpp` match them. A new widget or
+  colour is checked in both themes (screenshot each) before it is done. The site follows
+  `prefers-color-scheme` the same way (`site/style.css`).
+- One accent (blue), plus meaning colours only for meaning: red = delete, amber = cut / hole,
+  green = ok. Don't add a new decorative colour.
+- Same shapes everywhere: 8px radius for buttons and fields, 12-14px for cards and floating panels,
+  the same three shadow levels (flat, card, floating), the same 160ms ease-out hover/press feedback.
+  Reuse existing classes (`.object-editor`, `.studio-dialog`, `.action-bar`, `.view-bar`, ...) before
+  inventing new ones.
+- Same words and icons for the same thing across menus, panels, the palette, Find (Ctrl+K) and the
+  site. New buttons and panel rows get their hover hint (`src/editor/panel_hints.*`) and a Find item.
+- Text stays readable: normal text at least 4.5:1 against its background in both themes, nothing
+  below 12px on the site, and the layout works from a narrow window and from 320px on the site.
+- Bigger look changes start with a mockup the user approves (a design canvas artifact), then are built
+  to match it; when a look changes, update this file, the README and the site screenshots/pages in
+  the same pass.
+
 ## Gotchas
 
 - nlohmann enum conversions defined with NLOHMANN_JSON_SERIALIZE_ENUM in one
