@@ -2,7 +2,7 @@
 
 The shark is left exactly as it is (flat, 10 mm thick, prints lying down, no supports).
 A flat J-hook leaves the tail's notch: hang it tail-up and the shark dives nose-down with
-the socks in its mouth. The rope slot is ROPE + 3.2 mm wide and SLOT_DEPTH deep, so a
+the socks in its mouth. The rope slot is SLOT (5 mm) wide and SLOT_DEPTH deep, so a
 smooth 4 mm rope stays put.
 
 Usage: python3 -I tiger_hook.py -> tigershark_hook.stl, tigershark_hook.3mf, tigershark_hook.png
@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 HERE = os.path.dirname(os.path.abspath(__file__))
 THICK = 10.0
 ROPE = 4.0              # rope thickness
-SLOT = ROPE + 3.2       # inner width of the hook
+SLOT = 5.0              # inner width of the hook (5 mm for a 4 mm rope)
 WIRE = 5.0              # hook width in the plane
 NOTCH = (-58.0, -2.3)   # root: inside the solid tail, just behind the fork notch (window is 4 mm further in)
 BEND_X = -96.0          # where the stem bends (far enough out that the mouth is clear of the tail lobes)
