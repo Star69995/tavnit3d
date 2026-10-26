@@ -20,7 +20,7 @@ ROPE = 4.0              # rope thickness
 SLOT = ROPE + 3.2       # inner width of the hook
 WIRE = 5.0              # hook width in the plane
 NOTCH = (-58.0, -2.3)   # root: inside the solid tail, just behind the fork notch (window is 4 mm further in)
-BEND_X = -88.0          # where the stem bends
+BEND_X = -96.0          # where the stem bends (far enough out that the mouth is clear of the tail lobes)
 SLOT_DEPTH = 12.0       # how far the return leg runs back along the stem
 
 def arc(cx, cy, r, a0, a1, n=48):
