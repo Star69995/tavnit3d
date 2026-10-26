@@ -47,9 +47,12 @@ if __name__ == "__main__":
     sec = base.section(plane_origin=[0, 0, 3], plane_normal=[0, 0, 1]); p2, _ = sec.to_2D()
     window = [Polygon(r) for p in p2.polygons_full for r in p.interiors if max(c[0] for c in r.coords) > 50][0]
     root = window.intersection(box(FILL_X, -30, 80, 30)).buffer(0.05)
+    # the 0.3 mm wide slot above the eye is thinner than a nozzle line and would just close up: fill it
+    slits = [Polygon(r).buffer(0.05) for p in p2.polygons_full for r in p.interiors if Polygon(r).area < 2.0]
+    print("filled %d unprintable slit(s)" % len(slits))
     hp = unary_union([hp, root])
-    hook = trimesh.creation.extrude_polygon(hp, 6.0)
-    out = trimesh.boolean.union([base, hook], engine="manifold")
+    parts = [trimesh.creation.extrude_polygon(g, 6.0) for g in list(getattr(hp, "geoms", [hp])) + slits]
+    out = trimesh.boolean.union([base] + parts, engine="manifold")
     print("base extents", base.extents.round(1), "-> with hook", out.extents.round(1))
     print("watertight:", out.is_watertight, "| bodies:", out.body_count, "| volume %.2f cm3" % (out.volume / 1000))
     from shapely.geometry import Point
