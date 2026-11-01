@@ -15,4 +15,7 @@ void add_menu_hints(Gtk::Popover &popover);
 
 // what a tool palette button does, in a sentence; empty if there's nothing more to say than its name
 std::string get_action_hint(const ActionToolID &id);
+
+// palette shapes that can also be dragged onto the floor of the 3D view
+bool is_draggable_shape(ActionID id);
 } // namespace dune3d

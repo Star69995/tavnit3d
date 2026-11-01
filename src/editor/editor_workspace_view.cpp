@@ -15,6 +15,9 @@ UUID Editor::create_workspace_view()
 {
     auto uu = UUID::random();
     auto &wv = m_workspace_views[uu];
+    // simple view starts with a camera-like (perspective) view
+    if (m_win.get_app().m_user_config.simple_ui)
+        wv.m_projection = CanvasProjection::PERSP;
     for (auto doc : m_core.get_documents()) {
         wv.m_documents[doc->get_uuid()];
     }

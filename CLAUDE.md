@@ -289,6 +289,15 @@ Toolchain: MSYS2 at `C:\msys64`, UCRT64 environment, packages as in
   with an X offset of width + gap; only for objects that have an X position.
 - Round hole (palette "Hole"): a 6 x 30 mm cylinder created as a hole body
   (`Editor::add_primitive(..., as_hole)`); move it into an object and press Cut.
+- Drag a shape onto the floor: palette buttons in `is_draggable_shape` (panel_hints.cpp) have a `Gtk::DragSource`
+  (payload `"shape|ACTION_NAME"`), the canvas a `DropTarget` (`Editor::init_canvas`); `Editor::drop_shape` finds the
+  point on the XY plane (`Canvas::get_point_on_plane_at`), sets `m_drop_spot` and triggers the action; shapes take
+  their spot from `Editor::new_object_spot`, and the view doesn't zoom. Automation `drop-shape ACTION X Y`,
+  `expect-tool NAME`; test `tests/ui/drop_shape.txt`. Sketch/drawing palette buttons (Line, Rectangle, Circle,
+  Polygon, Text) are always enabled and start a sketch on the floor first when the current step has no workplane
+  (`is_sketch_draw_tool`); "New" sketches get the current or the XY workplane.
+- Simple view defaults: the installer's `install_options.json` with `simple_ui` also sets the Turntable rotation
+  scheme (once, saved in preferences), and new workspace views start in perspective (`create_workspace_view`).
 - Tool palette Shapes: the common shapes are always shown; Tube, Torus,
   Hexagon, Triangle, Star, Heart, Dome, Screw, Hole, Bowl, Vase fold away
   behind "More" (`Dune3DAppWindow::add_action_bar_collapsible_section`).

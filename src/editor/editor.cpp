@@ -30,6 +30,8 @@
 #include "document/group/group_reference.hpp"
 #include "selection_editor.hpp"
 #include "preferences/color_presets.hpp"
+#include <set>
+#include "util/template_util.hpp"
 #include "workspace_browser.hpp"
 #include "document/constraint/iconstraint_workplane.hpp"
 #include "widgets/clipping_plane_window.hpp"
@@ -475,6 +477,12 @@ void Editor::init_view_options()
     }
 }
 
+static bool is_sketch_draw_tool(ToolID t)
+{
+    return any_of(t, ToolID::DRAW_CONTOUR, ToolID::DRAW_RECTANGLE, ToolID::DRAW_CIRCLE_2D,
+                  ToolID::DRAW_REGULAR_POLYGON, ToolID::DRAW_TEXT);
+}
+
 Gtk::Button &Editor::create_action_bar_button(ActionToolID action, const std::string &label)
 {
     static const std::map<ActionToolID, std::string> action_icons = {
@@ -536,9 +544,40 @@ Gtk::Button &Editor::create_action_bar_button(ActionToolID action, const std::st
     bu->set_has_frame(false);
     bu->add_css_class("action-button");
     bu->signal_clicked().connect([this, action] {
-        if (force_end_tool())
-            trigger_action(action);
+        if (!force_end_tool())
+            return;
+        // drawing needs a sketch: after a ready-made shape the current step is a solid one, so start
+        // a sketch (on the floor) first instead of leaving the drawing tools dead
+        if (const auto tool = std::get_if<ToolID>(&action); tool && is_sketch_draw_tool(*tool) && m_core.has_documents()
+            && !m_core.get_current_workplane()) {
+            on_add_group(Group::Type::SKETCH, WorkspaceBrowserAddGroupMode::WITHOUT_BODY);
+        }
+        trigger_action(action);
     });
+    // shapes can also be dragged from the palette onto the floor of the 3D view
+    if (const auto act = std::get_if<ActionID>(&action)) {
+        if (is_draggable_shape(*act)) {
+            const std::string name = action_lut.lookup_reverse(*act);
+            auto source = Gtk::DragSource::create();
+            source->set_actions(Gdk::DragAction::COPY);
+            source->signal_prepare().connect(
+                    [this, name](double, double) -> Glib::RefPtr<Gdk::ContentProvider> {
+                        if (!m_core.has_documents() || m_core.tool_is_active())
+                            return {};
+                        Glib::Value<Glib::ustring> v;
+                        v.init(Glib::Value<Glib::ustring>::value_type());
+                        v.set("shape|" + name);
+                        return Gdk::ContentProvider::create(v);
+                    },
+                    false);
+            source->signal_drag_begin().connect(
+                    [bu, source](const Glib::RefPtr<Gdk::Drag> &) {
+                        source->set_icon(Gtk::WidgetPaintable::create(*bu), 0, 0);
+                    },
+                    false);
+            bu->add_controller(source);
+        }
+    }
     m_win.add_action_button(*bu);
     m_action_bar_buttons.emplace(action, bu);
     return *bu;
@@ -556,7 +595,8 @@ void Editor::update_action_bar_buttons_sensitivity()
                     sensitive = m_action_sensitivity.at(a);
             }
             else {
-                sensitive = m_core.tool_can_begin(std::get<ToolID>(act), {}).get_can_begin();
+                const auto tool = std::get<ToolID>(act);
+                sensitive = is_sketch_draw_tool(tool) || m_core.tool_can_begin(tool, {}).get_can_begin();
             }
         }
         bu->set_sensitive(sensitive);
@@ -587,6 +627,20 @@ static std::string action_tool_id_to_string(ActionToolID id)
 
 void Editor::init_canvas()
 {
+    {
+        // a shape dragged from the tool palette
+        auto target = Gtk::DropTarget::create(Glib::Value<Glib::ustring>::value_type(), Gdk::DragAction::COPY);
+        target->signal_drop().connect(
+                [this](const Glib::ValueBase &value, double x, double y) {
+                    const auto payload = static_cast<const Glib::Value<Glib::ustring> &>(value).get().raw();
+                    if (!payload.starts_with("shape|"))
+                        return false;
+                    drop_shape(payload.substr(6), x, y);
+                    return true;
+                },
+                false);
+        get_canvas().add_controller(target);
+    }
     {
         auto controller = Gtk::EventControllerKey::create();
         controller->signal_key_pressed().connect(

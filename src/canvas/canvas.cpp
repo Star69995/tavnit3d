@@ -886,9 +886,19 @@ Canvas::pick_buf_t Canvas::read_pick_buf(const std::vector<pick_buf_t> &pick_buf
 
 glm::dvec3 Canvas::get_cursor_pos_for_plane(glm::dvec3 origin, glm::dvec3 normal) const
 {
-    auto r = m_projmat_viewmat_inv * glm::dvec4(m_cursor_pos, -1, 1);
+    return get_pos_for_plane(m_cursor_pos, origin, normal);
+}
+
+glm::dvec3 Canvas::get_point_on_plane_at(double x, double y, glm::dvec3 origin, glm::dvec3 normal) const
+{
+    return get_pos_for_plane({(x / m_width) * 2. - 1., (y / m_height) * -2. + 1.}, origin, normal);
+}
+
+glm::dvec3 Canvas::get_pos_for_plane(const glm::dvec2 &cursor, glm::dvec3 origin, glm::dvec3 normal) const
+{
+    auto r = m_projmat_viewmat_inv * glm::dvec4(cursor, -1, 1);
     r /= r.w;
-    auto r2 = m_projmat_viewmat_inv * glm::dvec4(m_cursor_pos, 1, 1);
+    auto r2 = m_projmat_viewmat_inv * glm::dvec4(cursor, 1, 1);
     r2 /= r2.w;
     const auto mouse_normal = glm::dvec3(glm::normalize(r2 - r));
 
