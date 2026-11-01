@@ -1,4 +1,5 @@
 #include "editor.hpp"
+#include "document/group/group_reference.hpp"
 #include "workspace_browser.hpp"
 #include "dune3d_appwindow.hpp"
 #include "widgets/constraints_box.hpp"
@@ -217,6 +218,17 @@ void Editor::on_add_group(Group::Type group_type, WorkspaceBrowserAddGroupMode a
     if (group_type == Group::Type::SKETCH) {
         auto &group = doc.insert_group<GroupSketch>(UUID::random(), current_group.m_uuid);
         new_group = &group;
+        // ready to draw in: on the workplane in use, else on the floor (after a ready-made shape the
+        // current group has no workplane, and the drawing tools stayed greyed out)
+        if (current_group.m_active_wrkpl) {
+            group.m_active_wrkpl = current_group.m_active_wrkpl;
+        }
+        else {
+            group.m_active_wrkpl = doc.get_reference_group().get_workplane_xy_uuid();
+            // a drawing of its own, so what is made from it is a new object and not a part of the shape before
+            group.m_body.emplace();
+            group.m_body->m_name = "Drawing";
+        }
     }
     else if (group_type == Group::Type::EXTRUDE) {
         if (!current_group.m_active_wrkpl) {

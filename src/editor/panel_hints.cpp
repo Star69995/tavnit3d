@@ -2,6 +2,7 @@
 #include "action/action_id.hpp"
 #include "core/tool_id.hpp"
 #include <map>
+#include <set>
 
 namespace dune3d {
 
@@ -139,6 +140,18 @@ void add_menu_hints(Gtk::Popover &popover)
     popover.signal_map().connect([&popover] { set_menu_hints(popover); });
 }
 
+bool is_draggable_shape(ActionID id)
+{
+    // palette shapes that can also be dragged onto the floor (Editor::drop_shape)
+    static const std::set<ActionID> draggable = {
+            ActionID::ADD_BOX,         ActionID::ADD_CYLINDER,   ActionID::ADD_SPHERE, ActionID::ADD_CONE,
+            ActionID::ADD_WEDGE,       ActionID::ADD_TEXT,       ActionID::ADD_TUBE,   ActionID::ADD_TORUS,
+            ActionID::ADD_HEXAGON,     ActionID::ADD_TRIANGLE,   ActionID::ADD_STAR,   ActionID::ADD_HEART,
+            ActionID::ADD_HALF_SPHERE, ActionID::ADD_HOLE_SHAPE, ActionID::ADD_BOWL,   ActionID::ADD_VASE,
+    };
+    return draggable.contains(id);
+}
+
 std::string get_action_hint(const ActionToolID &id)
 {
     static const std::map<ActionToolID, std::string> hints = {
@@ -185,8 +198,11 @@ std::string get_action_hint(const ActionToolID &id)
              "Join objects into one, cut one out of another, or keep only where they overlap; click an object, "
              "then pick the other one in the panel"},
     };
-    if (auto it = hints.find(id); it != hints.end())
+    if (auto it = hints.find(id); it != hints.end()) {
+        if (const auto act = std::get_if<ActionID>(&id); act && is_draggable_shape(*act))
+            return it->second + ". Click to add it, or drag it onto the floor.";
         return it->second;
+    }
     return {};
 }
 

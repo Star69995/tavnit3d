@@ -134,6 +134,11 @@ void Dune3DApplication::on_startup()
         if (std::filesystem::is_regular_file(options, ec)) {
             try {
                 m_user_config.simple_ui = load_json_from_file(options).value("simple_ui", m_user_config.simple_ui);
+                if (m_user_config.simple_ui) {
+                    // simple view: turntable mouse mode as the starting choice (changeable in Preferences)
+                    m_preferences.canvas.rotation_scheme = RotationScheme::LEGACY;
+                    m_preferences.save();
+                }
             }
             catch (...) {
                 // a broken file is just ignored

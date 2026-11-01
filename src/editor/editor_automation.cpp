@@ -35,6 +35,8 @@ static std::map<std::string, glm::dvec3> s_light_marks; // "light-mark": where a
  *
  *   wait MS                  pause
  *   action NAME              trigger an action or tool by its catalog name (ADD_BOX, DRAW_CIRCLE_2D, ...)
+ *   drop-shape NAME X Y      as if a palette shape (ADD_BOX, ...) was dragged onto the floor at window pixel X Y
+ *   expect-tool NAME         fail unless that tool (DRAW_RECTANGLE, ...) is the one running now
  *   open PATH                open a document
  *   move X Y / click X Y     pointer on the 3D view, in window pixels (as in a shot)
  *   drag X1 Y1 X2 Y2         left-button drag on the 3D view (moves an object grabbed at X1 Y1)
@@ -214,6 +216,19 @@ void Editor::run_automation(const std::filesystem::path &script)
                 else
                     trigger_action(tool_lut.lookup(rest));
                 delay = 500;
+            }
+            else if (cmd == "expect-tool") {
+                if (!m_core.tool_is_active() || m_core.get_tool_id() != tool_lut.lookup(rest))
+                    throw std::runtime_error("tool " + rest + " is not running");
+            }
+            else if (cmd == "drop-shape") {
+                std::istringstream is(rest);
+                std::string name;
+                double x, y;
+                is >> name >> x >> y;
+                const auto p = to_canvas(x, y);
+                drop_shape(name, p.x, p.y);
+                delay = 800;
             }
             else if (cmd == "open") {
                 open_file(rest);

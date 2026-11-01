@@ -15,10 +15,36 @@
 #include "document/entity/entity_text.hpp"
 #include "document/entity/entity_workplane.hpp"
 #include "util/text_render.hpp"
+#include "action/action_catalog.hpp"
+#include <cmath>
 #include <BRepBndLib.hxx>
 #include <Bnd_Box.hxx>
 
 namespace dune3d {
+
+glm::dvec2 Editor::new_object_spot(const Document &doc, const UUID &upto, double footprint) const
+{
+    if (m_drop_spot)
+        return *m_drop_spot;
+    return find_free_spot(doc, upto, footprint);
+}
+
+// a palette button was dragged onto the 3D view: add the shape where it was dropped on the floor (XY plane)
+void Editor::drop_shape(const std::string &action_name, double x, double y)
+{
+    if (!m_core.has_documents() || m_core.tool_is_active())
+        return;
+    const auto p = get_canvas().get_point_on_plane_at(x, y, {0, 0, 0}, {0, 0, 1});
+    if (!std::isfinite(p.x) || !std::isfinite(p.y) || glm::length(p) > 1e5) {
+        m_workspace_browser->show_toast("Drop it on the floor");
+        return;
+    }
+    if (const auto act = action_lut.lookup_opt(action_name)) {
+        m_drop_spot = glm::round(glm::dvec2(p.x, p.y) * 10.) / 10.; // tidy X/Y
+        trigger_action(*act);
+        m_drop_spot.reset();
+    }
+}
 
 void Editor::add_primitive(Primitive primitive, bool as_hole)
 {
@@ -28,7 +54,7 @@ void Editor::add_primitive(Primitive primitive, bool as_hole)
     auto &doc = m_core.get_current_document();
     // next to what's there rather than inside it
     const bool first = get_body_solids(doc, m_core.get_current_group()).empty();
-    const auto pos = find_free_spot(doc, m_core.get_current_group());
+    const auto pos = new_object_spot(doc, m_core.get_current_group());
     PrimitiveParams params;
     if (as_hole) {
         // a 6 mm drill, long enough to go through most things
@@ -47,7 +73,8 @@ void Editor::add_primitive(Primitive primitive, bool as_hole)
     m_workspace_browser->select_group(group.m_uuid);
     if (!m_win.get_app().m_user_config.show_steps) // working with objects: their panel, not the step's
         show_object_editor(m_core.get_current_idocument_info().get_uuid(), group.find_body(doc).group.m_uuid);
-    zoom_to_fit(!first); // the first one gets framed so it's big enough to work with
+    if (!m_drop_spot) // a dropped one stays where the pointer put it; the view doesn't jump
+        zoom_to_fit(!first); // the first one gets framed so it's big enough to work with
 }
 
 /*
@@ -64,7 +91,7 @@ void Editor::add_text_object()
     auto &current = doc.get_group(m_core.get_current_group());
     const UUID wrkpl =
             current.m_active_wrkpl ? current.m_active_wrkpl : doc.get_reference_group().get_workplane_xy_uuid();
-    const auto pos = find_free_spot(doc, current.m_uuid, 40);
+    const auto pos = new_object_spot(doc, current.m_uuid, 40);
 
     auto &sketch = doc.insert_group<GroupSketch>(UUID::random(), current.m_uuid);
     sketch.m_name = doc.find_next_group_name(Group::Type::SKETCH);

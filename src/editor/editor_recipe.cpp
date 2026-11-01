@@ -24,7 +24,7 @@ bool Editor::add_from_recipe(const json &recipe, const std::string &what)
     const auto after = doc.get_groups_sorted().back()->m_uuid;
     // next to what's there; the recipe's own coordinates are relative to that spot
     const bool first = get_body_solids(doc, after).empty();
-    const auto spot = first ? glm::dvec2(0, 0) : find_free_spot(doc, after, 60);
+    const auto spot = m_drop_spot ? *m_drop_spot : first ? glm::dvec2(0, 0) : find_free_spot(doc, after, 60);
     RecipeResult result;
     try {
         result = build_recipe(doc, after, recipe, spot);

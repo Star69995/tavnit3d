@@ -98,6 +98,8 @@ public:
 
     glm::dvec3 get_cursor_pos() const;
     glm::dvec3 get_cursor_pos_for_plane(glm::dvec3 origin, glm::dvec3 normal) const;
+    // where the ray through widget coordinates (x, y) crosses a plane (e.g. for a drop)
+    glm::dvec3 get_point_on_plane_at(double x, double y, glm::dvec3 origin, glm::dvec3 normal) const;
     glm::vec3 get_cam_normal() const;
     glm::dvec2 get_cursor_pos_win() const;
     // whether Shift was held at the last pointer movement
@@ -478,6 +480,7 @@ private:
     SelectionMode m_selection_mode = SelectionMode::HOVER;
     std::optional<SelectableRef> m_hover_selection;
 
+    glm::dvec3 get_pos_for_plane(const glm::dvec2 &cursor, glm::dvec3 origin, glm::dvec3 normal) const;
     double m_last_x = 0, m_last_y = 0;
     void update_hover_selection();
     unsigned int get_hover_pick() const;

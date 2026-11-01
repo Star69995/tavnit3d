@@ -1,0 +1,20 @@
+# A shape dragged from the palette lands where it is dropped on the floor (two drops apart
+# from each other don't overlap), and after a shape the drawing tools start a sketch by themselves.
+action NEW_DOCUMENT
+wait 800
+drop-shape ADD_BOX 500 450
+wait 800
+drop-shape ADD_CYLINDER 900 450
+wait 800
+shot /tmp/dropped.png
+button Rectangle
+wait 800
+expect-tool DRAW_RECTANGLE
+escape
+wait 300
+button Circle
+wait 800
+expect-tool DRAW_CIRCLE_2D
+escape
+wait 300
+quit

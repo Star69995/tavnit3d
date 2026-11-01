@@ -259,6 +259,10 @@ private:
     void import_object_file(const std::filesystem::path &path);
     struct GltfExportOptions get_gltf_export_options();
     void export_gltf_now(const std::filesystem::path &path);
+    // where a shape dragged from the palette was dropped on the floor (set only while it is being added)
+    std::optional<glm::dvec2> m_drop_spot;
+    glm::dvec2 new_object_spot(const Document &doc, const UUID &upto, double footprint = 20) const;
+    void drop_shape(const std::string &action_name, double x, double y);
     std::optional<PlacingDecal> m_placing_decal; // waiting for the click on the object
     void choose_picture_file(const std::string &title, std::function<void(const std::filesystem::path &)> cb);
     void add_picture_object();
