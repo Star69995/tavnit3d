@@ -30,8 +30,12 @@
      -108.2532
     ]
    ],
-   "height": 12,
-   "smooth": false
+   "height": 10,
+   "smooth": false,
+   "hollow": {
+    "thickness": 2,
+    "open": "top"
+   }
   }
  ]
 }
