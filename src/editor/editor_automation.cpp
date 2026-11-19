@@ -11,6 +11,7 @@
 #include "document/screw.hpp"
 #include "nlohmann/json.hpp"
 #include "action_search.hpp"
+#include "document/body_solids.hpp"
 #include "document/group/igroup_solid_model.hpp"
 #include "workspace_browser.hpp"
 #include "action/action_catalog.hpp"
@@ -75,6 +76,7 @@ static std::map<std::string, glm::dvec3> s_light_marks; // "light-mark": where a
  *   recipe PATH              build the objects of a recipe (JSON file, see document/recipe.hpp)
  *   import PATH              import objects from a model file
  *   export-gltf PATH         export the shown objects as glTF, from the current view
+ *   export-stl PATH          export the document's objects as STL (as Export > STL, all objects)
  *   update-check             check for updates as from the menu (feed: DUNE3D_UPDATE_FEED)
  *   panel-scroll F           scroll the side panel to F (0 top ... 1 bottom)
  *   drag-panel NAME X Y      drag the "palette" or "layers" panel by its grip to window pixel X Y
@@ -536,6 +538,9 @@ void Editor::run_automation(const std::filesystem::path &script)
             }
             else if (cmd == "export-gltf") {
                 export_gltf_now(path_from_string(rest));
+            }
+            else if (cmd == "export-stl") {
+                export_bodies_stl(m_core.get_current_document(), path_from_string(rest));
             }
             else if (cmd == "sticker") {
                 if (!m_object_editor)
