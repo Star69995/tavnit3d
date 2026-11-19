@@ -1,0 +1,345 @@
+{
+    "constraints": {
+        "291d9a5f-cf14-41ce-8db8-3b6def0207f8": {
+            "distance": 0.0,
+            "entity1": {
+                "entity": "b6d780ee-a657-5fc0-b6f5-f1cb2dbe1691",
+                "point": 1
+            },
+            "entity2": {
+                "entity": "0c8565ec-7dc6-4d9d-96d0-3b297f419c66",
+                "point": 0
+            },
+            "group": "06057602-5194-4660-84b3-9858c3966b5a",
+            "offset": [
+                0.0,
+                -8.0,
+                0.0
+            ],
+            "type": "point_distance_horizontal",
+            "wrkpl": "b6d780ee-a657-5fc0-b6f5-f1cb2dbe1691"
+        },
+        "3b5f8b29-58bb-4aa3-9be8-1b88bec98853": {
+            "entity": "70623e94-9a72-42ef-ba7d-eefa8edd5bd8",
+            "group": "06057602-5194-4660-84b3-9858c3966b5a",
+            "type": "lock_rotation"
+        },
+        "4421246a-e830-46c9-8f1e-231a76a5c5ee": {
+            "entity1": {
+                "entity": "a403b98c-138a-4791-9789-eaea10ce604d",
+                "point": 2
+            },
+            "entity2": {
+                "entity": "bda2590c-5581-4856-8dd1-1833c22cc3fa",
+                "point": 1
+            },
+            "group": "06057602-5194-4660-84b3-9858c3966b5a",
+            "type": "points_coincident",
+            "wrkpl": "70623e94-9a72-42ef-ba7d-eefa8edd5bd8"
+        },
+        "67fbe947-bed4-4e5b-ab87-c0b18c0cd0a5": {
+            "distance": 0.0,
+            "entity1": {
+                "entity": "b6d780ee-a657-5fc0-b6f5-f1cb2dbe1691",
+                "point": 1
+            },
+            "entity2": {
+                "entity": "0c8565ec-7dc6-4d9d-96d0-3b297f419c66",
+                "point": 0
+            },
+            "group": "06057602-5194-4660-84b3-9858c3966b5a",
+            "offset": [
+                -8.0,
+                0.0,
+                0.0
+            ],
+            "type": "point_distance_vertical",
+            "wrkpl": "b6d780ee-a657-5fc0-b6f5-f1cb2dbe1691"
+        },
+        "74bf9ba4-8070-4c38-8f10-482630bf5ab8": {
+            "entity1": {
+                "entity": "80175363-be16-420d-80a0-c10c46a5c1fd",
+                "point": 2
+            },
+            "entity2": {
+                "entity": "1c9b099c-6e78-4c47-afe1-527ffd2ad009",
+                "point": 1
+            },
+            "group": "06057602-5194-4660-84b3-9858c3966b5a",
+            "type": "points_coincident",
+            "wrkpl": "70623e94-9a72-42ef-ba7d-eefa8edd5bd8"
+        },
+        "8c43e423-75b3-44c2-a97e-64c70bb6a117": {
+            "entity1": {
+                "entity": "bda2590c-5581-4856-8dd1-1833c22cc3fa",
+                "point": 2
+            },
+            "entity2": {
+                "entity": "2db1c1ef-197d-4791-a1d3-c33b40e56dda",
+                "point": 1
+            },
+            "group": "06057602-5194-4660-84b3-9858c3966b5a",
+            "type": "points_coincident",
+            "wrkpl": "70623e94-9a72-42ef-ba7d-eefa8edd5bd8"
+        },
+        "a40f1028-2822-4be5-bd3b-4b3d410ab2bb": {
+            "entity1": {
+                "entity": "70623e94-9a72-42ef-ba7d-eefa8edd5bd8",
+                "point": 1
+            },
+            "entity2": {
+                "entity": "0c8565ec-7dc6-4d9d-96d0-3b297f419c66",
+                "point": 0
+            },
+            "group": "06057602-5194-4660-84b3-9858c3966b5a",
+            "type": "points_coincident"
+        },
+        "b8622080-dc44-4293-a913-a243c70fa8cc": {
+            "entity1": {
+                "entity": "2db1c1ef-197d-4791-a1d3-c33b40e56dda",
+                "point": 2
+            },
+            "entity2": {
+                "entity": "80175363-be16-420d-80a0-c10c46a5c1fd",
+                "point": 1
+            },
+            "group": "06057602-5194-4660-84b3-9858c3966b5a",
+            "type": "points_coincident",
+            "wrkpl": "70623e94-9a72-42ef-ba7d-eefa8edd5bd8"
+        },
+        "cc35423a-7be7-47b9-a8b8-fdc088e2a774": {
+            "distance": 12.0,
+            "entity1": {
+                "entity": "7b41f9ae-d97c-55a7-9b74-428f326cbf69",
+                "point": 1
+            },
+            "entity2": {
+                "entity": "7b41f9ae-d97c-55a7-9b74-428f326cbf69",
+                "point": 2
+            },
+            "group": "71e80cd5-7f79-49de-8e0e-c1df2355c197",
+            "offset": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "type": "point_distance",
+            "wrkpl": "00000000-0000-0000-0000-000000000000"
+        },
+        "d1b46929-2b33-41a2-92c4-857353730d28": {
+            "entity1": {
+                "entity": "1c9b099c-6e78-4c47-afe1-527ffd2ad009",
+                "point": 2
+            },
+            "entity2": {
+                "entity": "20573208-1646-4b44-ae4a-151ffdbc7fcb",
+                "point": 1
+            },
+            "group": "06057602-5194-4660-84b3-9858c3966b5a",
+            "type": "points_coincident",
+            "wrkpl": "70623e94-9a72-42ef-ba7d-eefa8edd5bd8"
+        },
+        "e12b6406-0a9d-4502-b7c6-b017e7690e57": {
+            "entity1": {
+                "entity": "20573208-1646-4b44-ae4a-151ffdbc7fcb",
+                "point": 2
+            },
+            "entity2": {
+                "entity": "a403b98c-138a-4791-9789-eaea10ce604d",
+                "point": 1
+            },
+            "group": "06057602-5194-4660-84b3-9858c3966b5a",
+            "type": "points_coincident",
+            "wrkpl": "70623e94-9a72-42ef-ba7d-eefa8edd5bd8"
+        }
+    },
+    "entities": {
+        "0c8565ec-7dc6-4d9d-96d0-3b297f419c66": {
+            "construction": true,
+            "group": "06057602-5194-4660-84b3-9858c3966b5a",
+            "name": "",
+            "p": [
+                0.0,
+                0.0
+            ],
+            "type": "point_2d",
+            "wrkpl": "b6d780ee-a657-5fc0-b6f5-f1cb2dbe1691"
+        },
+        "1c9b099c-6e78-4c47-afe1-527ffd2ad009": {
+            "construction": false,
+            "group": "06057602-5194-4660-84b3-9858c3966b5a",
+            "name": "",
+            "p1": [
+                -125.0,
+                0.0
+            ],
+            "p2": [
+                -62.5,
+                -108.2532
+            ],
+            "type": "line_2d",
+            "wrkpl": "70623e94-9a72-42ef-ba7d-eefa8edd5bd8"
+        },
+        "20573208-1646-4b44-ae4a-151ffdbc7fcb": {
+            "construction": false,
+            "group": "06057602-5194-4660-84b3-9858c3966b5a",
+            "name": "",
+            "p1": [
+                -62.5,
+                -108.2532
+            ],
+            "p2": [
+                62.5,
+                -108.2532
+            ],
+            "type": "line_2d",
+            "wrkpl": "70623e94-9a72-42ef-ba7d-eefa8edd5bd8"
+        },
+        "2db1c1ef-197d-4791-a1d3-c33b40e56dda": {
+            "construction": false,
+            "group": "06057602-5194-4660-84b3-9858c3966b5a",
+            "name": "",
+            "p1": [
+                62.5,
+                108.2532
+            ],
+            "p2": [
+                -62.5,
+                108.2532
+            ],
+            "type": "line_2d",
+            "wrkpl": "70623e94-9a72-42ef-ba7d-eefa8edd5bd8"
+        },
+        "70623e94-9a72-42ef-ba7d-eefa8edd5bd8": {
+            "construction": false,
+            "group": "06057602-5194-4660-84b3-9858c3966b5a",
+            "name": "",
+            "normal": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+            ],
+            "origin": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "size": [
+                2.0,
+                2.0
+            ],
+            "type": "workplane"
+        },
+        "80175363-be16-420d-80a0-c10c46a5c1fd": {
+            "construction": false,
+            "group": "06057602-5194-4660-84b3-9858c3966b5a",
+            "name": "",
+            "p1": [
+                -62.5,
+                108.2532
+            ],
+            "p2": [
+                -125.0,
+                0.0
+            ],
+            "type": "line_2d",
+            "wrkpl": "70623e94-9a72-42ef-ba7d-eefa8edd5bd8"
+        },
+        "a403b98c-138a-4791-9789-eaea10ce604d": {
+            "construction": false,
+            "group": "06057602-5194-4660-84b3-9858c3966b5a",
+            "name": "",
+            "p1": [
+                62.5,
+                -108.2532
+            ],
+            "p2": [
+                125.0,
+                0.0
+            ],
+            "type": "line_2d",
+            "wrkpl": "70623e94-9a72-42ef-ba7d-eefa8edd5bd8"
+        },
+        "bda2590c-5581-4856-8dd1-1833c22cc3fa": {
+            "construction": false,
+            "group": "06057602-5194-4660-84b3-9858c3966b5a",
+            "name": "",
+            "p1": [
+                125.0,
+                0.0
+            ],
+            "p2": [
+                62.5,
+                108.2532
+            ],
+            "type": "line_2d",
+            "wrkpl": "70623e94-9a72-42ef-ba7d-eefa8edd5bd8"
+        }
+    },
+    "groups": {
+        "06057602-5194-4660-84b3-9858c3966b5a": {
+            "active_wrkpl": "b6d780ee-a657-5fc0-b6f5-f1cb2dbe1691",
+            "body": {
+                "color": null,
+                "name": "Hexagon"
+            },
+            "index": 2,
+            "name": "Sketch 2",
+            "operation": "union",
+            "type": "sketch"
+        },
+        "3ec7e527-fd41-420a-8cdf-16f0b55e8973": {
+            "active_wrkpl": "00000000-0000-0000-0000-000000000000",
+            "body": {
+                "color": null,
+                "name": "Body"
+            },
+            "index": 0,
+            "name": "Reference",
+            "show_xy": true,
+            "show_yz": false,
+            "show_zx": false,
+            "type": "reference",
+            "xy_size": [
+                500.0,
+                500.0
+            ],
+            "yz_size": [
+                100.0,
+                100.0
+            ],
+            "zx_size": [
+                100.0,
+                100.0
+            ]
+        },
+        "71e80cd5-7f79-49de-8e0e-c1df2355c197": {
+            "active_wrkpl": "00000000-0000-0000-0000-000000000000",
+            "body": null,
+            "direction": "normal",
+            "dvec": [
+                0.0,
+                0.0,
+                12.0
+            ],
+            "index": 3,
+            "mode": "single",
+            "name": "Extruded shape",
+            "operation": "union",
+            "source_group": "06057602-5194-4660-84b3-9858c3966b5a",
+            "type": "extrude",
+            "wrkpl": "70623e94-9a72-42ef-ba7d-eefa8edd5bd8"
+        },
+        "830e9aed-463c-41d7-ae3c-0343eccc8775": {
+            "active_wrkpl": "b6d780ee-a657-5fc0-b6f5-f1cb2dbe1691",
+            "body": null,
+            "index": 1,
+            "name": "Sketch 1",
+            "operation": "union",
+            "type": "sketch"
+        }
+    },
+    "type": "document",
+    "version": 39
+}
