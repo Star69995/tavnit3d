@@ -33,7 +33,7 @@
    "height": 10,
    "smooth": false,
    "hollow": {
-    "thickness": 2.4,
+    "thickness": 3,
     "open": "top"
    }
   }
